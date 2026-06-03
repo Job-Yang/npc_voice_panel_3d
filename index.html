@@ -22,12 +22,26 @@
   .topbar .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff7733; box-shadow: 0 0 10px #ff7733; }
 
   /* 左侧控制面板 */
+  .panel-toggle {
+    position: fixed; top: 16px; left: 16px; z-index: 20;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: rgba(20, 14, 10, .76); color: #e8d5b0;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,170,100,.18); border-radius: 12px;
+    cursor: pointer; font-size: 13px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+  }
+  .panel-toggle:hover { background: rgba(35, 22, 16, .86); }
   .panel {
-    position: fixed; top: 16px; left: 16px;
-    background: rgba(20, 14, 10, .7); backdrop-filter: blur(10px);
+    position: fixed; top: 64px; left: 16px; z-index: 19;
+    background: rgba(20, 14, 10, .72); backdrop-filter: blur(10px);
     padding: 14px 18px; border-radius: 14px; border: 1px solid rgba(255,170,100,.15);
     min-width: 220px;
+    opacity: 0; transform: translateX(-20px) scale(.98); pointer-events: none;
+    transition: opacity .22s, transform .22s;
   }
+  .panel.show { opacity: 1; transform: translateX(0) scale(1); pointer-events: auto; }
   .panel h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #ffaa66; letter-spacing: .5px; }
   .panel .row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 13px; }
   .panel .row label { opacity: .75; }
@@ -75,6 +89,31 @@
   }
   .hover-label.show { opacity: 1; }
 
+  .npc-bubble {
+    position: fixed;
+    max-width: 300px;
+    padding: 10px 14px;
+    background: rgba(20, 14, 10, .92);
+    color: #f0e0c8;
+    border: 1px solid rgba(255,170,100,.35);
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: .2px;
+    text-align: center;
+    pointer-events: none;
+    transform: translate(-50%, -120%);
+    opacity: 0;
+    transition: opacity .18s, transform .18s;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    z-index: 18;
+  }
+  .npc-bubble.show {
+    opacity: 1;
+    transform: translate(-50%, -135%);
+  }
+
   /* 底部操作提示 */
   .hint {
     position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
@@ -110,7 +149,9 @@
 
 <div class="topbar"><span class="dot"></span><span>铁匠铺 · NPC Voice Panel 3D</span></div>
 
-<div class="panel">
+<button class="panel-toggle" id="panelToggle">⚙️ 控制面板</button>
+
+<div class="panel" id="sidePanel">
   <h2>🔨 NPC 列表</h2>
   <button class="npc-btn" data-npc="master">兽族苦工</button>
   <button class="npc-btn" data-npc="apprentice">人族农民</button>
@@ -138,6 +179,7 @@
 </div>
 
 <div class="hover-label" id="hoverLabel"></div>
+<div class="npc-bubble" id="npcBubble"></div>
 <div class="hint">左键拖拽 · 滚轮缩放 · 点击 NPC 对话</div>
 
 <script type="importmap">
@@ -162,8 +204,8 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 // 地板高度（背景 GLB 的地板表面 y 值，按实际穿模程度微调）
 const FLOOR_Y = 0.35;
 const DEFAULT_BG_SCALE = 12;
-const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 1.35, 0.8);
-const DEFAULT_CAMERA_DISTANCE = 9.5;
+const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 1.3, 0.95);
+const DEFAULT_CAMERA_DISTANCE = 8.2;
 const CAMERA_YAW = 0;
 const CAMERA_PITCH = 0.22;
 // War3 语音文件列表（随机播放）
@@ -231,6 +273,11 @@ const yqLines = [
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 let currentAudio = null;
+let currentAudioKey = null;
+let autoTalkTimer = null;
+let bubbleTimer = null;
+let bubbleKey = null;
+let lastAutoTalkAt = 0;
 let bgRoot = null;
 let bgFitBase = null;
 let furnaceFireMesh = null;
@@ -567,6 +614,9 @@ let hoverKey = null;
 let activeKey = null;
 const hoverLabel = document.getElementById('hoverLabel');
 const dialog = document.getElementById('dialog');
+const npcBubble = document.getElementById('npcBubble');
+const sidePanel = document.getElementById('sidePanel');
+const panelToggle = document.getElementById('panelToggle');
 
 function pickNPC(event) {
   pointer.x = (event.clientX / innerWidth) * 2 - 1;
@@ -603,6 +653,125 @@ canvas.addEventListener('click', e => {
   if (key) selectNPC(key);
 });
 
+function talkMotionNPC(key, duration = 2200) {
+  const n = npcs[key];
+  if (!n || !n.root) return;
+  const root = n.root;
+  if (root.userData.talkAnimating) return;
+
+  root.userData.talkAnimating = true;
+  const baseRotY = root.userData.baseRotY ?? root.rotation.y;
+  root.userData.baseRotY = baseRotY;
+  const start = performance.now();
+
+  const box = new THREE.Box3().setFromObject(root);
+  const center = box.getCenter(new THREE.Vector3());
+  const camDir = camera.position.clone().sub(center);
+  const lookYaw = Math.atan2(camDir.x, camDir.z);
+  let turnDelta = lookYaw - baseRotY;
+  while (turnDelta > Math.PI) turnDelta -= Math.PI * 2;
+  while (turnDelta < -Math.PI) turnDelta += Math.PI * 2;
+  turnDelta = Math.max(-0.28, Math.min(0.28, turnDelta));
+
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const talkWave = Math.sin(t * Math.PI) * turnDelta;
+    const shake = Math.sin(t * Math.PI * 6.0) * 0.06 * (1 - t * 0.35);
+    root.rotation.y = baseRotY + talkWave + shake;
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      root.rotation.y = baseRotY;
+      root.userData.talkAnimating = false;
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+
+function showNPCBubble(key, text, duration = 3200) {
+  bubbleKey = key;
+  npcBubble.textContent = text;
+  npcBubble.classList.add('show');
+  clearTimeout(bubbleTimer);
+  bubbleTimer = setTimeout(() => {
+    hideNPCBubble(key);
+  }, duration);
+}
+
+function hideNPCBubble(key = null) {
+  if (key && bubbleKey && key !== bubbleKey) return;
+  npcBubble.classList.remove('show');
+  if (!key || key === bubbleKey) bubbleKey = null;
+}
+
+function updateNPCBubblePosition() {
+  if (!bubbleKey || !npcs[bubbleKey]?.root) return;
+  const root = npcs[bubbleKey].root;
+  const box = new THREE.Box3().setFromObject(root);
+  const top = box.getCenter(new THREE.Vector3());
+  top.y = box.max.y + 0.2;
+  top.project(camera);
+  const x = (top.x * 0.5 + 0.5) * innerWidth;
+  const y = (-top.y * 0.5 + 0.5) * innerHeight;
+  npcBubble.style.left = x + 'px';
+  npcBubble.style.top = y + 'px';
+}
+
+function togglePanel(force) {
+  const show = typeof force === 'boolean' ? force : !sidePanel.classList.contains('show');
+  sidePanel.classList.toggle('show', show);
+  panelToggle.textContent = show ? '✕ 收起面板' : '⚙️ 控制面板';
+}
+
+function getRandomTalkDelay() {
+  return 7000 + Math.random() * 7000;
+}
+
+function triggerRandomAmbientTalk(force = false) {
+  if (dialog.classList.contains('show') && !force) return;
+
+  const now = performance.now();
+  if (!force && now - lastAutoTalkAt < 5000) return;
+  lastAutoTalkAt = now;
+
+  const allKeys = ['master', 'apprentice', 'yq'];
+  const key = pickRandom(allKeys);
+  const line = (key === 'yq') ? pickRandom(yqLines) : NPC_CONFIG[key].line;
+
+  document.querySelectorAll('.npc-btn[data-npc]').forEach(b => {
+    b.classList.toggle('active', b.dataset.npc === key);
+  });
+  activeKey = key;
+  bounceNPC(key);
+  talkMotionNPC(key, 2200);
+  showNPCBubble(key, line, 3600);
+
+  if (!(currentAudio && !currentAudio.paused)) {
+    window.onNPCSelected(key, { auto: true });
+  }
+
+  setTimeout(() => {
+    if (activeKey === key) activeKey = null;
+    document.querySelectorAll('.npc-btn[data-npc]').forEach(b => b.classList.remove('active'));
+  }, 3600);
+}
+
+function scheduleAutoTalk() {
+  clearTimeout(autoTalkTimer);
+  autoTalkTimer = setTimeout(() => {
+    triggerRandomAmbientTalk();
+    scheduleAutoTalk();
+  }, getRandomTalkDelay());
+}
+
+function kickOffAutoTalk() {
+  setTimeout(() => {
+    triggerRandomAmbientTalk(true);
+    scheduleAutoTalk();
+  }, 1200);
+}
+
 function selectNPC(key) {
   activeKey = key;
   // 高亮按钮
@@ -620,6 +789,7 @@ function selectNPC(key) {
   dialog.classList.add('show');
   // 被选中的 NPC 弹跳一下
   bounceNPC(key);
+  talkMotionNPC(key, 1800);
   // 相机聚焦
   focusOn(npcs[key].root);
   // 触发语音
@@ -648,7 +818,7 @@ function bounceNPC(key) {
 }
 
 // 暴露给外部接你现成的语音逻辑
-window.onNPCSelected = function(key) {
+window.onNPCSelected = function(key, options = {}) {
   const files = voiceFiles[key];
   if (!files || files.length === 0) return; // YQ 无语音
   if (currentAudio) {
@@ -657,6 +827,13 @@ window.onNPCSelected = function(key) {
   }
   const url = pickRandom(files);
   currentAudio = new Audio(url);
+  currentAudioKey = key;
+  currentAudio.addEventListener('ended', () => {
+    if (currentAudioKey === key) {
+      currentAudio = null;
+      currentAudioKey = null;
+    }
+  }, { once: true });
   currentAudio.play().catch(err => {
     console.warn('语音播放失败:', err);
   });
@@ -666,6 +843,8 @@ function stopCurrentAudio() {
   if (!currentAudio) return;
   currentAudio.pause();
   currentAudio.currentTime = 0;
+  currentAudio = null;
+  currentAudioKey = null;
 }
 
 // 相机平滑飞向某个 NPC
@@ -693,11 +872,23 @@ function animateCamera(toPos, toTarget, duration) {
 }
 
 // ============== 控件 ==============
+panelToggle.addEventListener('click', (e) => {
+  e.stopPropagation();
+  togglePanel();
+});
+
+document.addEventListener('click', (e) => {
+  if (!sidePanel.classList.contains('show')) return;
+  if (sidePanel.contains(e.target) || panelToggle.contains(e.target)) return;
+  togglePanel(false);
+});
+
 document.querySelectorAll('.npc-btn[data-npc]').forEach(b => {
   b.addEventListener('click', () => selectNPC(b.dataset.npc));
 });
 document.getElementById('btnClose').addEventListener('click', () => {
   dialog.classList.remove('show');
+  hideNPCBubble();
   activeKey = null;
   stopCurrentAudio();
   document.getElementById('btnPlay').style.display = '';
@@ -765,10 +956,14 @@ function animate() {
       n.root.position.y = n.baseY + Math.sin(t * 1.4 + i * 1.7) * 0.012;
     }
   });
+  updateNPCBubblePosition();
   controls.update();
   renderer.render(scene, camera);
 }
 animate();
+kickOffAutoTalk();
+
+togglePanel(false);
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
