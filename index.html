@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>铁匠铺 · NPC Voice Panel 3D</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0d0905; color: #e8d5b0;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  #viewer { display: block; width: 100vw; height: 100vh; cursor: grab; }
+  #viewer:active { cursor: grabbing; }
+
+  /* 顶部标题 */
+  .topbar {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(20, 14, 10, .65); backdrop-filter: blur(10px);
+    padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(255,170,100,.15);
+    display: flex; align-items: center; gap: 12px;
+    font-size: 14px; pointer-events: none;
+  }
+  .topbar .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff7733; box-shadow: 0 0 10px #ff7733; }
+
+  /* 左侧控制面板 */
+  .panel {
+    position: fixed; top: 16px; left: 16px;
+    background: rgba(20, 14, 10, .7); backdrop-filter: blur(10px);
+    padding: 14px 18px; border-radius: 14px; border: 1px solid rgba(255,170,100,.15);
+    min-width: 220px;
+  }
+  .panel h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: #ffaa66; letter-spacing: .5px; }
+  .panel .row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+  .panel .row label { opacity: .75; }
+  .panel button.npc-btn {
+    width: 100%; margin: 4px 0; padding: 8px 12px;
+    background: rgba(255,170,100,.08); color: #e8d5b0;
+    border: 1px solid rgba(255,170,100,.2); border-radius: 8px;
+    cursor: pointer; font-size: 13px; text-align: left;
+    transition: all .2s;
+  }
+  .panel button.npc-btn:hover { background: rgba(255,170,100,.18); border-color: rgba(255,170,100,.5); }
+  .panel button.npc-btn.active { background: rgba(255,119,51,.25); border-color: #ff7733; }
+  .panel input[type=range] { width: 100%; }
+
+  /* 右下角对话气泡 */
+  .dialog {
+    position: fixed; right: 24px; bottom: 24px;
+    max-width: 360px; padding: 16px 20px;
+    background: rgba(20, 14, 10, .85); backdrop-filter: blur(12px);
+    border-radius: 14px; border: 1px solid rgba(255,170,100,.3);
+    box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    opacity: 0; transform: translateY(20px); pointer-events: none;
+    transition: opacity .25s, transform .25s;
+  }
+  .dialog.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .dialog .name { font-size: 13px; font-weight: 600; color: #ff9955; margin-bottom: 6px; }
+  .dialog .line { font-size: 14px; line-height: 1.6; color: #f0e0c8; }
+  .dialog .actions { margin-top: 12px; display: flex; gap: 8px; }
+  .dialog .actions button {
+    flex: 1; padding: 6px 10px; font-size: 12px;
+    background: rgba(255,170,100,.12); color: #e8d5b0;
+    border: 1px solid rgba(255,170,100,.3); border-radius: 6px; cursor: pointer;
+  }
+  .dialog .actions button:hover { background: rgba(255,170,100,.25); }
+
+  /* Hover 名字标签 */
+  .hover-label {
+    position: fixed; padding: 4px 10px;
+    background: rgba(20, 14, 10, .9); color: #ffaa66;
+    border-radius: 6px; font-size: 12px;
+    pointer-events: none; transform: translate(-50%, -130%);
+    border: 1px solid rgba(255,170,100,.3);
+    opacity: 0; transition: opacity .15s;
+    white-space: nowrap;
+  }
+  .hover-label.show { opacity: 1; }
+
+  /* 底部操作提示 */
+  .hint {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    font-size: 12px; opacity: .5; pointer-events: none;
+  }
+
+  /* 加载遮罩 */
+  .loader {
+    position: fixed; inset: 0; background: #0d0905;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px; z-index: 100;
+    transition: opacity .5s;
+  }
+  .loader.hide { opacity: 0; pointer-events: none; }
+  .loader .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(255,170,100,.2);
+    border-top-color: #ff7733;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  .loader .text { font-size: 13px; color: #ffaa66; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<canvas id="viewer"></canvas>
+
+<div class="loader" id="loader">
+  <div class="spinner"></div>
+  <div class="text">正在生火 · 加载铁匠铺...</div>
+</div>
+
+<div class="topbar"><span class="dot"></span><span>铁匠铺 · NPC Voice Panel 3D</span></div>
+
+<div class="panel">
+  <h2>🔨 NPC 列表</h2>
+  <button class="npc-btn" data-npc="master">兽族苦工</button>
+  <button class="npc-btn" data-npc="apprentice">人族农民</button>
+  <button class="npc-btn" data-npc="yq">YQ</button>
+
+  <h2 style="margin-top: 16px;">🎥 视角</h2>
+  <div class="row">
+    <label>视角距离</label>
+    <input type="range" id="cameraDistance" min="6" max="14" step="0.1" value="9.5" style="width: 100px;" />
+  </div>
+  <div class="row">
+    <label>炉火强度</label>
+    <input type="range" id="fireIntensity" min="0" max="4" step="0.1" value="2.2" style="width: 100px;" />
+  </div>
+  <button class="npc-btn" id="resetView" style="margin-top: 8px;">🔄 重置视角</button>
+</div>
+
+<div class="dialog" id="dialog">
+  <div class="name" id="dlgName">兽族苦工</div>
+  <div class="line" id="dlgLine">欢迎来到老张的铁匠铺，要打把什么家伙？</div>
+  <div class="actions">
+    <button id="btnPlay">🔊 播放语音</button>
+    <button id="btnClose">关闭</button>
+  </div>
+</div>
+
+<div class="hover-label" id="hoverLabel"></div>
+<div class="hint">左键拖拽 · 滚轮缩放 · 点击 NPC 对话</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ============== NPC 配置（替换 url 为你的真实 GLB 路径即可） ==============
+// 地板高度（背景 GLB 的地板表面 y 值，按实际穿模程度微调）
+const FLOOR_Y = 0.35;
+const DEFAULT_BG_SCALE = 12;
+const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 1.35, 0.8);
+const DEFAULT_CAMERA_DISTANCE = 9.5;
+const CAMERA_YAW = 0;
+const CAMERA_PITCH = 0.22;
+// War3 语音文件列表（随机播放）
+const voiceFiles = {
+  // 兽族苦工：用 War3 苦工语音，声音更粗
+  master: [
+    './assets/voice/peonpissed1.wav',
+    './assets/voice/peonpissed2.wav',
+    './assets/voice/peonpissed3.wav',
+    './assets/voice/peonpissed4.wav',
+    './assets/voice/peonpissed5.wav',
+    './assets/voice/peonready1.wav',
+    './assets/voice/peonwarcry1.wav',
+    './assets/voice/peonwhat1.wav',
+    './assets/voice/peonwhat2.wav',
+    './assets/voice/peonwhat3.wav',
+    './assets/voice/peonwhat4.wav',
+    './assets/voice/peonyes1.wav',
+    './assets/voice/peonyes2.wav',
+  ],
+  // 人族农民：用 War3 农民语音
+  apprentice: [
+    './assets/voice/peasantpissed1.wav',
+    './assets/voice/peasantpissed2.wav',
+    './assets/voice/peasantpissed3.wav',
+    './assets/voice/peasantpissed4.wav',
+    './assets/voice/peasantpissed5.wav',
+    './assets/voice/peasantready1.wav',
+    './assets/voice/peasantwarcry1.wav',
+    './assets/voice/peasantwhat1.wav',
+    './assets/voice/peasantwhat2.wav',
+    './assets/voice/peasantwhat3.wav',
+    './assets/voice/peasantwhat4.wav',
+    './assets/voice/peasantyes1.wav',
+    './assets/voice/peasantyes2.wav',
+  ],
+  yq: null, // YQ 无语音，只显示台词
+};
+
+// YQ 随机台词池
+const yqLines = [
+  'AI的地震来了,可我却测不出震级(狗头)',
+  'AI比我更懂这个项目',
+  '我负责拍脑袋,AI 负责拍键盘',
+  'AI 说"你说得对",我心里一紧',
+  '又被 AI 一本正经地骗了',
+  'AI 把 TODO 实现了,逻辑是错的',
+  '我现在的工作是给AI当小弟',
+  'AI 给的方案太通用了,像没说',
+  '让它简化一下,它给我重写了',
+  '问它"为什么",它开始道歉',
+  'Diff 太长,AI 自己都不看了',
+  '幻觉是它的,背锅是我的',
+  '今天的灵感来自一次 retry',
+  '我不是在摸鱼,我在等GPT 5.5',
+  '能跑就别动,动了就别问我',
+  '有什么需求,跟我的Agent去说吧',
+  '让它解释代码,它先道了个歉',
+  'AI 写的注释比代码长',
+  '我让它再想想,它换了个错法',
+  '回滚到 AI 介入之前',
+  'AI时代我还是苦工,只是挖矿的方式不一样了',
+];
+
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+let currentAudio = null;
+let bgRoot = null;
+let bgFitBase = null;
+let furnaceFireMesh = null;
+let furnaceFireBasePositions = null;
+
+const NPC_CONFIG = {
+  master:     { name: '兽族苦工', url: './assets/npc_master.glb',     position: [-3.15, 0, 2.95], scale: 1.0, color: 0x884422,
+                line: '欢迎来到老张的铁匠铺，要打把什么家伙？',
+                rotY: 0.05,                // 往前挪并更朝向镜头，避免被铁砧和底座挡住
+                prop: 'anvil' },
+  apprentice: { name: '人族农民',   url: './assets/npc_apprentice.glb', position: [2.2, 0, 1.0],   scale: 0.9, color: 0xaa6633,
+                line: '师傅...这个火候是不是又过了？',
+                rotY: -0.6,                // 侧身朝炉火
+                prop: 'bucket' },
+  yq:         { name: 'YQ',         url: './assets/npc_yq.glb',         position: [0.3, 0, 3.2],   scale: 1.0, color: 0x2266aa,
+                line: '在调试新的 3D 流水线，等下给你看个 Demo。',
+                rotY: -0.2,                // 微微侧身
+                prop: null }               // YQ 不挡手
+};
+const BG_URL = './assets/bg_smithy.glb'; // 铁匠铺背景
+
+// ============== 基础场景 ==============
+const canvas = document.getElementById('viewer');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0905);
+scene.fog = new THREE.Fog(0x0d0905, 8, 20);
+
+// 环境反射（让 PBR 材质有反射）
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+
+function getCameraPosition(distance = DEFAULT_CAMERA_DISTANCE, target = DEFAULT_CAMERA_TARGET) {
+  const x = target.x + Math.sin(CAMERA_YAW) * distance;
+  const z = target.z + Math.cos(CAMERA_YAW) * distance;
+  const y = target.y + Math.sin(CAMERA_PITCH) * distance * 0.6;
+  return new THREE.Vector3(x, y, z);
+}
+
+camera.position.copy(getCameraPosition());
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.copy(DEFAULT_CAMERA_TARGET);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 6;
+controls.maxDistance = 14;
+controls.enablePan = false;
+controls.minAzimuthAngle = -Infinity;
+controls.maxAzimuthAngle = Infinity;
+controls.minPolarAngle = 0.68;
+controls.maxPolarAngle = 1.42;
+controls.update();
+
+// ============== 灯光（铁匠铺炉火氛围）==============
+const ambient = new THREE.AmbientLight(0xffaa66, 0.4);
+scene.add(ambient);
+
+// 主光：从前上方的暖黄
+const keyLight = new THREE.DirectionalLight(0xffd9a0, 1.35);
+keyLight.position.set(3, 5, 4);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+keyLight.shadow.camera.near = 1;
+keyLight.shadow.camera.far = 20;
+keyLight.shadow.camera.left = -5; keyLight.shadow.camera.right = 5;
+keyLight.shadow.camera.top = 5;   keyLight.shadow.camera.bottom = -5;
+scene.add(keyLight);
+
+// 炉火光：主炉正前方的橙红
+const fireLight = new THREE.PointLight(0xff6a2a, 2.2, 10, 1.7);
+fireLight.position.set(0, 1.75, 1.25);
+scene.add(fireLight);
+
+// 炉膛内部补一盏更集中的暖光
+const furnaceCoreLight = new THREE.PointLight(0xffaa55, 1.4, 4.5, 2.0);
+furnaceCoreLight.position.set(0, 1.45, 0.95);
+scene.add(furnaceCoreLight);
+
+// 右侧工作台补一点暖反射，避免只有中间亮
+const benchFillLight = new THREE.PointLight(0xff8a45, 0.65, 6, 2.0);
+benchFillLight.position.set(2.8, 1.2, 0.8);
+scene.add(benchFillLight);
+
+// 补光：背后冷蓝（拉对比）
+const rimLight = new THREE.DirectionalLight(0x4477aa, 0.22);
+rimLight.position.set(-2, 3, -4);
+scene.add(rimLight);
+
+// ============== 地面（在背景 GLB 没加载前的兜底）==============
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(8, 64),
+  new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 0.9, metalness: 0.05 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ============== 加载器 ==============
+// Draco 几何解压（压缩脚本 compress.sh 会用到 draco）
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+// KTX2 贴图解压（如果之后启用 ktx2 压缩，提前接好）
+const ktx2Loader = new KTX2Loader();
+ktx2Loader.setTranscoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/basis/');
+ktx2Loader.detectSupport(renderer);
+
+const loader = new GLTFLoader();
+loader.setDRACOLoader(dracoLoader);
+loader.setKTX2Loader(ktx2Loader);
+loader.setMeshoptDecoder(MeshoptDecoder);
+
+const npcs = {}; // { key: { root, originalEmissive, config } }
+let loadCount = 0;
+const TOTAL = Object.keys(NPC_CONFIG).length + 1; // +1 for bg
+
+function tickLoad() {
+  loadCount++;
+  if (loadCount >= TOTAL) {
+    document.getElementById('loader').classList.add('hide');
+  }
+}
+
+// 加载背景
+loader.load(BG_URL, gltf => {
+  const bg = gltf.scene;
+  bgRoot = bg;
+  bg.traverse(o => { if (o.isMesh) { o.receiveShadow = true; o.castShadow = true; }});
+  const box = new THREE.Box3().setFromObject(bg);
+  const size = box.getSize(new THREE.Vector3());
+  bgFitBase = { x: size.x, z: size.z, minY: box.min.y };
+  const scale = DEFAULT_BG_SCALE / Math.max(size.x, size.z);
+  bg.scale.setScalar(scale);
+  bg.position.y = -box.min.y * scale;
+  scene.add(bg);
+  hideCoalPiles();
+  ground.visible = false;
+  tickLoad();
+}, undefined, () => {
+  console.warn('背景 GLB 未找到，使用兜底地面');
+  tickLoad();
+});
+
+function setCameraDistance(distance) {
+  camera.position.copy(getCameraPosition(distance, controls.target.clone()));
+  controls.update();
+}
+
+function resetOverview() {
+  animateCamera(getCameraPosition(DEFAULT_CAMERA_DISTANCE, DEFAULT_CAMERA_TARGET), DEFAULT_CAMERA_TARGET.clone(), 600);
+}
+
+function hideCoalPiles() {
+  if (!bgRoot) return;
+  bgRoot.traverse(o => {
+    if (!o.isMesh) return;
+    const name = (o.name || '').toLowerCase();
+    const matName = (o.material?.name || '').toLowerCase();
+    if (/coal|char|rock|stone|ember|pile/.test(name) || /coal|char|rock|stone|ember|pile/.test(matName)) {
+      o.visible = false;
+    }
+    if (!furnaceFireMesh && /fire|flame|ember|burn|lava/.test(name + ' ' + matName)) {
+      furnaceFireMesh = o;
+      if (o.geometry?.attributes?.position) {
+        furnaceFireBasePositions = o.geometry.attributes.position.array.slice();
+      }
+      if (o.material) {
+        o.material = o.material.clone();
+        if ('emissiveIntensity' in o.material) o.material.emissiveIntensity = 1.6;
+      }
+    }
+  });
+}
+
+// ============== T-pose 修正 ==============
+// 通过 bone 名字匹配两侧的"上臂",把手臂从水平 T 字旋转到自然下垂
+function fixTPose(root) {
+  const armKeywords = /(shoulder|upperarm|arm_l|arm_r|l_arm|r_arm|leftarm|rightarm|clavicle|hombro|arm$|shoulder_l|shoulder_r)/i;
+  let found = 0;
+  root.traverse(o => {
+    if (o.isBone && armKeywords.test(o.name)) {
+      // 大致把手臂沿 Z 轴向下转 70 度
+      const sign = /\b(l|left|izq)/i.test(o.name) ? -1 : 1;
+      o.rotation.z += sign * Math.PI * 0.42;
+      found++;
+    }
+  });
+  return found > 0;
+}
+
+// ============== 道具：用基础几何体盖住手部 ==============
+function makeProp(type, npcPos) {
+  const g = new THREE.Group();
+  if (type === 'anvil') {
+    // 铁砧：黑铁色梯形 + 木墩
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.32, 0.4, 0.7, 12),
+      new THREE.MeshStandardMaterial({ color: 0x3a2818, roughness: 0.95 })
+    );
+    base.position.y = 0.35;
+    const anvil = new THREE.Mesh(
+      new THREE.BoxGeometry(0.9, 0.25, 0.35),
+      new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.5, metalness: 0.7 })
+    );
+    anvil.position.y = 0.82;
+    g.add(base, anvil);
+    // 放在 NPC 前方挡住手
+    g.position.set(npcPos[0] + 0.6, 0, npcPos[2] + 0.5);
+    g.rotation.y = -Math.PI / 6;
+  } else if (type === 'bucket') {
+    // 水桶 + 抹布
+    const bucket = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.18, 0.4, 16),
+      new THREE.MeshStandardMaterial({ color: 0x5a3a1e, roughness: 0.9 })
+    );
+    bucket.position.y = 0.2;
+    const rag = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0x885533, roughness: 1.0 })
+    );
+    rag.position.set(0.1, 0.42, 0);
+    rag.scale.set(1.2, 0.4, 1.2);
+    g.add(bucket, rag);
+    g.position.set(npcPos[0] - 0.5, 0, npcPos[2] + 0.4);
+  } else if (type === 'desk') {
+    // 工作台 + 笔记本电脑
+    const desk = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 0.08, 0.7),
+      new THREE.MeshStandardMaterial({ color: 0x4a2e1a, roughness: 0.85 })
+    );
+    desk.position.y = 0.9;
+    const leg = new THREE.MeshStandardMaterial({ color: 0x2e1a0e, roughness: 0.9 });
+    [[-0.6,-0.3],[0.6,-0.3],[-0.6,0.3],[0.6,0.3]].forEach(([x,z])=>{
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.9,0.08), leg);
+      l.position.set(x, 0.45, z);
+      g.add(l);
+    });
+    const laptopBase = new THREE.Mesh(
+      new THREE.BoxGeometry(0.5, 0.03, 0.35),
+      new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.4, metalness: 0.6 })
+    );
+    laptopBase.position.set(0, 0.96, 0);
+    const laptopScreen = new THREE.Mesh(
+      new THREE.BoxGeometry(0.5, 0.32, 0.02),
+      new THREE.MeshStandardMaterial({ color: 0x222226, emissive: 0x4488ff, emissiveIntensity: 0.4, roughness: 0.3 })
+    );
+    laptopScreen.position.set(0, 1.13, -0.16);
+    laptopScreen.rotation.x = -0.15;
+    g.add(desk, laptopBase, laptopScreen);
+    g.position.set(npcPos[0], 0, npcPos[2] + 0.5);
+    g.rotation.y = Math.PI; // 桌子面朝相机
+  }
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }});
+  return g;
+}
+
+// 加载 NPC
+function loadNPC(key, cfg) {
+  loader.load(cfg.url, gltf => {
+    const root = gltf.scene;
+    // 1. 归一化高度到 1.8m
+    let box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    const scale = (1.8 / size.y) * cfg.scale;
+    root.scale.setScalar(scale);
+
+    // 2. 尝试修正 T-pose（如果模型有骨骼）
+    const rigged = fixTPose(root);
+    if (!rigged) {
+      // 没骨骼的兜底：整体微微前倾 3 度
+      root.rotation.x = 0.05;
+    }
+
+    // 3. 朝向
+    if (cfg.rotY !== undefined) root.rotation.y = cfg.rotY;
+
+    // 4. 重新计算 box 并把脚底贴地（FLOOR_Y 是背景地板的高度）
+    box = new THREE.Box3().setFromObject(root);
+    root.position.set(cfg.position[0], FLOOR_Y - box.min.y, cfg.position[2]);
+    root.userData.npcKey = key;
+    root.traverse(o => {
+      if (o.isMesh) {
+        o.castShadow = true;
+        o.receiveShadow = true;
+        o.userData.npcKey = key;
+      }
+    });
+    scene.add(root);
+
+    // 5. 加道具遮挡手部（只有 cfg.prop 非 null 时）
+    if (cfg.prop) {
+      const prop = makeProp(cfg.prop, cfg.position);
+      prop.position.y += FLOOR_Y; // 道具也抬到地板上
+      scene.add(prop);
+    }
+
+    npcs[key] = { root, config: cfg, baseY: root.position.y };
+    tickLoad();
+  }, undefined, () => {
+    console.warn(`${cfg.name} GLB 未找到,使用占位胶囊`);
+    const mesh = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.35, 1.0, 8, 16),
+      new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.6 })
+    );
+    mesh.position.set(cfg.position[0], FLOOR_Y + 0.9, cfg.position[2]);
+    mesh.castShadow = true;
+    mesh.userData.npcKey = key;
+    scene.add(mesh);
+    if (cfg.prop) {
+      const prop = makeProp(cfg.prop, cfg.position);
+      prop.position.y += FLOOR_Y;
+      scene.add(prop);
+    }
+    npcs[key] = { root: mesh, config: cfg, baseY: mesh.position.y };
+    tickLoad();
+  });
+}
+Object.entries(NPC_CONFIG).forEach(([k, v]) => loadNPC(k, v));
+
+// ============== 交互：射线检测 hover/click ==============
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let hoverKey = null;
+let activeKey = null;
+const hoverLabel = document.getElementById('hoverLabel');
+const dialog = document.getElementById('dialog');
+
+function pickNPC(event) {
+  pointer.x = (event.clientX / innerWidth) * 2 - 1;
+  pointer.y = -(event.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const meshes = Object.values(npcs).map(n => n.root);
+  const hits = raycaster.intersectObjects(meshes, true);
+  for (const h of hits) {
+    let o = h.object;
+    while (o && !o.userData.npcKey) o = o.parent;
+    if (o?.userData.npcKey) return o.userData.npcKey;
+  }
+  return null;
+}
+
+canvas.addEventListener('pointermove', e => {
+  const key = pickNPC(e);
+  if (key !== hoverKey) {
+    hoverKey = key;
+    canvas.style.cursor = key ? 'pointer' : 'grab';
+  }
+  if (key) {
+    hoverLabel.textContent = NPC_CONFIG[key].name;
+    hoverLabel.style.left = e.clientX + 'px';
+    hoverLabel.style.top = e.clientY + 'px';
+    hoverLabel.classList.add('show');
+  } else {
+    hoverLabel.classList.remove('show');
+  }
+});
+
+canvas.addEventListener('click', e => {
+  const key = pickNPC(e);
+  if (key) selectNPC(key);
+});
+
+function selectNPC(key) {
+  activeKey = key;
+  // 高亮按钮
+  document.querySelectorAll('.npc-btn[data-npc]').forEach(b => {
+    b.classList.toggle('active', b.dataset.npc === key);
+  });
+  // YQ 没有语音，隐藏播放按钮
+  document.getElementById('btnPlay').style.display = key === 'yq' ? 'none' : '';
+  // 弹对话气泡
+  const cfg = NPC_CONFIG[key];
+  document.getElementById('dlgName').textContent = cfg.name;
+  // YQ 随机台词；其他 NPC 固定台词
+  const line = (key === 'yq') ? pickRandom(yqLines) : cfg.line;
+  document.getElementById('dlgLine').textContent = line;
+  dialog.classList.add('show');
+  // 被选中的 NPC 弹跳一下
+  bounceNPC(key);
+  // 相机聚焦
+  focusOn(npcs[key].root);
+  // 触发语音
+  onNPCSelected(key);
+}
+
+// 点击反馈：缩放 1.0 → 1.06 → 1.0
+function bounceNPC(key) {
+  const n = npcs[key];
+  if (!n || !n.root) return;
+  const baseScale = n.root.userData.baseScale || n.root.scale.x;
+  n.root.userData.baseScale = baseScale;
+  const start = performance.now();
+  const dur = 400;
+  function step(now) {
+    const t = Math.min(1, (now - start) / dur);
+    // 先放大再回弹
+    const s = t < 0.5
+      ? baseScale * (1 + 0.06 * (t / 0.5))
+      : baseScale * (1 + 0.06 * (1 - (t - 0.5) / 0.5));
+    n.root.scale.setScalar(s);
+    if (t < 1) requestAnimationFrame(step);
+    else n.root.scale.setScalar(baseScale);
+  }
+  requestAnimationFrame(step);
+}
+
+// 暴露给外部接你现成的语音逻辑
+window.onNPCSelected = function(key) {
+  const files = voiceFiles[key];
+  if (!files || files.length === 0) return; // YQ 无语音
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+  const url = pickRandom(files);
+  currentAudio = new Audio(url);
+  currentAudio.play().catch(err => {
+    console.warn('语音播放失败:', err);
+  });
+};
+
+function stopCurrentAudio() {
+  if (!currentAudio) return;
+  currentAudio.pause();
+  currentAudio.currentTime = 0;
+}
+
+// 相机平滑飞向某个 NPC
+function focusOn(target) {
+  const box = new THREE.Box3().setFromObject(target);
+  const center = box.getCenter(new THREE.Vector3());
+  const targetPos = center.clone();
+  targetPos.y = Math.max(1.15, center.y * 0.9);
+  animateCamera(getCameraPosition(7.2, targetPos), targetPos, 800);
+}
+
+function animateCamera(toPos, toTarget, duration) {
+  const fromPos = camera.position.clone();
+  const fromTarget = controls.target.clone();
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // easeInOut
+    camera.position.lerpVectors(fromPos, toPos, e);
+    controls.target.lerpVectors(fromTarget, toTarget, e);
+    controls.update();
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ============== 控件 ==============
+document.querySelectorAll('.npc-btn[data-npc]').forEach(b => {
+  b.addEventListener('click', () => selectNPC(b.dataset.npc));
+});
+document.getElementById('btnClose').addEventListener('click', () => {
+  dialog.classList.remove('show');
+  activeKey = null;
+  stopCurrentAudio();
+  document.getElementById('btnPlay').style.display = '';
+  document.querySelectorAll('.npc-btn[data-npc]').forEach(b => b.classList.remove('active'));
+});
+document.getElementById('btnPlay').addEventListener('click', () => {
+  if (activeKey) {
+    stopCurrentAudio();
+    window.onNPCSelected(activeKey);
+  }
+});
+document.getElementById('cameraDistance').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  setCameraDistance(v);
+});
+document.getElementById('fireIntensity').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  fireLight.intensity = v;
+  furnaceCoreLight.intensity = v * 0.65;
+  benchFillLight.intensity = Math.max(0.25, v * 0.3);
+});
+document.getElementById('resetView').addEventListener('click', () => {
+  resetOverview();
+});
+
+// ============== 渲染循环 ==============
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.elapsedTime;
+  // 炉火轻微闪烁
+  fireLight.intensity += (Math.random() - 0.5) * 0.06;
+  fireLight.intensity = Math.max(0.5, Math.min(3, fireLight.intensity));
+  furnaceCoreLight.intensity = 1.2 + Math.sin(t * 8.5) * 0.12 + Math.random() * 0.08;
+
+  // 炉膛火焰网格轻微形变 + 呼吸缩放，营造燃烧感
+  if (furnaceFireMesh) {
+    furnaceFireMesh.scale.x = 1 + Math.sin(t * 7.5) * 0.035;
+    furnaceFireMesh.scale.y = 1 + Math.sin(t * 11.0) * 0.06;
+    furnaceFireMesh.scale.z = 1 + Math.cos(t * 6.3) * 0.03;
+    furnaceFireMesh.position.y = 0;
+    const posAttr = furnaceFireMesh.geometry?.attributes?.position;
+    if (posAttr && furnaceFireBasePositions) {
+      const arr = posAttr.array;
+      for (let i = 0; i < arr.length; i += 3) {
+        const baseX = furnaceFireBasePositions[i];
+        const baseY = furnaceFireBasePositions[i + 1];
+        const baseZ = furnaceFireBasePositions[i + 2];
+        const sway = Math.sin(t * 8 + baseY * 6 + baseX * 4) * 0.012;
+        const rise = Math.sin(t * 11 + baseX * 5 + baseZ * 4) * Math.max(0, baseY) * 0.01;
+        arr[i] = baseX + sway;
+        arr[i + 1] = baseY + rise;
+        arr[i + 2] = baseZ + Math.cos(t * 7 + baseY * 5) * 0.006;
+      }
+      posAttr.needsUpdate = true;
+    }
+    if (furnaceFireMesh.material && 'emissiveIntensity' in furnaceFireMesh.material) {
+      furnaceFireMesh.material.emissiveIntensity = 1.35 + Math.sin(t * 10.0) * 0.18 + Math.random() * 0.08;
+    }
+  }
+
+  // NPC 呼吸起伏（基于初始高度做绝对偏移，避免累计上浮）
+  Object.values(npcs).forEach((n, i) => {
+    if (n.root) {
+      n.root.position.y = n.baseY + Math.sin(t * 1.4 + i * 1.7) * 0.012;
+    }
+  });
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
