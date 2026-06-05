@@ -33,6 +33,32 @@
     box-shadow: 0 6px 20px rgba(0,0,0,.25);
   }
   .panel-toggle:hover { background: rgba(35, 22, 16, .86); }
+  .bgm-toggle {
+    position: fixed; top: 16px; right: 16px; z-index: 20;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 12px;
+    background: rgba(20, 14, 10, .76); color: #e8d5b0;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,170,100,.18); border-radius: 12px;
+    cursor: pointer; font-size: 13px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    transition: background .2s, color .2s;
+  }
+  .bgm-toggle:hover { background: rgba(35, 22, 16, .86); }
+  .bgm-toggle.playing { color: #ffcf8a; border-color: rgba(255,170,100,.4); }
+  .mode-toggle {
+    position: fixed; top: 16px; right: 108px; z-index: 20;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 14px;
+    background: rgba(20, 14, 10, .76); color: #e8d5b0;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,170,100,.18); border-radius: 12px;
+    cursor: pointer; font-size: 13px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .mode-toggle:hover { background: rgba(35, 22, 16, .86); }
+  .mode-toggle.forge { color: #ffb86b; border-color: rgba(255,120,40,.55); background: rgba(50, 22, 10, .8); }
   .panel {
     position: fixed; top: 64px; left: 16px; z-index: 19;
     background: rgba(20, 14, 10, .72); backdrop-filter: blur(10px);
@@ -150,6 +176,8 @@
 <div class="topbar"><span class="dot"></span><span>铁匠铺 · NPC Voice Panel 3D</span></div>
 
 <button class="panel-toggle" id="panelToggle">⚙️ 控制面板</button>
+<button class="mode-toggle" id="modeToggle" title="场景模式">🕯️ 舒缓</button>
+<button class="bgm-toggle" id="bgmToggle" title="背景音乐">🔇 音乐</button>
 
 <div class="panel" id="sidePanel">
   <h2>🔨 NPC 列表</h2>
@@ -281,6 +309,7 @@ let lastAutoTalkAt = 0;
 let bgRoot = null;
 let bgFitBase = null;
 let furnaceFireMesh = null;
+let fireVtxFrame = 0;   // 火焰顶点动画隔帧计数器（性能）
 let furnaceFireBasePositions = null;
 
 const NPC_CONFIG = {
@@ -301,14 +330,18 @@ const BG_URL = './assets/bg_smithy.glb'; // 铁匠铺背景
 
 // ============== 基础场景 ==============
 const canvas = document.getElementById('viewer');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(devicePixelRatio);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+// 性能：像素比封顶 1.75，避免 Retina/高分屏下 4~9 倍像素填充拖慢帧率（嵌入小窗时尤其无谓）
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// 性能：基础 PCF 软阴影即可，PCFSoft 在小窗里几乎看不出差别但开销翻倍
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.autoUpdate = false;   // 静态场景：阴影只渲一次，之后冻结
+renderer.shadowMap.needsUpdate = true;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0d0905);
@@ -377,6 +410,62 @@ const rimLight = new THREE.DirectionalLight(0x4477aa, 0.22);
 rimLight.position.set(-2, 3, -4);
 scene.add(rimLight);
 
+// ============== NPC 头顶氛围光（真 3D 光源，随模式调强弱）==============
+// 每个 NPC 头顶一盏暖色 PointLight + 一个发光小球(让光源本身可见,像悬浮的暖灯)
+const npcHaloLights = {};   // key -> { light, glow }
+function createNpcHalo(key, position) {
+  const x = position[0], z = position[2];
+  const y = FLOOR_Y + 2.35;  // 头顶上方
+  const light = new THREE.PointLight(0xffb060, 0.0, 4.2, 2.0);
+  light.position.set(x, y, z);
+  scene.add(light);
+
+  // 可见的发光小球(自发光材质,不受光照影响)
+  const glow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.07, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffcf8a, transparent: true, opacity: 0.0 })
+  );
+  glow.position.set(x, y, z);
+  scene.add(glow);
+
+  npcHaloLights[key] = { light, glow };
+}
+Object.entries(NPC_CONFIG).forEach(([k, v]) => createNpcHalo(k, v.position));
+
+/* ============================================================
+   场景模式预设(状态定义需早于 animate() 渲染循环,避免 TDZ)
+   - calm  舒缓: 温馨柔光、弱火、NPC 静音(只冒泡)、舒缓 BGM、头顶柔和暖光
+   - forge 火炉: 强暖光、旺火、NPC 开口说话、酒馆 BGM、头顶强亮暖光
+   ============================================================ */
+const SCENE_PRESETS = {
+  calm: {
+    label: '🕯️ 舒缓',
+    ambient: 0.34,
+    keyLight: 1.05,
+    fireBase: 1.3,        // 火光基准强度
+    furnaceFactor: 0.5,
+    haloIntensity: 0.85,  // 头顶氛围光
+    haloGlow: 0.55,
+    bg: 0x0d0905,
+    npcVoice: false,      // 静音,只冒泡
+    bgmStyle: 'calm',
+  },
+  forge: {
+    label: '🔥 火炉',
+    ambient: 0.52,
+    keyLight: 1.6,
+    fireBase: 2.7,
+    furnaceFactor: 0.75,
+    haloIntensity: 2.2,
+    haloGlow: 0.95,
+    bg: 0x140a05,
+    npcVoice: true,       // 开口说话
+    bgmStyle: 'tavern',
+  },
+};
+let SCENE_MODE = 'calm';
+let fireBaseIntensity = SCENE_PRESETS.calm.fireBase;   // 给火光闪烁动画当基准
+
 // ============== 地面（在背景 GLB 没加载前的兜底）==============
 const ground = new THREE.Mesh(
   new THREE.CircleGeometry(8, 64),
@@ -408,6 +497,8 @@ function tickLoad() {
   loadCount++;
   if (loadCount >= TOTAL) {
     document.getElementById('loader').classList.add('hide');
+    // 全部模型就位后渲一次阴影并冻结（静态场景无需逐帧更新阴影贴图）
+    renderer.shadowMap.needsUpdate = true;
   }
 }
 
@@ -747,7 +838,9 @@ function triggerRandomAmbientTalk(force = false) {
   talkMotionNPC(key, 2200);
   showNPCBubble(key, line, 3600);
 
-  if (!(currentAudio && !currentAudio.paused)) {
+  // 是否出声由当前场景模式决定:舒缓只冒泡,火炉才开口
+  const wantVoice = SCENE_PRESETS[SCENE_MODE]?.npcVoice;
+  if (wantVoice && !(currentAudio && !currentAudio.paused)) {
     window.onNPCSelected(key, { auto: true });
   }
 
@@ -919,10 +1012,13 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const t = clock.elapsedTime;
-  // 炉火轻微闪烁
+  // 炉火轻微闪烁(基准强度随场景模式变化)
   fireLight.intensity += (Math.random() - 0.5) * 0.06;
-  fireLight.intensity = Math.max(0.5, Math.min(3, fireLight.intensity));
-  furnaceCoreLight.intensity = 1.2 + Math.sin(t * 8.5) * 0.12 + Math.random() * 0.08;
+  const fireMin = fireBaseIntensity * 0.55, fireMax = fireBaseIntensity * 1.25;
+  fireLight.intensity = Math.max(fireMin, Math.min(fireMax, fireLight.intensity));
+  // 火炉模式火苗跳得更欢
+  const flickerAmp = SCENE_MODE === 'forge' ? 0.22 : 0.12;
+  furnaceCoreLight.intensity = fireBaseIntensity * 0.6 + Math.sin(t * 8.5) * flickerAmp + Math.random() * 0.08;
 
   // 炉膛火焰网格轻微形变 + 呼吸缩放，营造燃烧感
   if (furnaceFireMesh) {
@@ -930,8 +1026,10 @@ function animate() {
     furnaceFireMesh.scale.y = 1 + Math.sin(t * 11.0) * 0.06;
     furnaceFireMesh.scale.z = 1 + Math.cos(t * 6.3) * 0.03;
     furnaceFireMesh.position.y = 0;
+    // 性能：逐顶点形变只在火炉模式跑，且每 2 帧更新一次（减半 GPU 顶点上传）
+    fireVtxFrame = (fireVtxFrame + 1) & 1;
     const posAttr = furnaceFireMesh.geometry?.attributes?.position;
-    if (posAttr && furnaceFireBasePositions) {
+    if (SCENE_MODE === 'forge' && posAttr && furnaceFireBasePositions && fireVtxFrame === 0) {
       const arr = posAttr.array;
       for (let i = 0; i < arr.length; i += 3) {
         const baseX = furnaceFireBasePositions[i];
@@ -951,9 +1049,16 @@ function animate() {
   }
 
   // NPC 呼吸起伏（基于初始高度做绝对偏移，避免累计上浮）
-  Object.values(npcs).forEach((n, i) => {
+  Object.entries(npcs).forEach(([key, n], i) => {
     if (n.root) {
       n.root.position.y = n.baseY + Math.sin(t * 1.4 + i * 1.7) * 0.012;
+    }
+    // 头顶氛围光跟随轻微脉动(火炉模式更明显)
+    const halo = npcHaloLights[key];
+    if (halo) {
+      const pulseAmp = SCENE_MODE === 'forge' ? 0.18 : 0.06;
+      const base = SCENE_PRESETS[SCENE_MODE].haloIntensity;
+      halo.light.intensity = base + Math.sin(t * 2.2 + i * 2.1) * pulseAmp;
     }
   });
   updateNPCBubblePosition();
@@ -961,14 +1066,505 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
+
+/* ============================================================
+   背景音乐 · 双曲目程序化合成(纯 Web Audio,无音频文件)
+   - calm   : 舒缓氛围 —— 竖琴琶音 + 弦乐 pad + 大厅混响
+   - tavern : 炉石酒馆风 —— 走动低音 + 拨弦旋律 + 轻手鼓,欢快热闹
+   ============================================================ */
+const BGM = (() => {
+  let ctx = null, master = null, busDry = null, busWet = null, reverb = null, busWetGain = null;
+  let started = false, playing = false, style = 'calm';
+  let schedulerTimer = null, nextNoteTime = 0, step = 0;
+
+  // 音名转频率,A4=440(支持 b 降号)
+  const N = name => {
+    const m = name.match(/^([A-G])(#?|b?)(\d)$/);
+    let semi = {C:-9,D:-7,E:-5,F:-4,G:-2,A:0,B:2}[m[1]];
+    if (m[2] === '#') semi += 1;
+    if (m[2] === 'b') semi -= 1;
+    const oct = +m[3] - 4;
+    return 440 * Math.pow(2, (semi + oct * 12) / 12);
+  };
+
+  // ---------- 曲目配置 ----------
+  const TRACKS = {
+    // 舒缓:C - Am - F - G,慢,纯氛围
+    calm: {
+      bpm: 64,
+      reverbWet: 0.85,
+      chords: [
+        { bass: 'C2', notes: ['C4','E4','G4','C5'] },
+        { bass: 'A2', notes: ['A3','C4','E4','A4'] },
+        { bass: 'F2', notes: ['F3','A3','C4','F4'] },
+        { bass: 'G2', notes: ['G3','B3','D4','G4'] },
+      ],
+    },
+    // 酒馆:Peter McConnell《Pull Up A Chair》风 —— F 大调/D 小调 bluesy swing,
+    // 走动低音 + 慵懒蓝调吉他主奏 + brush 鼓刷。和声走 turnaround:Dm7 - G7 - C7 - F6
+    tavern: {
+      bpm: 108,            // 中速摇摆,慵懒但带律动
+      swing: 0.62,         // 三连音摇摆比例(后半拍延后)
+      reverbWet: 0.32,     // 干一点,破酒馆不是大厅
+      chords: [
+        // 每和弦一小节(4 拍)。walk = 每拍 walking bass 音(含半音趋近),
+        // notes = 和弦内音(吉他切音),mel = 蓝调主奏乐句(含 bF/bA blues 音)
+        { walk: ['D2','F2','A2','C3'], notes: ['F3','A3','C4'],  mel: ['A4','C5','D5','F5','D5','C5','A4','G4'] },   // Dm7
+        { walk: ['G2','B2','D3','F3'], notes: ['G3','B3','D4','F4'], mel: ['G4','Bb4','B4','D5','B4','G4','F4','D4'] }, // G7
+        { walk: ['C3','E3','G3','Bb3'], notes: ['E3','G3','Bb3','C4'], mel: ['C5','E5','G5','E5','D5','C5','Bb4','G4'] }, // C7
+        { walk: ['F2','A2','C3','D3'], notes: ['F3','A3','C4','D4'], mel: ['F4','A4','C5','A4','G4','F4','D4','C4'] },   // F6
+      ],
+    },
+  };
+
+  // 算法混响(大厅空间感)
+  function makeReverb(audioCtx, seconds = 3.0, decay = 2.6) {
+    const rate = audioCtx.sampleRate;
+    const len = rate * seconds;
+    const buf = audioCtx.createBuffer(2, len, rate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+    const conv = audioCtx.createConvolver();
+    conv.buffer = buf;
+    return conv;
+  }
+
+  // 拨弦音(竖琴/钢片琴感):正弦+三角,快起慢落
+  function pluck(freq, time, dur, gain, dest, bright = false) {
+    const o1 = ctx.createOscillator();
+    const o2 = ctx.createOscillator();
+    o1.type = 'sine'; o2.type = bright ? 'sawtooth' : 'triangle';
+    o1.frequency.value = freq; o2.frequency.value = freq * 2;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(gain, time + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+    const g2 = ctx.createGain(); g2.gain.value = bright ? 0.5 : 0.35;
+    if (bright) {
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 3200;
+      o2.connect(lp); lp.connect(g2);
+    } else {
+      o2.connect(g2);
+    }
+    g2.connect(g);
+    o1.connect(g); g.connect(dest);
+    o1.start(time); o2.start(time);
+    o1.stop(time + dur + 0.05); o2.stop(time + dur + 0.05);
+  }
+
+  // 弦乐 pad 长音
+  function pad(freq, time, dur, gain, dest) {
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth'; o.frequency.value = freq;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 1400; lp.Q.value = 0.5;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(gain, time + dur * 0.4);
+    g.gain.linearRampToValueAtTime(0.0001, time + dur);
+    o.connect(lp); lp.connect(g); g.connect(dest);
+    o.start(time); o.stop(time + dur + 0.05);
+  }
+
+  // 走动低音(酒馆 walking bass):圆润短音
+  function bassNote(freq, time, dur, gain, dest) {
+    const o = ctx.createOscillator();
+    o.type = 'triangle'; o.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(gain, time + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+    o.connect(g); g.connect(dest);
+    o.start(time); o.stop(time + dur + 0.05);
+  }
+
+  // 手鼓(噪声脉冲 + 带通,模拟轻拍)
+  function drum(time, gain, dest, hi = false) {
+    const len = ctx.sampleRate * 0.12;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, hi ? 6 : 3);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = hi ? 2600 : 320; bp.Q.value = 0.9;
+    const g = ctx.createGain(); g.gain.value = gain;
+    src.connect(bp); bp.connect(g); g.connect(dest);
+    src.start(time); src.stop(time + 0.14);
+  }
+
+  // 蓝调吉他主奏(空心吉他感):锯齿+低通,起音带轻微滑音(从低半音滑到目标),慵懒摇摆
+  function bluesGuitar(freq, time, dur, gain, dest, slide = false) {
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    if (slide) {
+      o.frequency.setValueAtTime(freq * 0.945, time);          // 从下方半音多一点滑上来
+      o.frequency.exponentialRampToValueAtTime(freq, time + 0.07);
+    } else {
+      o.frequency.value = freq;
+    }
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(2600, time);
+    lp.frequency.exponentialRampToValueAtTime(900, time + dur); // 衰减时变暗,木吉他味
+    lp.Q.value = 1.1;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(gain, time + 0.012);          // 拨弦快起
+    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+    o.connect(lp); lp.connect(g); g.connect(dest);
+    o.start(time); o.stop(time + dur + 0.05);
+  }
+
+  // 爵士走动贝斯(拨弦感):正弦主体 + 短促拨击瞬态
+  function walkingBass(freq, time, dur, gain, dest) {
+    const o = ctx.createOscillator();
+    o.type = 'sine'; o.frequency.value = freq;
+    // 二次谐波加一点拨弦颗粒感
+    const o2 = ctx.createOscillator();
+    o2.type = 'triangle'; o2.frequency.value = freq * 2;
+    const g2 = ctx.createGain(); g2.gain.value = 0.18;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, time);
+    g.gain.linearRampToValueAtTime(gain, time + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+    o2.connect(g2); g2.connect(g);
+    o.connect(g); g.connect(dest);
+    o.start(time); o2.start(time);
+    o.stop(time + dur + 0.05); o2.stop(time + dur + 0.05);
+  }
+
+  // brush 军鼓刷(柔噪声,模拟鼓刷扫过):比 drum 更绵长柔和
+  function brush(time, gain, dest) {
+    const len = ctx.sampleRate * 0.22;
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const env = Math.sin(Math.PI * (i / len)); // 渐入渐出,像扫一下
+      d[i] = (Math.random() * 2 - 1) * env;
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 4200; hp.Q.value = 0.5;
+    const g = ctx.createGain(); g.gain.value = gain;
+    src.connect(hp); hp.connect(g); g.connect(dest);
+    src.start(time); src.stop(time + 0.24);
+  }
+
+  function scheduleStepCalm(stepIndex, time, beat) {
+    const t = TRACKS.calm;
+    const chordIdx = Math.floor(stepIndex / 8) % t.chords.length;
+    const chord = t.chords[chordIdx];
+    const s = stepIndex % 8;
+    if (s === 0) {
+      pad(N(chord.bass), time, beat * 4, 0.05, busDry);
+      chord.notes.forEach(n => pad(N(n), time, beat * 4, 0.022, busDry));
+    }
+    const arp = [0, 1, 2, 3, 2, 1, 2, 3];
+    const ni = arp[s] % chord.notes.length;
+    const accent = s === 0 || s === 4;
+    pluck(N(chord.notes[ni]), time, accent ? 1.4 : 0.9, accent ? 0.13 : 0.08, busDry);
+    if (s === 6) pluck(N(chord.notes[chord.notes.length - 1]) * 2, time, 0.7, 0.05, busDry);
+  }
+
+  // 采样播放助手:把音名喂给真乐器采样;gain 通过临时增益节点控制
+  function playSample(inst, noteName, time, dur, gain) {
+    try {
+      inst.play(noteName, time, { duration: dur, gain });
+    } catch (e) { /* 个别音超范围时静默跳过 */ }
+  }
+
+  function scheduleStepTavern(stepIndex, time, beat) {
+    const t = TRACKS.tavern;
+    const chordIdx = Math.floor(stepIndex / 8) % t.chords.length; // 每和弦 8 个八分=1小节(4拍)
+    const chord = t.chords[chordIdx];
+    const s = stepIndex % 8;
+    const beatPos = Math.floor(s / 2);    // 0..3 当前第几拍
+    const onBeat = s % 2 === 0;           // 偶数 step = 正拍,奇数 = 摇摆后半拍
+
+    // ---- swing：后半拍延后到三连音的第三个位置 ----
+    const stepDur = beat / 2;
+    const swingShift = onBeat ? 0 : (t.swing - 0.5) * 2 * stepDur;
+    const T = time + swingShift;
+
+    const useSample = sf.ready;   // 真乐器就绪则用采样,否则合成器兜底
+
+    // ---- walking bass：每拍一个四分音 ----
+    if (onBeat) {
+      if (useSample) playSample(sf.bass, chord.walk[beatPos], time, beat * 0.92, 0.95);
+      else walkingBass(N(chord.walk[beatPos]), time, beat * 0.92, 0.17, busDry);
+    }
+
+    // ---- 吉他切音和弦(comping)：1、3 拍轻切,2、4 拍重切 ----
+    if (onBeat) {
+      const heavy = (beatPos === 1 || beatPos === 3);
+      if (useSample) {
+        const cg = heavy ? 0.42 : 0.28, cd = heavy ? 0.24 : 0.18;
+        chord.notes.forEach(n => playSample(sf.guitar, n, T, cd, cg));
+      } else {
+        const cg = heavy ? 0.05 : 0.032, cd = heavy ? 0.22 : 0.16;
+        chord.notes.forEach(n => bluesGuitar(N(n), T, cd, cg, busDry, false));
+      }
+    }
+
+    // ---- 蓝调主奏：八分音符走旋律,后半拍 swing ----
+    if (useSample) {
+      playSample(sf.guitar, chord.mel[s], T, onBeat ? 0.5 : 0.34, onBeat ? 0.85 : 0.6);
+    } else {
+      const melGain = onBeat ? 0.14 : 0.10;
+      const doSlide = (s === 0 || s === 4 || s === 3);
+      bluesGuitar(N(chord.mel[s]), T, onBeat ? 0.5 : 0.34, melGain, busDry, doSlide);
+    }
+
+    // ---- 鼓组:brush 摇摆律动(鼓本来就不是红白机味,继续用合成器)----
+    if (s === 0 || s === 4) drum(time, 0.20, busDry, false);     // kick:1、3拍
+    if (s === 2 || s === 6) brush(time, 0.13, busDry);           // brush backbeat:2、4拍
+    if (!onBeat) brush(T, 0.045, busDry);                        // 摇摆后半拍轻刷
+  }
+
+  function scheduler() {
+    const beat = 60 / TRACKS[style].bpm;
+    const stepDur = beat / 2;
+    while (nextNoteTime < ctx.currentTime + 0.2) {
+      if (style === 'tavern') scheduleStepTavern(step, nextNoteTime, beat);
+      else scheduleStepCalm(step, nextNoteTime, beat);
+      nextNoteTime += stepDur;
+      step++;
+    }
+    schedulerTimer = setTimeout(scheduler, 50);
+  }
+
+  function ensureStarted() {
+    if (started) return;
+    started = true;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain();
+    master.gain.value = 0.0;
+    master.connect(ctx.destination);
+
+    busDry = ctx.createGain(); busDry.gain.value = 1.0;
+    reverb = makeReverb(ctx);
+    busWetGain = ctx.createGain(); busWetGain.gain.value = TRACKS[style].reverbWet;
+    const dry = ctx.createGain(); dry.gain.value = 0.7;
+
+    busDry.connect(dry); dry.connect(master);                          // 干声直达
+    busDry.connect(reverb); reverb.connect(busWetGain); busWetGain.connect(master); // 湿声混响
+
+    loadSamples();   // 异步加载真乐器采样(尼龙吉他/原声贝斯),加载好之前用合成器兜底
+
+    nextNoteTime = ctx.currentTime + 0.1;
+    step = 0;
+    scheduler();
+  }
+
+  // ---------- 真乐器采样(方向 A:CC0/MIT 授权 soundfont,只换音色不抄旋律)----------
+  // 用 Benjamin Gleitzman 的预渲染 GM soundfont(MIT 授权,基于 FluidR3),
+  // 套现有 F 调 swing / walking bass / blues 和声结构去驱动,音色从"红白机"变真乐器。
+  let sf = { guitar: null, bass: null, loading: false, ready: false };
+  async function loadSamples() {
+    if (sf.loading || sf.ready) return;
+    sf.loading = true;
+    try {
+      const mod = await import('https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/+esm');
+      const Soundfont = mod.default || mod;
+      const opt = { soundfont: 'FluidR3_GM', format: 'mp3', destination: busDry };
+      const [guitar, bass] = await Promise.all([
+        Soundfont.instrument(ctx, 'acoustic_guitar_nylon', opt),
+        Soundfont.instrument(ctx, 'acoustic_bass', opt),
+      ]);
+      sf.guitar = guitar; sf.bass = bass; sf.ready = true;
+      console.log('[BGM] 真乐器采样就绪:尼龙吉他 + 原声贝斯');
+    } catch (e) {
+      console.warn('[BGM] 采样加载失败,回退合成器音色', e);
+      sf.ready = false;
+    } finally {
+      sf.loading = false;
+    }
+  }
+
+  function play() {
+    ensureStarted();
+    if (ctx.state === 'suspended') ctx.resume();
+    master.gain.cancelScheduledValues(ctx.currentTime);
+    master.gain.linearRampToValueAtTime(style === 'tavern' ? 0.22 : 0.5, ctx.currentTime + 1.2);
+    playing = true;
+  }
+  function pause() {
+    if (!started) return;
+    master.gain.cancelScheduledValues(ctx.currentTime);
+    master.gain.linearRampToValueAtTime(0.0, ctx.currentTime + 0.6);
+    playing = false;
+  }
+  function setStyle(name) {
+    if (!TRACKS[name] || name === style) return;
+    style = name;
+    if (started) {
+      // 重置乐句起点,切混响湿度
+      step = 0;
+      nextNoteTime = ctx.currentTime + 0.05;
+      if (busWetGain) busWetGain.gain.setTargetAtTime(TRACKS[style].reverbWet, ctx.currentTime, 0.3);
+      if (playing) {
+        master.gain.cancelScheduledValues(ctx.currentTime);
+        master.gain.linearRampToValueAtTime(style === 'tavern' ? 0.22 : 0.5, ctx.currentTime + 0.8);
+      }
+    }
+  }
+  return {
+    toggle() { playing ? pause() : play(); return playing; },
+    play, pause, setStyle,
+    get playing() { return playing; },
+    get style() { return style; },
+  };
+})();
+
+/* ============================================================
+   场景模式管理器 · 像家里灯光场景一样整体切换
+   (预设 SCENE_PRESETS / SCENE_MODE / fireBaseIntensity 已在前面定义)
+   ============================================================ */
+function applySceneMode(mode, { animateLight = true } = {}) {
+  const p = SCENE_PRESETS[mode];
+  if (!p) return;
+  SCENE_MODE = mode;
+  fireBaseIntensity = p.fireBase;
+
+  // 平滑过渡灯光(简单 lerp 动画)
+  const from = {
+    ambient: ambient.intensity,
+    key: keyLight.intensity,
+    fire: fireLight.intensity,
+    furnace: furnaceCoreLight.intensity,
+    bench: benchFillLight.intensity,
+    halo: (Object.values(npcHaloLights)[0]?.light.intensity) ?? 0,
+    haloGlow: (Object.values(npcHaloLights)[0]?.glow.material.opacity) ?? 0,
+    bgR: scene.background.r, bgG: scene.background.g, bgB: scene.background.b,
+  };
+  const target = {
+    ambient: p.ambient, key: p.keyLight,
+    fire: p.fireBase, furnace: p.fireBase * p.furnaceFactor,
+    bench: Math.max(0.25, p.fireBase * 0.28),
+    halo: p.haloIntensity, haloGlow: p.haloGlow,
+    bg: new THREE.Color(p.bg),
+  };
+  const start = performance.now();
+  const dur = animateLight ? 900 : 0;
+  function lerpStep(now) {
+    const t = dur === 0 ? 1 : Math.min(1, (now - start) / dur);
+    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    ambient.intensity = from.ambient + (target.ambient - from.ambient) * e;
+    keyLight.intensity = from.key + (target.key - from.key) * e;
+    furnaceCoreLight.intensity = from.furnace + (target.furnace - from.furnace) * e;
+    benchFillLight.intensity = from.bench + (target.bench - from.bench) * e;
+    Object.values(npcHaloLights).forEach(h => {
+      h.light.intensity = from.halo + (target.halo - from.halo) * e;
+      h.glow.material.opacity = from.haloGlow + (target.haloGlow - from.haloGlow) * e;
+    });
+    scene.background.setRGB(
+      from.bgR + (target.bg.r - from.bgR) * e,
+      from.bgG + (target.bg.g - from.bgG) * e,
+      from.bgB + (target.bg.b - from.bgB) * e
+    );
+    if (scene.fog) scene.fog.color.copy(scene.background);
+    if (t < 1) requestAnimationFrame(lerpStep);
+  }
+  requestAnimationFrame(lerpStep);
+
+  // BGM 曲目
+  BGM.setStyle(p.bgmStyle);
+
+  // 火炉模式立刻让大家热闹起来:强制触发一次说话
+  if (mode === 'forge') {
+    setTimeout(() => triggerRandomAmbientTalk(true), 300);
+  } else {
+    // 切回舒缓:停掉正在播的语音,回归安静冒泡
+    stopCurrentAudio();
+  }
+
+  // 同步火光滑杆显示(若存在)
+  const fireSlider = document.getElementById('fireIntensity');
+  if (fireSlider) fireSlider.value = p.fireBase;
+
+  refreshModeBtn();
+}
+
+const bgmBtn = document.getElementById('bgmToggle');
+function refreshBgmBtn() {
+  if (BGM.playing) {
+    bgmBtn.textContent = '🔊 音乐';
+    bgmBtn.classList.add('playing');
+  } else {
+    bgmBtn.textContent = '🔇 音乐';
+    bgmBtn.classList.remove('playing');
+  }
+}
+bgmBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  BGM.toggle();
+  bgmUserMuted = !BGM.playing;   // 用户手动操作后记录意图,不再被自动逻辑覆盖
+  refreshBgmBtn();
+});
+
+// ============== BGM 默认开启(在浏览器自动播放策略允许范围内尽力而为)==============
+// 硬限制:Web Audio 在用户「有效手势」前无法发声。注意 mousemove/wheel 在多数浏览器
+// 不算有效手势,只有 click/pointerdown/keydown/touchstart 才能解锁 AudioContext。
+// 策略:进场先尝试 play()(被策略挡住也无妨),并在「第一次有效交互」时强制 resume 出声。
+let bgmUserMuted = false;        // 用户是否主动静音过
+function startBgmDefault() {
+  if (bgmUserMuted) return;
+  BGM.play();
+  refreshBgmBtn();
+}
+function unlockBgm() {
+  detachUnlock();
+  if (bgmUserMuted) return;
+  BGM.play();                    // 内部会 ensureStarted + ctx.resume(),此时有手势可出声
+  refreshBgmBtn();
+}
+const UNLOCK_EVENTS = ['pointerdown','click','keydown','touchstart'];
+function detachUnlock() {
+  UNLOCK_EVENTS.forEach(ev => document.removeEventListener(ev, unlockBgm, true));
+}
+// 用 capture 阶段挂在 document 上:无论点页面任何角落(画布/按钮/空白处)都先解锁
+UNLOCK_EVENTS.forEach(ev => document.addEventListener(ev, unlockBgm, true));
+
+// ============== 场景模式切换按钮 ==============
+const modeBtn = document.getElementById('modeToggle');
+function refreshModeBtn() {
+  const p = SCENE_PRESETS[SCENE_MODE];
+  modeBtn.textContent = p.label;
+  modeBtn.classList.toggle('forge', SCENE_MODE === 'forge');
+}
+modeBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  applySceneMode(SCENE_MODE === 'calm' ? 'forge' : 'calm');
+  // 火炉模式确保音乐已开
+  if (SCENE_MODE === 'forge' && !BGM.playing) { BGM.play(); refreshBgmBtn(); }
+});
+
 kickOffAutoTalk();
+
+// ============== 进入时随机选一个模式(看脸)==============
+const initialMode = Math.random() < 0.5 ? 'calm' : 'forge';
+applySceneMode(initialMode, { animateLight: false });
+
+// 初始模式与曲风确定后,进场即尝试开启 BGM(浏览器允许则直接响,否则等首次交互解锁)
+startBgmDefault();
 
 togglePanel(false);
 
+// 性能：resize 用 rAF 节流，避免拖拽窗口时高频重建渲染缓冲
+let _resizeRAF = null;
 addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  if (_resizeRAF) return;
+  _resizeRAF = requestAnimationFrame(() => {
+    _resizeRAF = null;
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.needsUpdate = true; // 尺寸变了，重渲一次冻结阴影
+  });
 });
 </script>
 </body>
