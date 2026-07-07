@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>铁匠铺 · NPC Voice Panel 3D</title>
+<title>老杨的铁匠铺 · 主页欢迎页</title>
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0d0905; color: #e8d5b0;
@@ -85,7 +85,7 @@
   /* 右下角对话气泡 */
   .dialog {
     position: fixed; right: 24px; bottom: 24px;
-    max-width: 360px; padding: 16px 20px;
+    max-width: 390px; padding: 16px 20px;
     background: rgba(20, 14, 10, .85); backdrop-filter: blur(12px);
     border-radius: 14px; border: 1px solid rgba(255,170,100,.3);
     box-shadow: 0 8px 32px rgba(0,0,0,.5);
@@ -94,14 +94,20 @@
   }
   .dialog.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
   .dialog .name { font-size: 13px; font-weight: 600; color: #ff9955; margin-bottom: 6px; }
+  .dialog .meta {
+    display: none; margin: -2px 0 8px; font-size: 11px; color: rgba(240,224,200,.58);
+    letter-spacing: .3px;
+  }
+  .dialog .meta.show { display: block; }
   .dialog .line { font-size: 14px; line-height: 1.6; color: #f0e0c8; }
-  .dialog .actions { margin-top: 12px; display: flex; gap: 8px; }
+  .dialog .actions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
   .dialog .actions button {
-    flex: 1; padding: 6px 10px; font-size: 12px;
+    flex: 1 1 42%; padding: 6px 10px; font-size: 12px;
     background: rgba(255,170,100,.12); color: #e8d5b0;
     border: 1px solid rgba(255,170,100,.3); border-radius: 6px; cursor: pointer;
   }
   .dialog .actions button:hover { background: rgba(255,170,100,.25); }
+  .dialog .actions button.ghost { flex-basis: auto; opacity: .72; }
 
   /* Hover 名字标签 */
   .hover-label {
@@ -187,17 +193,17 @@
   <div class="text">正在生火 · 加载铁匠铺...</div>
 </div>
 
-<div class="topbar"><span class="dot"></span><span>铁匠铺 · NPC Voice Panel 3D</span></div>
+<div class="topbar"><span class="dot"></span><span>老杨的铁匠铺 · 主页欢迎页</span></div>
 
 <button class="panel-toggle" id="panelToggle">⚙️ 控制面板</button>
 <button class="mode-toggle" id="modeToggle" title="场景模式">🕯️ 舒缓</button>
 <button class="bgm-toggle" id="bgmToggle" title="背景音乐">🔇 音乐</button>
 
 <div class="panel" id="sidePanel">
-  <h2>🔨 NPC 列表</h2>
-  <button class="npc-btn" data-npc="master">兽族苦工</button>
-  <button class="npc-btn" data-npc="apprentice">人族农民</button>
-  <button class="npc-btn" data-npc="yq">YQ</button>
+  <h2>🔨 主页入口</h2>
+  <button class="npc-btn" data-npc="master">老杨是谁</button>
+  <button class="npc-btn" data-npc="apprentice">最近在做什么</button>
+  <button class="npc-btn" data-npc="yq">iLoop / YQ</button>
 
   <h2 style="margin-top: 16px;">🎥 视角</h2>
   <div class="row">
@@ -212,17 +218,20 @@
 </div>
 
 <div class="dialog" id="dialog">
-  <div class="name" id="dlgName">兽族苦工</div>
+  <div class="name" id="dlgName">老杨的铁匠铺</div>
+  <div class="meta" id="dlgMeta">点击 NPC 或场景物件逛逛</div>
   <div class="line" id="dlgLine">欢迎来到老杨的铁匠铺，也可以叫我老羊。要打把什么家伙？</div>
   <div class="actions">
-    <button id="btnPlay">🔊 播放语音</button>
+    <button id="btnPrimary">老杨是谁</button>
+    <button id="btnSecondary">锻造欢迎语</button>
+    <button class="ghost" id="btnPlay">🔊 语音</button>
     <button id="btnClose">关闭</button>
   </div>
 </div>
 
 <div class="hover-label" id="hoverLabel"></div>
 <div class="npc-bubble" id="npcBubble"></div>
-<div class="hint">左键拖拽 · 滚轮缩放 · 点击 NPC 对话</div>
+<div class="hint">左键拖拽 · 滚轮缩放 · 点击 NPC / 物件逛逛 · 输入 iLoop 有彩蛋</div>
 
 <script type="importmap">
 {
@@ -312,6 +321,107 @@ const yqLines = [
   'AI时代我还是苦工,只是挖矿的方式不一样了',
 ];
 
+const GUIDE_CARDS = {
+  profile: {
+    name: '老杨是谁',
+    meta: '个人主页入口',
+    line: '我主要折腾 iOS 工程化、大规模项目维护和 Agentic 工作流。这个铁匠铺放的不是正式简历，是我更真实的工作方式：把混乱问题锻造成能跑的工具。',
+    actions: [
+      { label: '看最近项目', type: 'projects' },
+      { label: '看 iLoop', type: 'iloop' },
+    ],
+  },
+  projects: {
+    name: '最近在锻造',
+    meta: '项目集',
+    line: '主线是 iLoop：让 iOS Agent 从“会写代码”变成“能在本机工程持续交付”。旁边还放着包体积治理、无用代码收窄、LinkMap 分析和自动化验证这些铁块。',
+    actions: [
+      { label: '锻造欢迎语', type: 'forge' },
+      { label: '找我协作', type: 'contact' },
+    ],
+  },
+  iloop: {
+    name: 'iLoop',
+    meta: 'i + 反馈闭环 Loop',
+    line: 'iLoop 的核心很简单：先定目标，再用编译、日志、截图、UI 层级这些证据闭环推进。结论必须有证据，做完必须能验。',
+    actions: [
+      { label: '启动闭环彩蛋', type: 'iloop_easter' },
+      { label: '看最近项目', type: 'projects' },
+    ],
+  },
+  contact: {
+    name: '找老杨协作',
+    meta: '怎么开始',
+    line: '最省事的方式：直接带着目标、截图、链接或报错来。需求可以粗糙，证据最好具体；剩下的交给铁匠铺慢慢敲。',
+    actions: [
+      { label: '老杨是谁', type: 'profile' },
+      { label: '随便逛逛', type: 'wander' },
+    ],
+  },
+  wander: {
+    name: '随便逛逛',
+    meta: '随机吐槽',
+    line: '水桶里没有水，只有上次排查问题时留下的冷汗。点点 NPC、铁砧、火炉和桌子，会冒出不一样的入口。',
+    actions: [
+      { label: '再来一句', type: 'wander' },
+      { label: '锻造欢迎语', type: 'forge' },
+    ],
+  },
+};
+
+const WELCOME_LINES = [
+  '欢迎来到老杨的铁匠铺，需求放这里，bug 也放这里，别放我脑子里。',
+  '这里不写长篇自我介绍，这里直接开炉。',
+  '如果一个问题值得反复解释，它就值得被做成工具。',
+  '进门先别急着夸 AI，先看它有没有把活跑通。',
+  '老杨也可以叫老羊，反正都是负责把硬东西一点点磨顺。',
+];
+
+const YQ_EASTER_LINES = [
+  '你连点我五次，是想触发彩蛋，还是在复现线上事故？',
+  'YQ 已进入发疯模式：计划、取证、改动、构建、验证、收口，一个都别少。',
+  '别问我为什么知道你会连点，做工具的人都懂这种手痒。',
+];
+
+const OBJECT_CONFIG = {
+  anvil: {
+    name: '铁砧 · 项目集',
+    meta: '点击物件',
+    line: '铁砧上敲过的东西：iLoop、自闭环流水线、包体积治理、无用代码收窄、LinkMap 分析。硬问题先上砧，别上嘴。',
+    actions: [
+      { label: '看最近项目', type: 'projects' },
+      { label: '锻造欢迎语', type: 'forge' },
+    ],
+  },
+  bucket: {
+    name: '水桶 · 随便逛逛',
+    meta: '点击物件',
+    line: '水桶负责冷却过热的脑子，也负责装一些没地方放的吐槽。你可以把它当成随机入口。',
+    actions: [
+      { label: '随机吐槽', type: 'wander' },
+      { label: '老杨是谁', type: 'profile' },
+    ],
+  },
+  desk: {
+    name: '工作台 · 文档入口',
+    meta: '点击物件',
+    line: '这张桌子是飞书主页的影子：正式文档放外面，入口和上下文放这里。想了解合作方式，从这里开始。',
+    actions: [
+      { label: '找我协作', type: 'contact' },
+      { label: '看 iLoop', type: 'iloop' },
+    ],
+  },
+  forge: {
+    name: '火炉 · 欢迎语锻造机',
+    meta: '点击物件',
+    line: '火炉不讲道理，只负责把一句普通欢迎语烧得更像老杨。',
+    actions: [
+      { label: '锻造一句', type: 'forge' },
+      { label: '看 iLoop', type: 'iloop' },
+    ],
+  },
+};
+
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 let currentAudio = null;
@@ -319,26 +429,47 @@ let currentAudioKey = null;
 let autoTalkTimer = null;
 let bubbleTimer = null;
 let bubbleKey = null;
+let bubbleRoot = null;
 let lastAutoTalkAt = 0;
 let bgRoot = null;
 let bgFitBase = null;
 let furnaceFireMesh = null;
 let fireVtxFrame = 0;   // 火焰顶点动画隔帧计数器（性能）
 let furnaceFireBasePositions = null;
+let forgePulseUntil = 0;
+let dialogActions = [];
+let selectedObjectKey = null;
+let yqClickCount = 0;
+let typedSecret = '';
 
 const NPC_CONFIG = {
-  master:     { name: '兽族苦工', url: './assets/npc_master.glb',     position: [-3.15, 0, 2.95], scale: 1.0, color: 0x884422,
-                line: '欢迎来到老杨的铁匠铺，也可以叫我老羊。要打把什么家伙？',
+  master:     { name: '老杨是谁', url: './assets/npc_master.glb',     position: [-3.15, 0, 2.95], scale: 1.0, color: 0x884422,
+                line: '欢迎来到老杨的铁匠铺，也可以叫我老羊。这里不写长篇介绍，直接看我怎么打铁。',
+                meta: '个人主页入口',
+                actions: [
+                  { label: '老杨是谁', type: 'profile' },
+                  { label: '看项目集', type: 'projects' },
+                ],
                 rotY: 0.05,                // 往前挪并更朝向镜头，避免被铁砧和底座挡住
                 prop: 'anvil' },
-  apprentice: { name: '人族农民',   url: './assets/npc_apprentice.glb', position: [2.2, 0, 1.0],   scale: 0.9, color: 0xaa6633,
-                line: '师傅...这个火候是不是又过了？',
+  apprentice: { name: '最近在做什么',   url: './assets/npc_apprentice.glb', position: [2.2, 0, 1.0],   scale: 0.9, color: 0xaa6633,
+                line: '最近主要在搬 iLoop、iOS Agent、自闭环验证和工程治理这些砖。火候不一定优雅，但都得能跑。',
+                meta: '当前项目',
+                actions: [
+                  { label: '看最近项目', type: 'projects' },
+                  { label: '找我协作', type: 'contact' },
+                ],
                 rotY: -0.6,                // 侧身朝炉火
                 prop: 'bucket' },
-  yq:         { name: 'YQ',         url: './assets/npc_yq.glb',         position: [0.3, 0, 3.2],   scale: 1.0, color: 0x2266aa,
-                line: '在调试新的 3D 流水线，等下给你看个 Demo。',
+  yq:         { name: 'iLoop / YQ',         url: './assets/npc_yq.glb',         position: [0.3, 0, 3.2],   scale: 1.0, color: 0x2266aa,
+                line: '我负责把“AI 帮我看看”升级成“AI 自己跑证据闭环”。连点我几下可能会出事。',
+                meta: 'Agent 工作流',
+                actions: [
+                  { label: '看 iLoop', type: 'iloop' },
+                  { label: '触发彩蛋', type: 'yq_easter' },
+                ],
                 rotY: -0.2,                // 微微侧身
-                prop: null }               // YQ 不挡手
+                prop: 'desk' }             // 工作台承载主页/文档入口
 };
 const BG_URL = './assets/bg_smithy.glb'; // 铁匠铺背景
 
@@ -505,8 +636,10 @@ loader.setKTX2Loader(ktx2Loader);
 loader.setMeshoptDecoder(MeshoptDecoder);
 
 const npcs = {}; // { key: { root, originalEmissive, config } }
+const interactiveObjects = {}; // { key: { root, config } }
 let loadCount = 0;
 const TOTAL = Object.keys(NPC_CONFIG).length + 1; // +1 for bg
+createHotspot('forge', [0, FLOOR_Y + 0.7, 1.05], [1.8, 1.5, 1.3]);
 
 function tickLoad() {
   loadCount++;
@@ -650,6 +783,27 @@ function makeProp(type, npcPos) {
   return g;
 }
 
+function registerInteractive(root, key, config = OBJECT_CONFIG[key]) {
+  if (!root || !config) return root;
+  root.userData.interactiveKey = key;
+  root.traverse?.(o => {
+    if (o.isMesh || o.isGroup) o.userData.interactiveKey = key;
+  });
+  interactiveObjects[key] = { root, config };
+  return root;
+}
+
+function createHotspot(key, position, size) {
+  const hit = new THREE.Mesh(
+    new THREE.BoxGeometry(size[0], size[1], size[2]),
+    new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.0, depthWrite: false })
+  );
+  hit.position.set(position[0], position[1], position[2]);
+  hit.visible = true;
+  scene.add(hit);
+  return registerInteractive(hit, key);
+}
+
 // 加载 NPC
 function loadNPC(key, cfg) {
   loader.load(cfg.url, gltf => {
@@ -687,6 +841,7 @@ function loadNPC(key, cfg) {
     if (cfg.prop) {
       const prop = makeProp(cfg.prop, cfg.position);
       prop.position.y += FLOOR_Y; // 道具也抬到地板上
+      registerInteractive(prop, cfg.prop);
       scene.add(prop);
     }
 
@@ -705,6 +860,7 @@ function loadNPC(key, cfg) {
     if (cfg.prop) {
       const prop = makeProp(cfg.prop, cfg.position);
       prop.position.y += FLOOR_Y;
+      registerInteractive(prop, cfg.prop);
       scene.add(prop);
     }
     npcs[key] = { root: mesh, config: cfg, baseY: mesh.position.y };
@@ -724,28 +880,39 @@ const npcBubble = document.getElementById('npcBubble');
 const sidePanel = document.getElementById('sidePanel');
 const panelToggle = document.getElementById('panelToggle');
 
-function pickNPC(event) {
+function pickTarget(event) {
   pointer.x = (event.clientX / innerWidth) * 2 - 1;
   pointer.y = -(event.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  const meshes = Object.values(npcs).map(n => n.root);
-  const hits = raycaster.intersectObjects(meshes, true);
+  const roots = [
+    ...Object.values(npcs).map(n => n.root),
+    ...Object.values(interactiveObjects).map(o => o.root),
+  ].filter(Boolean);
+  const hits = raycaster.intersectObjects(roots, true);
   for (const h of hits) {
     let o = h.object;
-    while (o && !o.userData.npcKey) o = o.parent;
-    if (o?.userData.npcKey) return o.userData.npcKey;
+    while (o && !o.userData.npcKey && !o.userData.interactiveKey) o = o.parent;
+    if (o?.userData.npcKey) {
+      const key = o.userData.npcKey;
+      return { type: 'npc', key, label: NPC_CONFIG[key].name };
+    }
+    if (o?.userData.interactiveKey) {
+      const key = o.userData.interactiveKey;
+      return { type: 'object', key, label: OBJECT_CONFIG[key]?.name || '可点击物件' };
+    }
   }
   return null;
 }
 
 canvas.addEventListener('pointermove', e => {
-  const key = pickNPC(e);
-  if (key !== hoverKey) {
-    hoverKey = key;
-    canvas.style.cursor = key ? 'pointer' : 'grab';
+  const target = pickTarget(e);
+  const hoverId = target ? `${target.type}:${target.key}` : null;
+  if (hoverId !== hoverKey) {
+    hoverKey = hoverId;
+    canvas.style.cursor = target ? 'pointer' : 'grab';
   }
-  if (key) {
-    hoverLabel.textContent = NPC_CONFIG[key].name;
+  if (target) {
+    hoverLabel.textContent = target.label;
     hoverLabel.style.left = e.clientX + 'px';
     hoverLabel.style.top = e.clientY + 'px';
     hoverLabel.classList.add('show');
@@ -755,8 +922,13 @@ canvas.addEventListener('pointermove', e => {
 });
 
 canvas.addEventListener('click', e => {
-  const key = pickNPC(e);
-  if (key) selectNPC(key);
+  const target = pickTarget(e);
+  if (!target) return;
+  if (target.type === 'npc') {
+    selectNPC(target.key);
+  } else {
+    selectObject(target.key);
+  }
 });
 
 function talkMotionNPC(key, duration = 2200) {
@@ -795,27 +967,38 @@ function talkMotionNPC(key, duration = 2200) {
   requestAnimationFrame(step);
 }
 
-function showNPCBubble(key, text, duration = 3200) {
-  bubbleKey = key;
+function showBubble(id, root, text, duration = 3200) {
+  bubbleKey = id;
+  bubbleRoot = root;
   npcBubble.textContent = text;
   npcBubble.classList.add('show');
   updateNPCBubblePosition();
   clearTimeout(bubbleTimer);
   bubbleTimer = setTimeout(() => {
-    hideNPCBubble(key);
+    hideNPCBubble(id);
   }, duration);
 }
 
+function showNPCBubble(key, text, duration = 3200) {
+  showBubble(`npc:${key}`, npcs[key]?.root, text, duration);
+}
+
+function showObjectBubble(key, text, duration = 3200) {
+  showBubble(`object:${key}`, interactiveObjects[key]?.root, text, duration);
+}
+
 function hideNPCBubble(key = null) {
-  if (key && bubbleKey && key !== bubbleKey) return;
+  if (key && bubbleKey && key !== bubbleKey && `npc:${key}` !== bubbleKey && `object:${key}` !== bubbleKey) return;
   npcBubble.classList.remove('show');
-  if (!key || key === bubbleKey) bubbleKey = null;
+  if (!key || key === bubbleKey || `npc:${key}` === bubbleKey || `object:${key}` === bubbleKey) {
+    bubbleKey = null;
+    bubbleRoot = null;
+  }
 }
 
 function updateNPCBubblePosition() {
-  if (!bubbleKey || !npcs[bubbleKey]?.root) return;
-  const root = npcs[bubbleKey].root;
-  const box = new THREE.Box3().setFromObject(root);
+  if (!bubbleKey || !bubbleRoot) return;
+  const box = new THREE.Box3().setFromObject(bubbleRoot);
   const top = box.getCenter(new THREE.Vector3());
   top.y = box.max.y + 0.2;
   top.project(camera);
@@ -838,6 +1021,139 @@ function getRandomTalkDelay() {
   return 7000 + Math.random() * 7000;
 }
 
+function setActiveNpcButton(key) {
+  document.querySelectorAll('.npc-btn[data-npc]').forEach(b => {
+    b.classList.toggle('active', b.dataset.npc === key);
+  });
+}
+
+function renderDialog({ name, meta = '', line, actions = [], allowVoice = false }) {
+  document.getElementById('dlgName').textContent = name;
+  const metaEl = document.getElementById('dlgMeta');
+  metaEl.textContent = meta;
+  metaEl.classList.toggle('show', !!meta);
+  document.getElementById('dlgLine').textContent = line;
+
+  dialogActions = actions;
+  [document.getElementById('btnPrimary'), document.getElementById('btnSecondary')].forEach((btn, i) => {
+    const action = actions[i];
+    btn.textContent = action?.label || '';
+    btn.style.display = action ? '' : 'none';
+  });
+  document.getElementById('btnPlay').style.display = allowVoice ? '' : 'none';
+  dialog.classList.add('show');
+}
+
+function showContextBubble(line, duration = 3800) {
+  if (activeKey && npcs[activeKey]) {
+    showNPCBubble(activeKey, line, duration);
+  } else if (selectedObjectKey && interactiveObjects[selectedObjectKey]) {
+    showObjectBubble(selectedObjectKey, line, duration);
+  } else if (npcs.yq) {
+    showNPCBubble('yq', line, duration);
+  }
+}
+
+function openGuideCard(type) {
+  if (type === 'forge') {
+    forgeWelcome();
+    return;
+  }
+  if (type === 'yq_easter') {
+    triggerYQEasterEgg();
+    return;
+  }
+  if (type === 'iloop_easter') {
+    triggerILoopEasterEgg();
+    return;
+  }
+
+  const source = GUIDE_CARDS[type] || GUIDE_CARDS.profile;
+  const card = { ...source };
+  if (type === 'wander') {
+    card.line = pickRandom([
+      GUIDE_CARDS.wander.line,
+      ...yqLines.slice(0, 8),
+      '这里是主页，不是简历；简历负责证明过去，铁匠铺负责展示手感。',
+    ]);
+  }
+  renderDialog({ ...card, allowVoice: false });
+  showContextBubble(card.line);
+}
+
+function runDialogAction(index) {
+  const action = dialogActions[index];
+  if (!action) return;
+  if (action.url) {
+    window.open(action.url, '_blank', 'noopener');
+    return;
+  }
+  openGuideCard(action.type);
+}
+
+function forgeWelcome() {
+  const line = pickRandom(WELCOME_LINES);
+  selectedObjectKey = 'forge';
+  activeKey = null;
+  setActiveNpcButton(null);
+  applySceneMode('forge');
+  forgePulseUntil = performance.now() + 1400;
+  renderDialog({
+    name: '火炉 · 新欢迎语',
+    meta: '锻造完成',
+    line,
+    actions: [
+      { label: '再锻一句', type: 'forge' },
+      { label: '看 iLoop', type: 'iloop' },
+    ],
+    allowVoice: false,
+  });
+  showObjectBubble('forge', line, 4600);
+}
+
+function triggerYQEasterEgg() {
+  const line = pickRandom(YQ_EASTER_LINES);
+  yqClickCount = 0;
+  activeKey = 'yq';
+  selectedObjectKey = null;
+  setActiveNpcButton('yq');
+  applySceneMode('forge');
+  forgePulseUntil = performance.now() + 1600;
+  renderDialog({
+    name: 'YQ 发疯模式',
+    meta: '连点彩蛋',
+    line,
+    actions: [
+      { label: '看 iLoop', type: 'iloop' },
+      { label: '再发疯', type: 'yq_easter' },
+    ],
+    allowVoice: false,
+  });
+  showNPCBubble('yq', line, 5200);
+  bounceNPC('yq');
+  talkMotionNPC('yq', 2600);
+}
+
+function triggerILoopEasterEgg() {
+  const line = '闭环启动：📋 计划 → 🔍 取证 → 🔧 改动 → 🛠 构建 → ✅ 验证 → 📝 收口。';
+  activeKey = 'yq';
+  selectedObjectKey = null;
+  setActiveNpcButton('yq');
+  forgePulseUntil = performance.now() + 1800;
+  renderDialog({
+    name: 'iLoop 闭环启动',
+    meta: '隐藏指令 iLoop',
+    line,
+    actions: [
+      { label: '看 iLoop', type: 'iloop' },
+      { label: '锻造欢迎语', type: 'forge' },
+    ],
+    allowVoice: false,
+  });
+  showNPCBubble('yq', line, 5200);
+  talkMotionNPC('yq', 3000);
+}
+
 function triggerRandomAmbientTalk(force = false) {
   if (dialog.classList.contains('show') && !force) return;
 
@@ -849,10 +1165,9 @@ function triggerRandomAmbientTalk(force = false) {
   const key = pickRandom(allKeys);
   const line = (key === 'yq') ? pickRandom(yqLines) : NPC_CONFIG[key].line;
 
-  document.querySelectorAll('.npc-btn[data-npc]').forEach(b => {
-    b.classList.toggle('active', b.dataset.npc === key);
-  });
+  setActiveNpcButton(key);
   activeKey = key;
+  selectedObjectKey = null;
   bounceNPC(key);
   talkMotionNPC(key, 2200);
   showNPCBubble(key, line, 3600);
@@ -865,7 +1180,7 @@ function triggerRandomAmbientTalk(force = false) {
 
   setTimeout(() => {
     if (activeKey === key) activeKey = null;
-    document.querySelectorAll('.npc-btn[data-npc]').forEach(b => b.classList.remove('active'));
+    setActiveNpcButton(null);
   }, 3600);
 }
 
@@ -886,27 +1201,59 @@ function kickOffAutoTalk() {
 
 function selectNPC(key) {
   activeKey = key;
-  // 高亮按钮
-  document.querySelectorAll('.npc-btn[data-npc]').forEach(b => {
-    b.classList.toggle('active', b.dataset.npc === key);
-  });
-  // YQ 没有语音，隐藏播放按钮
-  document.getElementById('btnPlay').style.display = key === 'yq' ? 'none' : '';
-  // 弹对话气泡
+  selectedObjectKey = null;
+  setActiveNpcButton(key);
+
+  if (key === 'yq') {
+    yqClickCount++;
+    if (yqClickCount >= 5) {
+      triggerYQEasterEgg();
+      return;
+    }
+  } else {
+    yqClickCount = 0;
+  }
+
   const cfg = NPC_CONFIG[key];
-  document.getElementById('dlgName').textContent = cfg.name;
-  // YQ 随机台词；其他 NPC 固定台词
-  const line = (key === 'yq') ? pickRandom(yqLines) : cfg.line;
-  document.getElementById('dlgLine').textContent = line;
-  dialog.classList.add('show');
-  showNPCBubble(key, line, 4200);
-  // 被选中的 NPC 弹跳一下
+  renderDialog({
+    name: cfg.name,
+    meta: cfg.meta,
+    line: cfg.line,
+    actions: cfg.actions,
+    allowVoice: !!voiceFiles[key],
+  });
+  showNPCBubble(key, cfg.line, 4200);
   bounceNPC(key);
   talkMotionNPC(key, 1800);
-  // 相机聚焦
   focusOn(npcs[key].root);
-  // 触发语音
   onNPCSelected(key);
+}
+
+function selectObject(key) {
+  const entry = interactiveObjects[key];
+  const cfg = OBJECT_CONFIG[key];
+  if (!entry || !cfg) return;
+
+  activeKey = null;
+  selectedObjectKey = key;
+  yqClickCount = 0;
+  setActiveNpcButton(null);
+  stopCurrentAudio();
+
+  if (key === 'forge') {
+    forgeWelcome();
+    return;
+  }
+
+  renderDialog({
+    name: cfg.name,
+    meta: cfg.meta,
+    line: cfg.line,
+    actions: cfg.actions,
+    allowVoice: false,
+  });
+  showObjectBubble(key, cfg.line, 4200);
+  focusOn(entry.root);
 }
 
 // 点击反馈：缩放 1.0 → 1.06 → 1.0
@@ -999,18 +1346,30 @@ document.addEventListener('click', (e) => {
 document.querySelectorAll('.npc-btn[data-npc]').forEach(b => {
   b.addEventListener('click', () => selectNPC(b.dataset.npc));
 });
+document.getElementById('btnPrimary').addEventListener('click', () => runDialogAction(0));
+document.getElementById('btnSecondary').addEventListener('click', () => runDialogAction(1));
 document.getElementById('btnClose').addEventListener('click', () => {
   dialog.classList.remove('show');
   hideNPCBubble();
   activeKey = null;
+  selectedObjectKey = null;
+  yqClickCount = 0;
+  dialogActions = [];
   stopCurrentAudio();
-  document.getElementById('btnPlay').style.display = '';
-  document.querySelectorAll('.npc-btn[data-npc]').forEach(b => b.classList.remove('active'));
+  setActiveNpcButton(null);
 });
 document.getElementById('btnPlay').addEventListener('click', () => {
   if (activeKey) {
     stopCurrentAudio();
     window.onNPCSelected(activeKey);
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1) return;
+  typedSecret = (typedSecret + e.key.toLowerCase()).slice(-12);
+  if (typedSecret.endsWith('iloop')) {
+    typedSecret = '';
+    triggerILoopEasterEgg();
   }
 });
 document.getElementById('cameraDistance').addEventListener('input', e => {
@@ -1039,11 +1398,17 @@ function animate() {
   // 火炉模式火苗跳得更欢
   const flickerAmp = SCENE_MODE === 'forge' ? 0.22 : 0.12;
   furnaceCoreLight.intensity = fireBaseIntensity * 0.6 + Math.sin(t * 8.5) * flickerAmp + Math.random() * 0.08;
+  const pulseLeft = Math.max(0, forgePulseUntil - performance.now());
+  const forgePulse = pulseLeft ? Math.sin((1 - pulseLeft / 1800) * Math.PI) : 0;
+  if (forgePulse) {
+    fireLight.intensity += forgePulse * 1.15;
+    furnaceCoreLight.intensity += forgePulse * 0.9;
+  }
 
   // 炉膛火焰网格轻微形变 + 呼吸缩放，营造燃烧感
   if (furnaceFireMesh) {
     furnaceFireMesh.scale.x = 1 + Math.sin(t * 7.5) * 0.035;
-    furnaceFireMesh.scale.y = 1 + Math.sin(t * 11.0) * 0.06;
+    furnaceFireMesh.scale.y = 1 + Math.sin(t * 11.0) * 0.06 + forgePulse * 0.08;
     furnaceFireMesh.scale.z = 1 + Math.cos(t * 6.3) * 0.03;
     furnaceFireMesh.position.y = 0;
     // 性能：逐顶点形变只在火炉模式跑，且每 2 帧更新一次（减半 GPU 顶点上传）
