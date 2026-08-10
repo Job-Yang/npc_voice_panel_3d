@@ -37,12 +37,17 @@ async function main() {
 
     const separator = url.includes("?") ? "&" : "?";
     const verifiedUrl = `${url}${separator}autoloop_ts=${Date.now()}`;
-    await page.goto(verifiedUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
-    await page.waitForFunction(
-      () => document.querySelector("#loader")?.classList.contains("hide"),
-      null,
-      { timeout: 45000 },
-    );
+    await page.goto(verifiedUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+    let loaderWaitError = "";
+    await page
+      .waitForFunction(
+        () => document.querySelector("#loader")?.classList.contains("hide"),
+        null,
+        { timeout: 20000 },
+      )
+      .catch((error) => {
+        loaderWaitError = error.message;
+      });
     await page.waitForTimeout(1500);
 
     const state = await page.evaluate(() => ({
@@ -54,13 +59,19 @@ async function main() {
     await page.screenshot({ path: screenshotPath, fullPage: true });
 
     const result = {
-      status: errors.length === 0 && state.canvasPresent ? "passed" : "failed",
+      status:
+        errors.length === 0 &&
+        state.canvasPresent &&
+        state.loaderClass.split(/\s+/).includes("hide")
+          ? "passed"
+          : "failed",
       url: verifiedUrl,
       screenshot: screenshotPath,
       state,
       errors,
       warnings,
       requestFailures,
+      loaderWaitError,
       verified_at: new Date().toISOString(),
     };
     fs.writeFileSync(resultPath, `${JSON.stringify(result, null, 2)}\n`);
