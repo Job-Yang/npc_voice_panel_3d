@@ -30,9 +30,13 @@
 5. **动手**：在仓库根做**最小可用**改动。优先安全区，谨慎碰高风险区。
 6. **本地验证**：起服务、打开、确认改动生效且无 error，截图存 `.autoloop/journal/assets/`。
 7. **发布**：`git add`（作品改动 + 本轮实验数据）→ 规范 commit message（如 `feat: 给学徒加打铁火花`）→ `git push` 到 `<BRANCH>`。**记下 commit hash**。
-8. **线上无痕验证（不可省略）**：等 GitHub Pages 生效（约 1–3 分钟，可轮询），用**禁缓存/cache-busting
-   （URL 加 `?t=<时间戳>`）/无痕等效**方式打开**线上 URL**，确认线上真实渲染就是你要的效果（不只信本地）。
-   截线上效果图存 `.autoloop/journal/assets/<date>.png`。线上与本地不一致或没生效，如实记录。
+8. **线上无痕验证（不可省略，但要轻量、绝不挂起）**：等 GitHub Pages 生效（约 1–3 分钟，可轮询）。
+   **首选轻量方式**：用 `curl -s "线上URL?t=<时间戳>"`（cache-busting 禁缓存）拉线上 HTML，grep 你本轮
+   新增的关键标识（如新功能名/新元素 id）确认线上确实已更新生效——这一步无依赖、秒级、必做。
+   **截图是可选加分项，不是必做**：只有当远端已具备可用的 headless 浏览器时才截线上效果图存
+   `.autoloop/journal/assets/<date>.png`；**若浏览器缺依赖/启动失败/超过 60 秒未返回，立即放弃截图**，
+   在手记里如实写"线上已通过 curl 验证生效，截图因环境跳过"，然后继续收口。**严禁**为了截图反复重试、
+   长时间挂起、或用 apt/sudo 装系统依赖——那会拖死整轮。线上与本地不一致或没生效，如实记录。
 9. **记录（实验核心产物）**：写 `.autoloop/journal/<date>.md`，见下「手记规范」。
 10. **更新 CHANGELOG**：`.autoloop/CHANGELOG.md` 顶部加 `## <date>`，一两句概括本轮改动 + commit hash。
     （第 7 步已把 journal/CHANGELOG 一起 push 了；若你在第 8-10 步之后又有记录更新，再补一个 commit push 即可。）
