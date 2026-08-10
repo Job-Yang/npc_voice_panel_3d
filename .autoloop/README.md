@@ -18,7 +18,8 @@
 ├── CHANGELOG.md         变更概览 + 每轮 commit hash
 ├── ASK_HUMAN.md         Agent 求助板
 ├── HUMAN_FEEDBACK.md    （阶段 B 才建）主人的低频批注，Agent 回顾时优先读 = 人类监督注入点
-└── runs/<ts>/           每轮过程留档：final.txt / trae.jsonl / git.log / metrics.json（入库）
+├── feishu.json           飞书 all-in-one 观察文档配置（非密钥）
+└── runs/<ts>/           每轮过程留档：final / trace / metrics / 视觉验证 / 飞书写入回读（入库）
 仓库根 index.html + assets/   作品本体（GitHub Pages 只发这些）
 ```
 
@@ -28,6 +29,10 @@
 - 跑 Agent 层：复用 iLoop oncall 同款 `trae-cli exec` 无人值守姿势（`--sandbox workspace-write` +
   `approval_policy=never` + `--ephemeral`）。远端 oncall 已在用，凭证/权限现成。
 - 单仓：作品改动 + 实验数据共享一条 commit 历史，一起 push。Pages 只发作品本体，`.autoloop/` 不影响上线。
+- 飞书观察文档：<https://bytedance.larkoffice.com/docx/Urw8drpGholNETx7CCBchka8ntd>。每轮完成后由
+  `engine/report_feishu.sh` 追加“怎么想、怎么做、最终效果”，原始证据仍以仓库为准。
+- 线上视觉验证：`engine/verify_web.sh` 使用真实 Chromium、禁缓存 URL 和 60 秒硬超时，截图及结果 JSON
+  随本轮入库；不再让 Agent 临时拼 Playwright 环境。
 
 ## 部署到远端服务机（一次性）
 1. 远端 clone / pull 本仓，确保 `trae-cli` 在 PATH 且已登录（远端 oncall 已在用，凭证应就绪）。

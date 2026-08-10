@@ -36,6 +36,19 @@ TODAY="$(date +%Y-%m-%d)"; STAMP="$(date +%Y-%m-%d_%H%M%S)"
 RUN_DIR="${AUTOLOOP_DIR}/runs/${STAMP}"; mkdir -p "${RUN_DIR}"
 log() { echo "[autoloop][$(date '+%H:%M:%S')] $*"; }
 
+worktree_matches_origin() {
+  git diff --quiet "origin/${BRANCH}" -- . 2>/dev/null || return 1
+  git diff --cached --quiet "origin/${BRANCH}" -- . 2>/dev/null || return 1
+  while IFS= read -r path; do
+    case "${path}" in
+      .autoloop/runs/*|.autoloop/journal/assets/*-online.png) continue ;;
+    esac
+    git cat-file -e "origin/${BRANCH}:${path}" 2>/dev/null || return 1
+    cmp -s "${path}" <(git show "origin/${BRANCH}:${path}") || return 1
+  done < <(git ls-files --others --exclude-standard)
+  return 0
+}
+
 log "=== 铁匠铺自迭代 · ${STAMP} 开工 ===  仓库=${REPO_DIR} 分支=${BRANCH} 模型=${MODEL}"
 
 # ---- 1. 同步（保守快进，冲突跳过本轮）----
@@ -44,7 +57,7 @@ git fetch origin "${BRANCH}" 2>&1 | tee -a "${RUN_DIR}/git.log"
 # （其内容其实已 push 到远端）。这些残留会挡住 ff-only。若本地相对 origin 无实质差异，
 # 说明残留都已在远端，安全清理后再快进；只有真正的内容分叉才跳过本轮。
 if [ -n "$(git status --porcelain)" ]; then
-  if git diff --quiet "origin/${BRANCH}" -- . 2>/dev/null; then
+  if worktree_matches_origin; then
     log "检测到工作区残留（内容已在远端），自动清理以恢复干净状态。"
     git checkout -- . 2>/dev/null || true
     # 排除 runs/：本轮 RUN_DIR 已在同步前建好，且历史 runs 已随远端快进拉回，勿误删。
@@ -67,6 +80,7 @@ PROMPT="今天是 ${TODAY}。下面是你的自迭代宪法（通用骨架 + 本
 （回顾→现状盘点→找灵感→改→本地验证→push→线上无痕验证→写手记→更新CHANGELOG）。
 你运行在远端、无人值守、stdin 已关闭，不要空等交互。
 仓库根=${REPO_DIR}（作品代码在此，实验数据写 .autoloop/）。分支=${BRANCH}。线上地址=${ONLINE_URL}
+本轮RUN_DIR=${RUN_DIR}（视觉验证 JSON、final、trace 等本轮证据写这里）。
 
 ========== 通用骨架 constitution.md ==========
 $(cat "${AUTOLOOP_DIR}/constitution.md")
@@ -87,10 +101,32 @@ AGENT_PID=$!
 ( sleep "${TASK_TIMEOUT}"; kill -0 "${AGENT_PID}" 2>/dev/null && { echo "[autoloop] 超时终止"; kill "${AGENT_PID}" 2>/dev/null; } ) & WATCHDOG=$!
 wait "${AGENT_PID}"; AGENT_RC=$?; kill "${WATCHDOG}" 2>/dev/null
 
+# ---- 5. 引擎兜底线上视觉验证（Agent 未产出时补跑，60 秒硬超时）----
+ONLINE_SCREENSHOT="${AUTOLOOP_DIR}/journal/assets/${TODAY}-online.png"
+VISUAL_RESULT="${RUN_DIR}/visual_verification.json"
+VISUAL_RC=0
+if [ ! -s "${ONLINE_SCREENSHOT}" ] || [ ! -s "${VISUAL_RESULT}" ]; then
+  log "执行线上 3D 页面真实截图验证（60 秒硬超时）……"
+  bash "${ENGINE_DIR}/verify_web.sh" "${ONLINE_URL}" "${ONLINE_SCREENSHOT}" "${VISUAL_RESULT}" \
+    >> "${RUN_DIR}/visual_verification.log" 2>&1 || VISUAL_RC=$?
+fi
+
+# TRAE workspace-write 可能用平行 GIT_DIR 完成 commit/push，默认 .git 仍停在旧 HEAD。
+# 若工作区内容与远端一致，清理平行 GIT_DIR 的视图残留并快进默认仓；保留本轮 runs 与引擎截图。
+git fetch origin "${BRANCH}" >> "${RUN_DIR}/git.log" 2>&1 || true
+if [ -n "$(git status --porcelain)" ] && worktree_matches_origin; then
+  git checkout -- . 2>/dev/null || true
+  git clean -fd \
+    -e ".autoloop/runs" \
+    -e ".autoloop/journal/assets/${TODAY}-online.png" \
+    . >> "${RUN_DIR}/git.log" 2>&1 || true
+fi
+git merge --ff-only "origin/${BRANCH}" >> "${RUN_DIR}/git.log" 2>&1 || true
+
 HEAD_AFTER="$(git rev-parse HEAD)"
 git log -1 --oneline > "${RUN_DIR}/head_after.txt" 2>&1 || true
 
-# ---- 5. 采集本轮客观指标（实验定量数据）----
+# ---- 6. 采集本轮客观指标（实验定量数据）----
 COMMITTED=false; DIFF_STAT="0 0 0"
 if [ "${HEAD_BEFORE}" != "${HEAD_AFTER}" ]; then
   COMMITTED=true
@@ -99,6 +135,7 @@ fi
 cat > "${RUN_DIR}/metrics.json" <<EOF
 {
   "date": "${TODAY}", "stamp": "${STAMP}", "agent_rc": ${AGENT_RC},
+  "visual_verification_rc": ${VISUAL_RC},
   "committed": ${COMMITTED},
   "head_before": "${HEAD_BEFORE}", "head_after": "${HEAD_AFTER}",
   "commit_oneline": "$(git log -1 --format='%h %s' "${HEAD_AFTER}" 2>/dev/null | sed 's/"/\\"/g')",
@@ -113,11 +150,15 @@ else
   log "!! 本轮异常 rc=${AGENT_RC}，trace 见 ${TRACE_JSONL}"; echo "rc=${AGENT_RC}" > "${RUN_DIR}/ERROR"
 fi
 
-# ---- 6. 把过程留档(runs/)提交入库（实验数据必须每轮保存并推送）----
-# 注意：Agent 自己已在第7步 push 了作品改动+journal/CHANGELOG。这里只补交 runs/ 过程数据，
-# 避免它被漏在工作区外。用 --ff-only 拉一次防并发，再单独提交 runs/。
-log "提交本轮过程留档 runs/ ……"
+# ---- 7. 同步飞书上帝视角文档（失败留证据，不阻断作品迭代）----
+log "同步飞书 AutoLoop 实验日志……"
+bash "${ENGINE_DIR}/report_feishu.sh" "${RUN_DIR}" "${TODAY}" \
+  >> "${RUN_DIR}/feishu_report.log" 2>&1 || log "!! 飞书同步失败，证据已写入本轮 runs。"
+
+# ---- 8. 把过程留档、视觉证据提交入库（实验数据必须每轮保存并推送）----
+log "提交本轮过程留档、视觉证据与飞书回读……"
 git add "${AUTOLOOP_DIR}/runs/${STAMP}" 2>/dev/null || true
+[ -s "${ONLINE_SCREENSHOT}" ] && git add "${ONLINE_SCREENSHOT}" 2>/dev/null || true
 if ! git diff --cached --quiet 2>/dev/null; then
   git -c core.hooksPath=/dev/null commit -m "chore(autoloop): 过程留档 ${STAMP}" 2>&1 | tee -a "${RUN_DIR}/git.log" || true
   git fetch origin "${BRANCH}" >/dev/null 2>&1 || true
