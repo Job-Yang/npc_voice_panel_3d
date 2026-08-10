@@ -1,7 +1,7 @@
 # AutoLoop · 铁匠铺自迭代实验
 
-一个**无人值守自迭代系统实验**：让一个 AI Agent 每天凌晨自己给这个 3D 欢迎页做一轮迭代——
-回顾→盘点现状→找灵感→改→本地验证→push→线上无痕验证→写手记，全程无人参与。
+一个**无人值守自迭代系统实验**：让一个 AI Agent 每天凌晨先摄取公开外部输入，再给这个 3D 欢迎页做一轮
+迭代——回顾→盘点现状→调查外部来源→消化与筛选→改→验证→push→写手记，全程无人参与。
 主人像训模型一样低频监督它：每个 commit 是一个可回退、可分析的样本；`journal/` + `runs/` 是实验数据集。
 
 > 当前是**单仓实验**：引擎、实验数据、作品代码都在这一个仓里（`.autoloop/` 放引擎和数据，仓库根是作品）。
@@ -14,6 +14,7 @@
 ├── constitution.md      通用宪法骨架（怎么迭代/记录/验证/红线）
 ├── profile.md           场景锚：这作品是什么/目标/边界/护栏（Agent 不可改）
 ├── engine/iterate.sh    引擎：cron 调它，拉起 Agent 跑一轮 + 采集指标 + 提交过程留档
+├── inputs/<date>.md     每轮公开外部输入卡：来源/观察/吸收/拒绝/转化路径
 ├── journal/<date>.md    Agent 每天亲手写的手记（+ assets/ 无痕验证效果图）
 ├── CHANGELOG.md         变更概览 + 每轮 commit hash
 ├── ASK_HUMAN.md         Agent 求助板
@@ -31,6 +32,8 @@
 - 单仓：作品改动 + 实验数据共享一条 commit 历史，一起 push。Pages 只发作品本体，`.autoloop/` 不影响上线。
 - 飞书观察文档：<https://bytedance.larkoffice.com/docx/Urw8drpGholNETx7CCBchka8ntd>。每轮完成后由
   `engine/report_feishu.sh` 追加“怎么想、怎么做、最终效果”，原始证据仍以仓库为准。
+- 输入规则：每轮必须先调查至少 2 个公开可追溯来源，记录“看了什么→学到什么→为何吸收/拒绝→如何转化”。
+  仓库与完整 trace 公开，因此严格禁止搜索或引用任何公司内部/飞书内部/内网资料。
 - 线上视觉验证：`engine/verify_web.sh` 先校验线上 HTML 与当前 commit 的 SHA-256 一致，再用真实 Chromium
   渲染同一份本地代码并截图；浏览器阶段有 60 秒硬超时。截图及结果 JSON 随本轮入库，不再让 Agent 临时
   拼 Playwright 环境，也不让 GitHub Pages 的大模型下载速度决定整轮是否卡住。
@@ -49,7 +52,7 @@
 `AUTOLOOP_TIMEOUT`(默认 3600s) · `AUTOLOOP_ONLINE_URL`
 
 ## 怎么监督这个实验（人在环上）
-- **阶段 A 纯观察**：不建 HUMAN_FEEDBACK.md，只读 journal/，看它无监督漂向哪。
+- **阶段 A 外部输入驱动的纯观察**：不建 HUMAN_FEEDBACK.md，但每轮必须学习公开外部来源；观察它如何筛选与转化。
 - **阶段 B 弱监督**：建 `.autoloop/HUMAN_FEEDBACK.md` 写低频批注（「这个好」「别再改配色」），Agent 下轮"回顾"优先读它。
 - 看 AI 每天在想什么 → journal/；概览 → CHANGELOG.md；求助 → ASK_HUMAN.md；某轮细节/指标 → runs/。
 

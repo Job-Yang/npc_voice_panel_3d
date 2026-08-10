@@ -77,7 +77,7 @@ command -v "${TRAE_CLI}" >/dev/null 2>&1 || [ -x "${TRAE_CLI}" ] || { log "!! �
 
 # ---- 3. 拼装完整宪法 = 通用骨架 + 本仓画像 ----
 PROMPT="今天是 ${TODAY}。下面是你的自迭代宪法（通用骨架 + 本仓画像）。请严格按它完成今天这一轮
-（回顾→现状盘点→找灵感→改→本地验证→push→线上无痕验证→写手记→更新CHANGELOG）。
+（回顾→现状盘点→摄取公开外部输入→消化筛选→改→本地验证→push→线上无痕验证→写手记→更新CHANGELOG）。
 你运行在远端、无人值守、stdin 已关闭，不要空等交互。
 仓库根=${REPO_DIR}（作品代码在此，实验数据写 .autoloop/）。分支=${BRANCH}。线上地址=${ONLINE_URL}
 本轮RUN_DIR=${RUN_DIR}（视觉验证 JSON、final、trace 等本轮证据写这里）。
@@ -101,7 +101,36 @@ AGENT_PID=$!
 ( sleep "${TASK_TIMEOUT}"; kill -0 "${AGENT_PID}" 2>/dev/null && { echo "[autoloop] 超时终止"; kill "${AGENT_PID}" 2>/dev/null; } ) & WATCHDOG=$!
 wait "${AGENT_PID}"; AGENT_RC=$?; kill "${WATCHDOG}" 2>/dev/null
 
-# ---- 5. 引擎兜底线上视觉验证（Agent 未产出时补跑，60 秒硬超时）----
+# ---- 5. 外部输入门禁（缺输入卡或不可追溯来源时，该轮实验标记失败）----
+INPUT_CARD="${AUTOLOOP_DIR}/inputs/${TODAY}.md"
+INPUT_RC=0
+INPUT_MODE="missing"
+INPUT_SOURCE_COUNT=0
+if [ -s "${INPUT_CARD}" ]; then
+  INPUT_SOURCE_COUNT="$(grep -Eo 'https?://[^ )>]+' "${INPUT_CARD}" 2>/dev/null | sort -u | wc -l | tr -d ' ')"
+  if grep -q 'self_generated_after_search' "${INPUT_CARD}"; then
+    INPUT_MODE="self_generated_after_search"
+    [ "${INPUT_SOURCE_COUNT}" -ge 3 ] || INPUT_RC=2
+  else
+    INPUT_MODE="public_external"
+    [ "${INPUT_SOURCE_COUNT}" -ge 2 ] || INPUT_RC=2
+  fi
+else
+  INPUT_RC=2
+fi
+cat > "${RUN_DIR}/input_validation.json" <<EOF
+{
+  "status": "$([ "${INPUT_RC}" -eq 0 ] && echo passed || echo failed)",
+  "input_card": ".autoloop/inputs/${TODAY}.md",
+  "input_mode": "${INPUT_MODE}",
+  "public_source_count": ${INPUT_SOURCE_COUNT}
+}
+EOF
+if [ "${INPUT_RC}" -ne 0 ]; then
+  log "!! 外部输入门禁失败：缺输入卡或公开来源数量不足。"
+fi
+
+# ---- 6. 引擎兜底线上视觉验证（Agent 未产出时补跑，60 秒硬超时）----
 ONLINE_SCREENSHOT="${AUTOLOOP_DIR}/journal/assets/${TODAY}-online.png"
 VISUAL_RESULT="${RUN_DIR}/visual_verification.json"
 VISUAL_RC=0
@@ -126,7 +155,7 @@ git merge --ff-only "origin/${BRANCH}" >> "${RUN_DIR}/git.log" 2>&1 || true
 HEAD_AFTER="$(git rev-parse HEAD)"
 git log -1 --oneline > "${RUN_DIR}/head_after.txt" 2>&1 || true
 
-# ---- 6. 采集本轮客观指标（实验定量数据）----
+# ---- 7. 采集本轮客观指标（实验定量数据）----
 COMMITTED=false; DIFF_STAT="0 0 0"
 if [ "${HEAD_BEFORE}" != "${HEAD_AFTER}" ]; then
   COMMITTED=true
@@ -135,6 +164,9 @@ fi
 cat > "${RUN_DIR}/metrics.json" <<EOF
 {
   "date": "${TODAY}", "stamp": "${STAMP}", "agent_rc": ${AGENT_RC},
+  "input_validation_rc": ${INPUT_RC},
+  "input_mode": "${INPUT_MODE}",
+  "input_source_count": ${INPUT_SOURCE_COUNT},
   "visual_verification_rc": ${VISUAL_RC},
   "committed": ${COMMITTED},
   "head_before": "${HEAD_BEFORE}", "head_after": "${HEAD_AFTER}",
@@ -150,12 +182,12 @@ else
   log "!! 本轮异常 rc=${AGENT_RC}，trace 见 ${TRACE_JSONL}"; echo "rc=${AGENT_RC}" > "${RUN_DIR}/ERROR"
 fi
 
-# ---- 7. 同步飞书上帝视角文档（失败留证据，不阻断作品迭代）----
+# ---- 8. 同步飞书上帝视角文档（失败留证据，不阻断作品迭代）----
 log "同步飞书 AutoLoop 实验日志……"
 bash "${ENGINE_DIR}/report_feishu.sh" "${RUN_DIR}" "${TODAY}" \
   >> "${RUN_DIR}/feishu_report.log" 2>&1 || log "!! 飞书同步失败，证据已写入本轮 runs。"
 
-# ---- 8. 把过程留档、视觉证据提交入库（实验数据必须每轮保存并推送）----
+# ---- 9. 把过程留档、视觉证据提交入库（实验数据必须每轮保存并推送）----
 log "提交本轮过程留档、视觉证据与飞书回读……"
 git add "${AUTOLOOP_DIR}/runs/${STAMP}" 2>/dev/null || true
 [ -s "${ONLINE_SCREENSHOT}" ] && git add "${ONLINE_SCREENSHOT}" 2>/dev/null || true
@@ -167,4 +199,6 @@ if ! git diff --cached --quiet 2>/dev/null; then
 fi
 
 log "=== 收工 · HEAD=$(git rev-parse --short HEAD) ==="
-exit "${AGENT_RC}"
+ROUND_RC="${AGENT_RC}"
+[ "${INPUT_RC}" -ne 0 ] && ROUND_RC="${INPUT_RC}"
+exit "${ROUND_RC}"

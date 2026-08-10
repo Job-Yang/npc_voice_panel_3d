@@ -9,6 +9,7 @@ RUN_DIR="${1:?usage: report_feishu.sh <run-dir> <date>}"
 DATE="${2:?missing date}"
 STAMP="$(basename "${RUN_DIR}")"
 JOURNAL="${AUTOLOOP_DIR}/journal/${DATE}.md"
+INPUT_CARD="${AUTOLOOP_DIR}/inputs/${DATE}.md"
 CONFIG="${AUTOLOOP_DIR}/feishu.json"
 MARKER="AutoLoopRun:${STAMP}"
 
@@ -53,6 +54,12 @@ APPEND_FILE="${RUN_DIR}/feishu_append.md"
   printf '\n---\n\n'
   printf '## 第 %s 轮｜%s｜%s\n\n' "${ROUND}" "${DATE}" "${COMMIT_SUBJECT}"
   printf '**作品 commit：** [`%s`](https://github.com/Job-Yang/npc_voice_panel_3d/commit/%s)\n\n' "${COMMIT_HASH}" "${COMMIT_HASH}"
+  if [ -f "${INPUT_CARD}" ]; then
+    printf '### 本轮外部输入卡\n\n'
+    cat "${INPUT_CARD}"
+    printf '\n\n'
+  fi
+  printf '### 本轮自迭代手记\n\n'
   cat "${JOURNAL}"
   printf '\n\n`%s`\n' "${MARKER}"
 } > "${APPEND_FILE}"
