@@ -20,7 +20,14 @@ REPO_DIR="$(cd "${AUTOLOOP_DIR}/.." && pwd)"          # 仓库根
 
 MODEL="${AUTOLOOP_MODEL:-gpt-5.5}"
 BRANCH="${AUTOLOOP_BRANCH:-main}"
-TRAE_CLI="${AUTOLOOP_TRAE_CLI:-trae-cli}"
+# trae-cli 定位：cron 环境的 PATH 极简，不含 ~/.local/bin，故自动兜底探测常见绝对路径。
+TRAE_CLI="${AUTOLOOP_TRAE_CLI:-}"
+if [ -z "${TRAE_CLI}" ]; then
+  if command -v trae-cli >/dev/null 2>&1; then TRAE_CLI="$(command -v trae-cli)";
+  else for c in "${HOME}/.local/bin/trae-cli" /usr/local/bin/trae-cli /opt/homebrew/bin/trae-cli; do
+    [ -x "$c" ] && { TRAE_CLI="$c"; break; }; done; fi
+  TRAE_CLI="${TRAE_CLI:-trae-cli}"
+fi
 TASK_TIMEOUT="${AUTOLOOP_TIMEOUT:-3600}"
 ONLINE_URL="${AUTOLOOP_ONLINE_URL:-https://job-yang.github.io/npc_voice_panel_3d/}"
 
