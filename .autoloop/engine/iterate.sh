@@ -40,6 +40,19 @@ log "=== 铁匠铺自迭代 · ${STAMP} 开工 ===  仓库=${REPO_DIR} 分支=${
 
 # ---- 1. 同步（保守快进，冲突跳过本轮）----
 git fetch origin "${BRANCH}" 2>&1 | tee -a "${RUN_DIR}/git.log"
+# 防御：上一轮 TRAE 沙箱可能用平行 GIT_DIR 提交，导致本地工作区残留"未提交"文件
+# （其内容其实已 push 到远端）。这些残留会挡住 ff-only。若本地相对 origin 无实质差异，
+# 说明残留都已在远端，安全清理后再快进；只有真正的内容分叉才跳过本轮。
+if [ -n "$(git status --porcelain)" ]; then
+  if git diff --quiet "origin/${BRANCH}" -- . 2>/dev/null; then
+    log "检测到工作区残留（内容已在远端），自动清理以恢复干净状态。"
+    git checkout -- . 2>/dev/null || true
+    # 排除 runs/：本轮 RUN_DIR 已在同步前建好，且历史 runs 已随远端快进拉回，勿误删。
+    git clean -fd -e ".autoloop/runs" . 2>&1 | tee -a "${RUN_DIR}/git.log" || true
+  else
+    log "!! 工作区有未同步到远端的本地改动，为安全起见跳过本轮。"; echo dirty > "${RUN_DIR}/SKIPPED"; exit 0
+  fi
+fi
 if ! git merge --ff-only "origin/${BRANCH}" 2>&1 | tee -a "${RUN_DIR}/git.log"; then
   log "!! 无法快进（分叉），本轮跳过，绝不强制覆盖。"; echo skipped > "${RUN_DIR}/SKIPPED"; exit 0
 fi
