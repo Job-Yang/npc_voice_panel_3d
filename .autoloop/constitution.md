@@ -34,8 +34,10 @@
    并 `git push` 到 `<BRANCH>`，记下 commit hash。
 8. **线上无痕验证（不可省略）**：等 GitHub Pages 生效后，直接调用引擎提供的固定入口：
    `.autoloop/engine/verify_web.sh "线上URL" ".autoloop/journal/assets/<date>-online.png" "<本轮RUN_DIR>/visual_verification.json"`。
-   它会加 cache-busting、启动真实 Chromium、等待 3D loader、检查 canvas/控制台并截图，整条命令有 60 秒
-   硬超时。成功则在手记写截图路径；失败或超时则如实记录 `visual_verification.json` 的原因并继续收口。
+   它先以 cache-busting 下载线上 `index.html` 并与当前 commit 做 SHA-256 一致性校验，再用真实 Chromium
+   渲染同一份本地代码、等待 3D loader、检查 canvas/控制台并截图；浏览器阶段有 60 秒硬超时。这样同时证明
+   “线上发布的是这版”和“这版真实画面没有塌”。成功则在手记写截图路径；失败或超时则如实记录
+   `visual_verification.json` 的原因并继续收口。
    **禁止自己重新下载浏览器、反复试依赖或另写临时 Playwright 脚本**，避免整轮被视觉验证拖死。
 9. **记录（实验核心产物）**：写 `.autoloop/journal/<date>.md`，见下「手记规范」。
 10. **更新 CHANGELOG**：`.autoloop/CHANGELOG.md` 顶部加 `## <date>`，一两句概括本轮改动 + commit hash。

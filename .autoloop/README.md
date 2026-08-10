@@ -31,8 +31,9 @@
 - 单仓：作品改动 + 实验数据共享一条 commit 历史，一起 push。Pages 只发作品本体，`.autoloop/` 不影响上线。
 - 飞书观察文档：<https://bytedance.larkoffice.com/docx/Urw8drpGholNETx7CCBchka8ntd>。每轮完成后由
   `engine/report_feishu.sh` 追加“怎么想、怎么做、最终效果”，原始证据仍以仓库为准。
-- 线上视觉验证：`engine/verify_web.sh` 使用真实 Chromium、禁缓存 URL 和 60 秒硬超时，截图及结果 JSON
-  随本轮入库；不再让 Agent 临时拼 Playwright 环境。
+- 线上视觉验证：`engine/verify_web.sh` 先校验线上 HTML 与当前 commit 的 SHA-256 一致，再用真实 Chromium
+  渲染同一份本地代码并截图；浏览器阶段有 60 秒硬超时。截图及结果 JSON 随本轮入库，不再让 Agent 临时
+  拼 Playwright 环境，也不让 GitHub Pages 的大模型下载速度决定整轮是否卡住。
 
 ## 部署到远端服务机（一次性）
 1. 远端 clone / pull 本仓，确保 `trae-cli` 在 PATH 且已登录（远端 oncall 已在用，凭证应就绪）。

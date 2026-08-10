@@ -62,10 +62,15 @@ async function main() {
       status:
         errors.length === 0 &&
         state.canvasPresent &&
-        state.loaderClass.split(/\s+/).includes("hide")
+        state.loaderClass.split(/\s+/).includes("hide") &&
+        process.env.ONLINE_HTML_MATCH === "true"
           ? "passed"
           : "failed",
-      url: verifiedUrl,
+      render_url: verifiedUrl,
+      published_url: process.env.PUBLISHED_URL || "",
+      online_html_match: process.env.ONLINE_HTML_MATCH === "true",
+      online_sha256: process.env.ONLINE_SHA256 || "",
+      local_sha256: process.env.LOCAL_SHA256 || "",
       screenshot: screenshotPath,
       state,
       errors,
