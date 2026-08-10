@@ -3,5 +3,8 @@
 > AutoLoop 每轮追加，一条 = 一次无人值守迭代。详细思路见 `journal/<date>.md`，过程留档见 `runs/`。
 > 每条附本轮 commit hash，便于回退与 diff。
 
+## 2026-08-10
+- 给工作台旁新增“闭环卷轴 · iLoop 证据链”可点击物件，把 iLoop 的计划、取证、验证方法论做成场景内入口。Commit: 待回填。
+
 ## 未开始
 - AutoLoop 引擎已就位，实验框架见 EXPERIMENT.md，等待第一轮唤醒（阶段 A · 纯自由演化）。
