@@ -40,8 +40,12 @@ RUN_DIR="${AUTOLOOP_DIR}/runs/${STAMP}"; mkdir -p "${RUN_DIR}"
 log() { echo "[autoloop][$(date '+%H:%M:%S')] $*"; }
 
 worktree_matches_origin() {
-  git diff --quiet "origin/${BRANCH}" -- . 2>/dev/null || return 1
-  git diff --cached --quiet "origin/${BRANCH}" -- . 2>/dev/null || return 1
+  git diff --quiet "origin/${BRANCH}" -- . \
+    ':(exclude).autoloop/runs/**' \
+    ':(exclude).autoloop/journal/assets/*-online.png' 2>/dev/null || return 1
+  git diff --cached --quiet "origin/${BRANCH}" -- . \
+    ':(exclude).autoloop/runs/**' \
+    ':(exclude).autoloop/journal/assets/*-online.png' 2>/dev/null || return 1
   while IFS= read -r path; do
     case "${path}" in
       .autoloop/runs/*|.autoloop/journal/assets/*-online.png) continue ;;
@@ -218,7 +222,7 @@ if ! git diff --cached --quiet 2>/dev/null; then
   git -c core.hooksPath=/dev/null commit -m "chore(autoloop): 过程留档 ${STAMP}" 2>&1 | tee -a "${RUN_DIR}/git.log" || true
   git fetch origin "${BRANCH}" >/dev/null 2>&1 || true
   git merge --ff-only "origin/${BRANCH}" >/dev/null 2>&1 || true
-  git push origin "${BRANCH}" 2>&1 | tee -a "${RUN_DIR}/git.log" || log "!! 过程留档 push 失败，数据已在本地 ${RUN_DIR}"
+  git push origin "${BRANCH}" || log "!! 过程留档 push 失败，数据已在本地 ${RUN_DIR}"
 fi
 
 log "=== 收工 · HEAD=$(git rev-parse --short HEAD) ==="
