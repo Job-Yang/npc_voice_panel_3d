@@ -74,9 +74,12 @@ if ! git merge --ff-only "origin/${BRANCH}" 2>&1 | tee -a "${RUN_DIR}/git.log"; 
 fi
 HEAD_BEFORE="$(git rev-parse HEAD)"
 
-# ---- 2. 校验依赖 ----
+# ---- 2. 校验依赖 + cron 等效 preflight ----
 command -v "${TRAE_CLI}" >/dev/null 2>&1 || [ -x "${TRAE_CLI}" ] || { log "!! 找不到 trae-cli（${TRAE_CLI}）"; echo err > "${RUN_DIR}/ERROR"; exit 1; }
 [ -f "${AUTOLOOP_DIR}/constitution.md" ] && [ -f "${AUTOLOOP_DIR}/profile.md" ] || { log "!! 缺 constitution.md 或 profile.md"; echo err > "${RUN_DIR}/ERROR"; exit 1; }
+PREFLIGHT_RC=0
+log "执行 cron 等效 preflight（bwrap / TRAE / GitHub / 飞书 / 磁盘）……"
+bash "${ENGINE_DIR}/preflight.sh" "${RUN_DIR}/preflight.json" || PREFLIGHT_RC=$?
 
 # ---- 3. 拼装完整宪法 = 通用骨架 + 本仓画像 ----
 PROMPT="今天是 ${TODAY}。下面是你的自迭代宪法（通用骨架 + 本仓画像）。请严格按它完成今天这一轮
@@ -94,15 +97,31 @@ $(cat "${AUTOLOOP_DIR}/profile.md")"
 FINAL_TXT="${RUN_DIR}/final.txt"; TRACE_JSONL="${RUN_DIR}/trae.jsonl"
 
 # ---- 4. 无人值守拉起 Agent（姿势对齐 iLoop oncall 网关）----
-log "拉起 Agent（超时上限 ${TASK_TIMEOUT}s）……"
-"${TRAE_CLI}" exec \
-  --permission-mode custom --sandbox workspace-write --disable hooks \
-  -c 'approval_policy="never"' -m "${MODEL}" -C "${REPO_DIR}" \
-  "${PROMPT}" --json --ephemeral -o "${FINAL_TXT}" \
-  > "${TRACE_JSONL}" 2>&1 &
-AGENT_PID=$!
-( sleep "${TASK_TIMEOUT}"; kill -0 "${AGENT_PID}" 2>/dev/null && { echo "[autoloop] 超时终止"; kill "${AGENT_PID}" 2>/dev/null; } ) & WATCHDOG=$!
-wait "${AGENT_PID}"; AGENT_RC=$?; kill "${WATCHDOG}" 2>/dev/null
+AGENT_RC=0
+if [ "${PREFLIGHT_RC}" -eq 0 ]; then
+  log "preflight 通过，拉起 Agent（超时上限 ${TASK_TIMEOUT}s）……"
+  "${TRAE_CLI}" exec \
+    --permission-mode custom --sandbox workspace-write --disable hooks \
+    -c 'approval_policy="never"' \
+    -c 'shell_environment_policy.inherit="all"' \
+    -m "${MODEL}" -C "${REPO_DIR}" \
+    "${PROMPT}" --json --ephemeral -o "${FINAL_TXT}" \
+    > "${TRACE_JSONL}" 2>&1 &
+  AGENT_PID=$!
+  ( sleep "${TASK_TIMEOUT}"; kill -0 "${AGENT_PID}" 2>/dev/null && { echo "[autoloop] 超时终止"; kill "${AGENT_PID}" 2>/dev/null; } ) & WATCHDOG=$!
+  wait "${AGENT_PID}"; AGENT_RC=$?; kill "${WATCHDOG}" 2>/dev/null
+else
+  AGENT_RC=78
+  {
+    echo "本轮未启动 Agent：cron 等效 preflight 失败。"
+    echo
+    cat "${RUN_DIR}/preflight.json"
+    echo
+    echo "各检查详情见本轮 preflight-*.log。"
+  } > "${FINAL_TXT}"
+  : > "${TRACE_JSONL}"
+  log "!! preflight 失败，止损：不调用模型，直接记录环境异常。"
+fi
 
 # ---- 5. 外部输入门禁（缺输入卡或不可追溯来源时，该轮实验标记失败）----
 INPUT_CARD="${AUTOLOOP_DIR}/inputs/${TODAY}.md"
@@ -167,6 +186,7 @@ fi
 cat > "${RUN_DIR}/metrics.json" <<EOF
 {
   "date": "${TODAY}", "stamp": "${STAMP}", "agent_rc": ${AGENT_RC},
+  "preflight_rc": ${PREFLIGHT_RC},
   "input_validation_rc": ${INPUT_RC},
   "input_mode": "${INPUT_MODE}",
   "input_source_count": ${INPUT_SOURCE_COUNT},
@@ -203,5 +223,6 @@ fi
 
 log "=== 收工 · HEAD=$(git rev-parse --short HEAD) ==="
 ROUND_RC="${AGENT_RC}"
-[ "${INPUT_RC}" -ne 0 ] && ROUND_RC="${INPUT_RC}"
+[ "${PREFLIGHT_RC}" -ne 0 ] && ROUND_RC="${PREFLIGHT_RC}"
+[ "${PREFLIGHT_RC}" -eq 0 ] && [ "${INPUT_RC}" -ne 0 ] && ROUND_RC="${INPUT_RC}"
 exit "${ROUND_RC}"
