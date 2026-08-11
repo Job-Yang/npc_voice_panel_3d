@@ -1,0 +1,19 @@
+Inserting: 2026-08-11-online.png -> document Urw8...8ntd
+Root block ready: Urw8drpGholNETx7CCBchka8ntd (36 children)
+Creating block at index 36
+Block created: doxcnSVo5Y1zhyfqNa7hUMZSpJd
+Image dimensions: 720x480 (native: 1440x960)
+File uploaded: BcKZbvMpho0YZFxH7Aecow6rnUg
+Binding uploaded media to block doxcnSVo5Y1zhyfqNa7hUMZSpJd
+{
+  "ok": true,
+  "identity": "user",
+  "data": {
+    "block_id": "doxcnSVo5Y1zhyfqNa7hUMZSpJd",
+    "document_id": "Urw8drpGholNETx7CCBchka8ntd",
+    "file_token": "BcKZbvMpho0YZFxH7Aecow6rnUg",
+    "height": 480,
+    "type": "image",
+    "width": 720
+  }
+}
