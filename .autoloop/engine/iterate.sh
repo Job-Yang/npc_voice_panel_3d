@@ -17,6 +17,9 @@ set -uo pipefail
 ENGINE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AUTOLOOP_DIR="$(cd "${ENGINE_DIR}/.." && pwd)"       # .autoloop/
 REPO_DIR="$(cd "${AUTOLOOP_DIR}/.." && pwd)"          # 仓库根
+# cron 的默认 PATH 不含用户级工具。TRAE CLI 的 workspace-write 沙箱会从 PATH
+# 查找 ~/.local/bin/bwrap；缺失时模型能启动，但所有本地工具调用都会失败。
+export PATH="${HOME}/.local/bin:${HOME}/.npm-global/bin:${PATH}"
 
 MODEL="${AUTOLOOP_MODEL:-gpt-5.5}"
 BRANCH="${AUTOLOOP_BRANCH:-main}"
