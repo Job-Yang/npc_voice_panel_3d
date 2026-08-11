@@ -13,8 +13,12 @@ INPUT_CARD="${AUTOLOOP_DIR}/inputs/${DATE}.md"
 CONFIG="${AUTOLOOP_DIR}/feishu.json"
 MARKER="AutoLoopRun:${STAMP}"
 
-if [ ! -f "${CONFIG}" ] || [ ! -f "${JOURNAL}" ]; then
-  printf '{"status":"skipped","reason":"missing config or journal"}\n' > "${RUN_DIR}/feishu_report.json"
+if [ ! -f "${CONFIG}" ]; then
+  printf '{"status":"skipped","reason":"missing config"}\n' > "${RUN_DIR}/feishu_report.json"
+  exit 0
+fi
+if [ ! -f "${JOURNAL}" ] && [ ! -f "${RUN_DIR}/final.txt" ]; then
+  printf '{"status":"skipped","reason":"missing journal and final"}\n' > "${RUN_DIR}/feishu_report.json"
   exit 0
 fi
 
@@ -52,15 +56,24 @@ APPEND_FILE="${RUN_DIR}/feishu_append.md"
 
 {
   printf '\n---\n\n'
-  printf '## 第 %s 轮｜%s｜%s\n\n' "${ROUND}" "${DATE}" "${COMMIT_SUBJECT}"
-  printf '**作品 commit：** [`%s`](https://github.com/Job-Yang/npc_voice_panel_3d/commit/%s)\n\n' "${COMMIT_HASH}" "${COMMIT_HASH}"
-  if [ -f "${INPUT_CARD}" ]; then
-    printf '### 本轮外部输入卡\n\n'
-    cat "${INPUT_CARD}"
+  if [ -f "${JOURNAL}" ]; then
+    printf '## 第 %s 轮｜%s｜%s\n\n' "${ROUND}" "${DATE}" "${COMMIT_SUBJECT}"
+    printf '**作品 commit：** [`%s`](https://github.com/Job-Yang/npc_voice_panel_3d/commit/%s)\n\n' "${COMMIT_HASH}" "${COMMIT_HASH}"
+    if [ -f "${INPUT_CARD}" ]; then
+      printf '### 本轮外部输入卡\n\n'
+      cat "${INPUT_CARD}"
+      printf '\n\n'
+    fi
+    printf '### 本轮自迭代手记\n\n'
+    cat "${JOURNAL}"
+  else
+    printf '## 运行异常｜%s｜未形成有效实验轮次\n\n' "${DATE}"
+    printf '**状态：** 定时任务已触发，但 Agent 未生成 input/journal/作品 commit，因此不计入正式轮次。\n\n'
+    printf '**原始证据：** [查看本轮 run](https://github.com/Job-Yang/npc_voice_panel_3d/tree/main/.autoloop/runs/%s)\n\n' "${STAMP}"
+    printf '### 失败摘要\n\n'
+    sed -n '1,12p' "${RUN_DIR}/final.txt"
     printf '\n\n'
   fi
-  printf '### 本轮自迭代手记\n\n'
-  cat "${JOURNAL}"
   printf '\n\n`%s`\n' "${MARKER}"
 } > "${APPEND_FILE}"
 
