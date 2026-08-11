@@ -1,0 +1,6 @@
+127.0.0.1 - - [11/Aug/2026 03:00:38] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [11/Aug/2026 03:00:38] "GET /?autoloop_ts=1786388438874 HTTP/1.1" 200 -
+127.0.0.1 - - [11/Aug/2026 03:00:39] "GET /assets/npc_master.glb HTTP/1.1" 200 -
+127.0.0.1 - - [11/Aug/2026 03:00:39] "GET /assets/bg_smithy.glb HTTP/1.1" 200 -
+127.0.0.1 - - [11/Aug/2026 03:00:39] "GET /assets/npc_apprentice.glb HTTP/1.1" 200 -
+127.0.0.1 - - [11/Aug/2026 03:00:39] "GET /assets/npc_yq.glb HTTP/1.1" 200 -

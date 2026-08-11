@@ -1,0 +1,11 @@
+{
+  "date": "2026-08-11", "stamp": "2026-08-11_030001", "agent_rc": 0,
+  "input_validation_rc": 2,
+  "input_mode": "missing",
+  "input_source_count": 0,
+  "visual_verification_rc": 0,
+  "committed": false,
+  "head_before": "1cc5c0b0d2d63377cb199ece7650f0b62b9d284a", "head_after": "1cc5c0b0d2d63377cb199ece7650f0b62b9d284a",
+  "commit_oneline": "1cc5c0b feat(autoloop): 强制公开外部输入与来源溯源",
+  "diff_shortstat": "0 0 0"
+}
