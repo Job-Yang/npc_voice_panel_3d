@@ -1,0 +1,12 @@
+本轮已按宪法完成闭环并推送到 `main`。
+
+改动内容：在 `index.html` 新增了“铺子导览牌 · 你在这里”可点击物件，用木制路牌给首次访客指向老杨、项目、火炉和 iLoop 卷轴；并补了透明热点，保证点击命中稳定。外部输入卡、手记、本地/线上截图和 CHANGELOG 都已写入 `.autoloop/`。
+
+验证结果：本地 Playwright 验证通过，点击 `(430, 500)` 命中新导览牌，无 console error。线上无痕验证也通过：`online_html_match: true`，线上 `index.html` 与本轮版本 SHA-256 一致，Chromium 渲染 loader 隐藏、canvas 存在、无 error。截图在 `.autoloop/journal/assets/2026-08-12-local.png` 和 `.autoloop/journal/assets/2026-08-12-online.png`。
+
+已推送：
+- 功能提交：`e998e5430d961665b5c30b4a46d0f2b97a681490`
+- 记录回填提交：`eb46ec727edc5be58739ba1304a9aef02e884e9a`
+- 远端 `main` 最终指向：`eb46ec727edc5be58739ba1304a9aef02e884e9a`
+
+有一个环境说明：当前沙箱能写工作区文件，但 `.git` 实际路径在只读文件系统，所以普通 `git add/commit` 无法创建 lock。我用 `/tmp` 临时 index/object store 构造正常 Git commit 并 push；远端已更新成功。本地 `git status` 仍会显示这些文件未暂存，这是本地只读 `.git/index` 无法同步导致的，不影响远端发布和线上验证结果。

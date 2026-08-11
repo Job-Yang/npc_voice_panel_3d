@@ -1,0 +1,18 @@
+From github.com:Job-Yang/npc_voice_panel_3d
+ * branch            main       -> FETCH_HEAD
+Already up to date.
+From github.com:Job-Yang/npc_voice_panel_3d
+ * branch            main       -> FETCH_HEAD
+   605f74d..eb46ec7  main       -> origin/main
+error: Your local changes to the following files would be overwritten by merge:
+	.autoloop/CHANGELOG.md
+	index.html
+Please commit your changes or stash them before you merge.
+error: The following untracked working tree files would be overwritten by merge:
+	.autoloop/inputs/2026-08-12.md
+	.autoloop/journal/2026-08-12.md
+	.autoloop/journal/assets/2026-08-12-local.png
+	.autoloop/journal/assets/2026-08-12-online.png
+Please move or remove them before you merge.
+Aborting
+Updating 605f74d..eb46ec7
