@@ -80,6 +80,7 @@ function sourceLinks(items) {
 const sources = candidates(input);
 const digestion = section(input, "消化与选择");
 const currentState = section(journal, "现状分析");
+const creativeCompetition = section(journal, "创意方案竞争");
 const idea = section(journal, "今天的想法");
 const rationale = section(journal, "为什么这么做");
 const changes = section(journal, "做了哪些事");
@@ -87,6 +88,7 @@ const result = section(journal, "最终效果");
 const requiredSections = {
   "输入卡/消化与选择": digestion,
   "现状分析": currentState,
+  "创意方案竞争": creativeCompetition,
   "今天的想法": idea,
   "为什么这么做": rationale,
   "做了哪些事": changes,
@@ -111,7 +113,7 @@ const xml = [
   "<tbody>",
   `<tr><td>外部输入</td><td>${sourceLinks(sources)}<br/><b>消化：</b>${escapeXml(clip(digestion, 240))}</td></tr>`,
   `<tr><td>现状与判断</td><td>${escapeXml(clip(currentState, 280))}</td></tr>`,
-  `<tr><td>本轮方案</td><td>${escapeXml(clip(idea, 200))}<br/><b>原因：</b>${escapeXml(clip(rationale, 220))}</td></tr>`,
+  `<tr><td>本轮方案</td><td><b>候选：</b>${escapeXml(clip(creativeCompetition, 260))}<br/><b>选择：</b>${escapeXml(clip(idea, 200))}<br/><b>原因：</b>${escapeXml(clip(rationale, 220))}</td></tr>`,
   `<tr><td>改动</td><td>${escapeXml(clip(changes, 300))}<br/><b>作品 commit：</b><a href="${escapeXml(meta.commit_url)}"><code>${escapeXml(meta.commit)}</code></a></td></tr>`,
   `<tr><td>验证与效果</td><td>${escapeXml(clip(result, 320))}</td></tr>`,
   `<tr><td>原始证据</td><td><a href="${escapeXml(meta.input_url)}">输入卡</a> · <a href="${escapeXml(meta.journal_url)}">Agent 手记</a> · <a href="${escapeXml(meta.run_url)}">运行记录</a></td></tr>`,

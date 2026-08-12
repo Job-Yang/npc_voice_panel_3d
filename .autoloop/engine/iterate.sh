@@ -156,7 +156,16 @@ if [ "${INPUT_RC}" -ne 0 ]; then
   log "!! 外部输入门禁失败：缺输入卡或公开来源数量不足。"
 fi
 
-# ---- 6. 引擎兜底线上视觉验证（Agent 未产出时补跑，60 秒硬超时）----
+# ---- 6. 创意质量门禁（防止外部调研退化成低信息量的小修补）----
+JOURNAL="${AUTOLOOP_DIR}/journal/${TODAY}.md"
+CREATIVE_RC=0
+python3 "${ENGINE_DIR}/validate_creative_round.py" \
+  "${INPUT_CARD}" "${JOURNAL}" "${RUN_DIR}/creative_validation.json" || CREATIVE_RC=$?
+if [ "${CREATIVE_RC}" -ne 0 ]; then
+  log "!! 创意质量门禁失败：缺少 A/B/C 方案竞争、完整体验定义或前后视觉对照。"
+fi
+
+# ---- 7. 引擎兜底线上视觉验证（Agent 未产出时补跑，60 秒硬超时）----
 ONLINE_SCREENSHOT="${AUTOLOOP_DIR}/journal/assets/${TODAY}-online.png"
 VISUAL_RESULT="${RUN_DIR}/visual_verification.json"
 VISUAL_RC=0
@@ -181,7 +190,7 @@ git merge --ff-only "origin/${BRANCH}" >> "${RUN_DIR}/git.log" 2>&1 || true
 HEAD_AFTER="$(git rev-parse HEAD)"
 git log -1 --oneline > "${RUN_DIR}/head_after.txt" 2>&1 || true
 
-# ---- 7. 采集本轮客观指标（实验定量数据）----
+# ---- 8. 采集本轮客观指标（实验定量数据）----
 COMMITTED=false; DIFF_STAT="0 0 0"
 if [ "${HEAD_BEFORE}" != "${HEAD_AFTER}" ]; then
   COMMITTED=true
@@ -192,6 +201,7 @@ cat > "${RUN_DIR}/metrics.json" <<EOF
   "date": "${TODAY}", "stamp": "${STAMP}", "agent_rc": ${AGENT_RC},
   "preflight_rc": ${PREFLIGHT_RC},
   "input_validation_rc": ${INPUT_RC},
+  "creative_validation_rc": ${CREATIVE_RC},
   "input_mode": "${INPUT_MODE}",
   "input_source_count": ${INPUT_SOURCE_COUNT},
   "visual_verification_rc": ${VISUAL_RC},
@@ -209,12 +219,12 @@ else
   log "!! 本轮异常 rc=${AGENT_RC}，trace 见 ${TRACE_JSONL}"; echo "rc=${AGENT_RC}" > "${RUN_DIR}/ERROR"
 fi
 
-# ---- 8. 同步飞书上帝视角文档（失败留证据，不阻断作品迭代）----
+# ---- 9. 同步飞书上帝视角文档（失败留证据，不阻断作品迭代）----
 log "同步飞书 AutoLoop 实验日志……"
 bash "${ENGINE_DIR}/report_feishu.sh" "${RUN_DIR}" "${TODAY}" \
   >> "${RUN_DIR}/feishu_report.log" 2>&1 || log "!! 飞书同步失败，证据已写入本轮 runs。"
 
-# ---- 9. 把过程留档、视觉证据提交入库（实验数据必须每轮保存并推送）----
+# ---- 10. 把过程留档、视觉证据提交入库（实验数据必须每轮保存并推送）----
 log "提交本轮过程留档、视觉证据与飞书回读……"
 git add "${AUTOLOOP_DIR}/runs/${STAMP}" 2>/dev/null || true
 [ -s "${ONLINE_SCREENSHOT}" ] && git add "${ONLINE_SCREENSHOT}" 2>/dev/null || true
@@ -229,4 +239,5 @@ log "=== 收工 · HEAD=$(git rev-parse --short HEAD) ==="
 ROUND_RC="${AGENT_RC}"
 [ "${PREFLIGHT_RC}" -ne 0 ] && ROUND_RC="${PREFLIGHT_RC}"
 [ "${PREFLIGHT_RC}" -eq 0 ] && [ "${INPUT_RC}" -ne 0 ] && ROUND_RC="${INPUT_RC}"
+[ "${PREFLIGHT_RC}" -eq 0 ] && [ "${INPUT_RC}" -eq 0 ] && [ "${CREATIVE_RC}" -ne 0 ] && ROUND_RC="${CREATIVE_RC}"
 exit "${ROUND_RC}"
