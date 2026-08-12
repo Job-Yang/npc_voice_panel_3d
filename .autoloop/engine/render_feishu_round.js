@@ -8,6 +8,7 @@ if (!journalPath || !outputPath || !metaPath) {
 const input = fs.existsSync(inputPath) ? fs.readFileSync(inputPath, "utf8") : "";
 const journal = fs.readFileSync(journalPath, "utf8");
 const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+const schema = meta.report_schema || "AutoLoopReportSchema:v1";
 
 function escapeXml(value) {
   return String(value)
@@ -83,6 +84,23 @@ const idea = section(journal, "今天的想法");
 const rationale = section(journal, "为什么这么做");
 const changes = section(journal, "做了哪些事");
 const result = section(journal, "最终效果");
+const requiredSections = {
+  "输入卡/消化与选择": digestion,
+  "现状分析": currentState,
+  "今天的想法": idea,
+  "为什么这么做": rationale,
+  "做了哪些事": changes,
+  "最终效果": result,
+};
+const missingSections = Object.entries(requiredSections)
+  .filter(([, value]) => !value.trim())
+  .map(([name]) => name);
+if (sources.length < 2) {
+  throw new Error(`input card must contain at least 2 public candidates, got ${sources.length}`);
+}
+if (missingSections.length) {
+  throw new Error(`missing required report sections: ${missingSections.join(", ")}`);
+}
 
 const xml = [
   "<hr/>",
@@ -99,7 +117,7 @@ const xml = [
   `<tr><td>原始证据</td><td><a href="${escapeXml(meta.input_url)}">输入卡</a> · <a href="${escapeXml(meta.journal_url)}">Agent 手记</a> · <a href="${escapeXml(meta.run_url)}">运行记录</a></td></tr>`,
   "</tbody>",
   "</table>",
-  `<p><code>${escapeXml(meta.marker)}</code></p>`,
+  `<p><code>${escapeXml(schema)}</code> · <code>${escapeXml(meta.marker)}</code></p>`,
 ].join("\n");
 
 fs.writeFileSync(outputPath, `${xml}\n`);

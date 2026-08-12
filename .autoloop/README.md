@@ -32,6 +32,8 @@
 - 单仓：作品改动 + 实验数据共享一条 commit 历史，一起 push。Pages 只发作品本体，`.autoloop/` 不影响上线。
 - 飞书观察文档：<https://bytedance.larkoffice.com/docx/Urw8drpGholNETx7CCBchka8ntd>。每轮完成后由
   `engine/report_feishu.sh` 追加“怎么想、怎么做、最终效果”，原始证据仍以仓库为准。
+- 飞书记录格式由 `.autoloop/FEISHU_REPORT_FORMAT.md` 和 `AutoLoopReportSchema:v1` 固定：
+  确定性脚本只生成 H2 轮次标题、六行摘要表、证据链接和截图；回读层级或表格不符合规范时同步直接失败。
 - 输入规则：每轮必须先调查至少 2 个公开可追溯来源，记录“看了什么→学到什么→为何吸收/拒绝→如何转化”。
   仓库与完整 trace 公开，因此严格禁止搜索或引用任何公司内部/飞书内部/内网资料。
 - 线上视觉验证：`engine/verify_web.sh` 先校验线上 HTML 与当前 commit 的 SHA-256 一致，再用真实 Chromium

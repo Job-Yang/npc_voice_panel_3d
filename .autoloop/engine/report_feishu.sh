@@ -37,15 +37,24 @@ if [ -z "${LARK_CLI}" ]; then
 fi
 
 DOC_ID="$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).document_id)' "${CONFIG}")"
+REPORT_SCHEMA="$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).report_schema)' "${CONFIG}")"
 export LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1
 export LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1
 
+REPORT_MODE="failure"
+[ -f "${JOURNAL}" ] && REPORT_MODE="success"
 if "${LARK_CLI}" docs +fetch --as user --doc "${DOC_ID}" \
-  --scope keyword --keyword "${MARKER}" --format json > "${RUN_DIR}/feishu_marker_check.json" 2>&1 &&
+  --detail with-ids --format json > "${RUN_DIR}/feishu_marker_check.json" 2>&1 &&
   node -e 'const fs=require("fs"); const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.exit((d.data?.document?.content||"").includes(process.argv[2])?0:1)' \
     "${RUN_DIR}/feishu_marker_check.json" "${MARKER}"; then
-  printf '{"status":"success","result":"already_reported","marker":"%s"}\n' "${MARKER}" > "${RUN_DIR}/feishu_report.json"
-  exit 0
+  if python3 "${ENGINE_DIR}/validate_feishu_report.py" \
+    "${RUN_DIR}/feishu_marker_check.json" "${MARKER}" "${REPORT_SCHEMA}" "${REPORT_MODE}" \
+    > "${RUN_DIR}/feishu_structure_validation.log" 2>&1; then
+    printf '{"status":"success","result":"already_reported_and_verified","marker":"%s"}\n' "${MARKER}" > "${RUN_DIR}/feishu_report.json"
+    exit 0
+  fi
+  printf '{"status":"failed","reason":"existing report violates schema","marker":"%s"}\n' "${MARKER}" > "${RUN_DIR}/feishu_report.json"
+  exit 1
 fi
 
 git -C "${REPO_DIR}" fetch origin main >/dev/null 2>&1 || true
@@ -62,9 +71,9 @@ APPEND_FILE="${RUN_DIR}/feishu_append.xml"
 META_FILE="${RUN_DIR}/feishu_round_meta.json"
 
 if [ -f "${JOURNAL}" ]; then
-  node - "${META_FILE}" "${ROUND}" "${DATE}" "${COMMIT_SUBJECT}" "${COMMIT_HASH}" "${STAMP}" "${MARKER}" <<'NODE'
+  node - "${META_FILE}" "${ROUND}" "${DATE}" "${COMMIT_SUBJECT}" "${COMMIT_HASH}" "${STAMP}" "${MARKER}" "${REPORT_SCHEMA}" <<'NODE'
 const fs = require("fs");
-const [path, round, date, subject, commit, stamp, marker] = process.argv.slice(2);
+const [path, round, date, subject, commit, stamp, marker, reportSchema] = process.argv.slice(2);
 const base = "https://github.com/Job-Yang/npc_voice_panel_3d";
 fs.writeFileSync(path, `${JSON.stringify({
   round,
@@ -72,6 +81,7 @@ fs.writeFileSync(path, `${JSON.stringify({
   subject,
   commit,
   marker,
+  report_schema: reportSchema,
   commit_url: `${base}/commit/${commit}`,
   input_url: `${base}/blob/main/.autoloop/inputs/${date}.md`,
   journal_url: `${base}/blob/main/.autoloop/journal/${date}.md`,
@@ -162,24 +172,9 @@ fi
 
 "${LARK_CLI}" docs +fetch --as user --doc "${DOC_ID}" --detail with-ids \
   --format json > "${RUN_DIR}/feishu_readback.json" 2>&1
-if python3 - "${RUN_DIR}/feishu_readback.json" "${MARKER}" <<'PY'
-import json
-import sys
-import xml.etree.ElementTree as ET
-
-data = json.load(open(sys.argv[1]))
-marker = sys.argv[2]
-root = ET.fromstring("<root>" + data["data"]["document"]["content"] + "</root>")
-marker_index = -1
-stage_index = -1
-for index, child in enumerate(root):
-    text = "".join(child.itertext()).strip()
-    if marker in text:
-        marker_index = index
-    if child.tag == "h1" and text == "7. 阶段结论":
-        stage_index = index
-raise SystemExit(0 if 0 <= marker_index < stage_index else 1)
-PY
+if python3 "${ENGINE_DIR}/validate_feishu_report.py" \
+  "${RUN_DIR}/feishu_readback.json" "${MARKER}" "${REPORT_SCHEMA}" "${REPORT_MODE}" \
+  > "${RUN_DIR}/feishu_structure_validation.log" 2>&1
 then
   printf '{"status":"success","result":"appended_and_verified","marker":"%s","document_id":"%s"}\n' \
     "${MARKER}" "${DOC_ID}" > "${RUN_DIR}/feishu_report.json"
