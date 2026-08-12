@@ -1,0 +1,13 @@
+{
+  "date": "2026-08-13", "stamp": "2026-08-13_030001", "agent_rc": 1,
+  "preflight_rc": 0,
+  "input_validation_rc": 2,
+  "creative_validation_rc": 2,
+  "input_mode": "missing",
+  "input_source_count": 0,
+  "visual_verification_rc": 0,
+  "committed": false,
+  "head_before": "83177273618c65232138af400c79ddd619a8618d", "head_after": "83177273618c65232138af400c79ddd619a8618d",
+  "commit_oneline": "8317727 feat(autoloop): 提升每轮创意增量与可感知验收",
+  "diff_shortstat": "0 0 0"
+}
