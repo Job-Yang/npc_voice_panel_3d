@@ -49,38 +49,58 @@ if "${LARK_CLI}" docs +fetch --as user --doc "${DOC_ID}" \
 fi
 
 git -C "${REPO_DIR}" fetch origin main >/dev/null 2>&1 || true
-COMMIT_HASH="$(git -C "${REPO_DIR}" rev-parse --short origin/main 2>/dev/null || git -C "${REPO_DIR}" rev-parse --short HEAD)"
-COMMIT_SUBJECT="$(git -C "${REPO_DIR}" log -1 --format='%s' origin/main 2>/dev/null || git -C "${REPO_DIR}" log -1 --format='%s')"
+JOURNAL_COMMIT="$(grep -Eo 'Commit:[[:space:]]*`?[0-9a-f]{7,40}' "${JOURNAL}" 2>/dev/null | tail -1 | grep -Eo '[0-9a-f]{7,40}' || true)"
+if [ -n "${JOURNAL_COMMIT}" ] && git -C "${REPO_DIR}" cat-file -e "${JOURNAL_COMMIT}^{commit}" 2>/dev/null; then
+  COMMIT_HASH="$(git -C "${REPO_DIR}" rev-parse --short "${JOURNAL_COMMIT}")"
+  COMMIT_SUBJECT="$(git -C "${REPO_DIR}" log -1 --format='%s' "${JOURNAL_COMMIT}")"
+else
+  COMMIT_HASH="$(git -C "${REPO_DIR}" rev-parse --short origin/main 2>/dev/null || git -C "${REPO_DIR}" rev-parse --short HEAD)"
+  COMMIT_SUBJECT="$(git -C "${REPO_DIR}" log -1 --format='%s' origin/main 2>/dev/null || git -C "${REPO_DIR}" log -1 --format='%s')"
+fi
 ROUND="$(find "${AUTOLOOP_DIR}/journal" -maxdepth 1 -type f -name '20??-??-??.md' | wc -l | tr -d ' ')"
-APPEND_FILE="${RUN_DIR}/feishu_append.md"
+APPEND_FILE="${RUN_DIR}/feishu_append.xml"
+META_FILE="${RUN_DIR}/feishu_round_meta.json"
 
-{
-  printf '\n---\n\n'
-  if [ -f "${JOURNAL}" ]; then
-    printf '## 第 %s 轮｜%s｜%s\n\n' "${ROUND}" "${DATE}" "${COMMIT_SUBJECT}"
-    printf '**作品 commit：** [`%s`](https://github.com/Job-Yang/npc_voice_panel_3d/commit/%s)\n\n' "${COMMIT_HASH}" "${COMMIT_HASH}"
-    if [ -f "${INPUT_CARD}" ]; then
-      printf '### 本轮外部输入卡\n\n'
-      cat "${INPUT_CARD}"
-      printf '\n\n'
-    fi
-    printf '### 本轮自迭代手记\n\n'
-    cat "${JOURNAL}"
-  else
-    printf '## 运行异常｜%s｜未形成有效实验轮次\n\n' "${DATE}"
-    printf '**状态：** 定时任务已触发，但 Agent 未生成 input/journal/作品 commit，因此不计入正式轮次。\n\n'
-    printf '**原始证据：** [查看本轮 run](https://github.com/Job-Yang/npc_voice_panel_3d/tree/main/.autoloop/runs/%s)\n\n' "${STAMP}"
-    printf '### 失败摘要\n\n'
-    sed -n '1,12p' "${RUN_DIR}/final.txt"
-    printf '\n\n'
-  fi
-  printf '\n\n`%s`\n' "${MARKER}"
-} > "${APPEND_FILE}"
+if [ -f "${JOURNAL}" ]; then
+  node - "${META_FILE}" "${ROUND}" "${DATE}" "${COMMIT_SUBJECT}" "${COMMIT_HASH}" "${STAMP}" "${MARKER}" <<'NODE'
+const fs = require("fs");
+const [path, round, date, subject, commit, stamp, marker] = process.argv.slice(2);
+const base = "https://github.com/Job-Yang/npc_voice_panel_3d";
+fs.writeFileSync(path, `${JSON.stringify({
+  round,
+  date,
+  subject,
+  commit,
+  marker,
+  commit_url: `${base}/commit/${commit}`,
+  input_url: `${base}/blob/main/.autoloop/inputs/${date}.md`,
+  journal_url: `${base}/blob/main/.autoloop/journal/${date}.md`,
+  run_url: `${base}/tree/main/.autoloop/runs/${stamp}`,
+}, null, 2)}\n`);
+NODE
+  node "${ENGINE_DIR}/render_feishu_round.js" \
+    "${INPUT_CARD}" "${JOURNAL}" "${APPEND_FILE}" "${META_FILE}"
+else
+  FAILURE_TEXT="$(sed -n '1,12p' "${RUN_DIR}/final.txt")"
+  node - "${APPEND_FILE}" "${DATE}" "${STAMP}" "${MARKER}" "${FAILURE_TEXT}" <<'NODE'
+const fs = require("fs");
+const [path, date, stamp, marker, failure] = process.argv.slice(2);
+const esc = (s) => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+fs.writeFileSync(path, [
+  "<hr/>",
+  `<h2>运行异常｜${esc(date)}｜未形成有效实验轮次</h2>`,
+  "<p><b>状态：</b>定时任务已触发，但 Agent 未生成 input/journal/作品 commit，因此不计入正式轮次。</p>",
+  `<p><b>失败摘要：</b>${esc(failure.replace(/\\s+/g, " ").slice(0, 600))}</p>`,
+  `<p><b>原始证据：</b><a href="https://github.com/Job-Yang/npc_voice_panel_3d/tree/main/.autoloop/runs/${esc(stamp)}">查看本轮 run</a></p>`,
+  `<p><code>${esc(marker)}</code></p>`,
+].join("\n") + "\n");
+NODE
+fi
 
 cd "${REPO_DIR}" || exit 1
-REL_APPEND=".autoloop/runs/${STAMP}/feishu_append.md"
+REL_APPEND=".autoloop/runs/${STAMP}/feishu_append.xml"
 if ! "${LARK_CLI}" docs +update --as user --doc "${DOC_ID}" --command append \
-  --doc-format markdown --content "@${REL_APPEND}" --format json > "${RUN_DIR}/feishu_update.json" 2>&1; then
+  --content "@${REL_APPEND}" --format json > "${RUN_DIR}/feishu_update.json" 2>&1; then
   printf '{"status":"failed","reason":"document append failed","marker":"%s"}\n' "${MARKER}" > "${RUN_DIR}/feishu_report.json"
   exit 1
 fi
@@ -98,10 +118,69 @@ if [ -n "${SCREENSHOT}" ]; then
     --format json > "${RUN_DIR}/feishu_media.json" 2>&1 || true
 fi
 
-"${LARK_CLI}" docs +fetch --as user --doc "${DOC_ID}" --scope keyword \
-  --keyword "${MARKER}" --format json > "${RUN_DIR}/feishu_readback.json" 2>&1
-if node -e 'const fs=require("fs"); const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.exit((d.data?.document?.content||"").includes(process.argv[2])?0:1)' \
-  "${RUN_DIR}/feishu_readback.json" "${MARKER}"; then
+# 每轮先追加到文末，再把“7. 阶段结论”整节移动回文末。这样每日轮次始终归属
+# “6. 实验记录”，而阶段结论保持为最后一个一级章节。
+"${LARK_CLI}" docs +fetch --as user --doc "${DOC_ID}" --detail with-ids \
+  --format json > "${RUN_DIR}/feishu_structure.json" 2>&1 || true
+STAGE_IDS="$(python3 - "${RUN_DIR}/feishu_structure.json" <<'PY'
+import json
+import sys
+import xml.etree.ElementTree as ET
+
+try:
+    data = json.load(open(sys.argv[1]))
+    content = data["data"]["document"]["content"]
+    root = ET.fromstring("<root>" + content + "</root>")
+except Exception:
+    print("")
+    raise SystemExit
+
+collect = False
+ids = []
+for child in root:
+    text = "".join(child.itertext()).strip()
+    if child.tag == "h1" and text == "7. 阶段结论":
+        collect = True
+    elif collect and child.tag in {"hr", "h1", "h2"}:
+        break
+    if collect and child.attrib.get("id"):
+        ids.append(child.attrib["id"])
+print(",".join(ids))
+PY
+)"
+if [ -n "${STAGE_IDS}" ]; then
+  if ! "${LARK_CLI}" docs +update --as user --doc "${DOC_ID}" --command block_move_after \
+    --block-id -1 --src-block-ids "${STAGE_IDS}" --format json \
+    > "${RUN_DIR}/feishu_move_stage.json" 2>&1; then
+    printf '{"status":"failed","reason":"move stage conclusion failed","marker":"%s"}\n' "${MARKER}" > "${RUN_DIR}/feishu_report.json"
+    exit 1
+  fi
+else
+  printf '{"status":"failed","reason":"stage conclusion section not found","marker":"%s"}\n' "${MARKER}" > "${RUN_DIR}/feishu_report.json"
+  exit 1
+fi
+
+"${LARK_CLI}" docs +fetch --as user --doc "${DOC_ID}" --detail with-ids \
+  --format json > "${RUN_DIR}/feishu_readback.json" 2>&1
+if python3 - "${RUN_DIR}/feishu_readback.json" "${MARKER}" <<'PY'
+import json
+import sys
+import xml.etree.ElementTree as ET
+
+data = json.load(open(sys.argv[1]))
+marker = sys.argv[2]
+root = ET.fromstring("<root>" + data["data"]["document"]["content"] + "</root>")
+marker_index = -1
+stage_index = -1
+for index, child in enumerate(root):
+    text = "".join(child.itertext()).strip()
+    if marker in text:
+        marker_index = index
+    if child.tag == "h1" and text == "7. 阶段结论":
+        stage_index = index
+raise SystemExit(0 if 0 <= marker_index < stage_index else 1)
+PY
+then
   printf '{"status":"success","result":"appended_and_verified","marker":"%s","document_id":"%s"}\n' \
     "${MARKER}" "${DOC_ID}" > "${RUN_DIR}/feishu_report.json"
   exit 0
