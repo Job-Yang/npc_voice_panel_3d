@@ -29,7 +29,9 @@ check() {
 
 : > "${WORK_DIR}/preflight-status.txt"
 check bwrap sh -c 'command -v bwrap >/dev/null && bwrap --version >/dev/null'
-check trae_login timeout 20s "${TRAE_CLI}" login status
+# `login status` 只读取本地凭证，过期的 refresh token 也会显示 Logged in。
+# Codebase Git 登录可复用开发机已有身份无交互续期，不消耗模型 Token。
+check trae_auth_refresh sh -c 'timeout 30s "$1" login --git-code </dev/null' sh "${TRAE_CLI}"
 check trae_models timeout 30s "${TRAE_CLI}" models
 check trae_sandbox timeout 20s "${TRAE_CLI}" sandbox linux -- true
 check github timeout 20s git -C "${REPO_DIR}" ls-remote origin refs/heads/main

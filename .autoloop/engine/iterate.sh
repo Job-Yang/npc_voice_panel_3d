@@ -110,7 +110,7 @@ if [ "${PREFLIGHT_RC}" -eq 0 ]; then
     -c 'shell_environment_policy.inherit="all"' \
     -m "${MODEL}" -C "${REPO_DIR}" \
     "${PROMPT}" --json --ephemeral -o "${FINAL_TXT}" \
-    > "${TRACE_JSONL}" 2>&1 &
+    < /dev/null > "${TRACE_JSONL}" 2>&1 &
   AGENT_PID=$!
   ( sleep "${TASK_TIMEOUT}"; kill -0 "${AGENT_PID}" 2>/dev/null && { echo "[autoloop] 超时终止"; kill "${AGENT_PID}" 2>/dev/null; } ) & WATCHDOG=$!
   wait "${AGENT_PID}"; AGENT_RC=$?; kill "${WATCHDOG}" 2>/dev/null
