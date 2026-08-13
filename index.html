@@ -429,6 +429,15 @@ const OBJECT_CONFIG = {
       { label: '看最近项目', type: 'projects' },
     ],
   },
+  processforge: {
+    name: '闭环锻造台 · 计划取证验收',
+    meta: '点击物件',
+    line: '这张小台子把 iLoop 摆成一条能看见的工序：先夹住问题定计划，再把证据烧红，最后盖上可验收的印。AI 可以出手很快，但每一步都得留下火星和锤痕。',
+    actions: [
+      { label: '看 iLoop', type: 'iloop' },
+      { label: '启动闭环彩蛋', type: 'iloop_easter' },
+    ],
+  },
   forge: {
     name: '火炉 · 欢迎语锻造机',
     meta: '点击物件',
@@ -455,6 +464,7 @@ let furnaceFireMesh = null;
 let fireVtxFrame = 0;   // 火焰顶点动画隔帧计数器（性能）
 let furnaceFireBasePositions = null;
 let forgePulseUntil = 0;
+let processForgeRig = null;
 let dialogActions = [];
 let selectedObjectKey = null;
 let yqClickCount = 0;
@@ -667,6 +677,12 @@ guidePost.position.y += FLOOR_Y;
 registerInteractive(guidePost, 'guidepost');
 scene.add(guidePost);
 createHotspot('guidepost', [-2.05, FLOOR_Y + 0.8, 2.55], [1.05, 1.45, 0.75]);
+const processForge = makeProp('processforge', [-0.95, 0, 2.18]);
+processForge.position.y += FLOOR_Y;
+processForgeRig = processForge.userData.processForgeSparks;
+registerInteractive(processForge, 'processforge');
+scene.add(processForge);
+createHotspot('processforge', [-0.95, FLOOR_Y + 0.72, 2.18], [1.7, 0.9, 0.85]);
 
 function tickLoad() {
   loadCount++;
@@ -875,6 +891,91 @@ function makeProp(type, npcPos) {
     g.add(here);
     g.position.set(npcPos[0], 0, npcPos[2]);
     g.rotation.y = -0.12;
+  } else if (type === 'processforge') {
+    // 闭环锻造台：用三段工序把 iLoop 的计划、取证、验收变成可见流程
+    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x342012, roughness: 0.94 });
+    const warmWoodMat = new THREE.MeshStandardMaterial({ color: 0x5a351c, roughness: 0.88 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x20242a, metalness: 0.55, roughness: 0.42 });
+    const coolIronMat = new THREE.MeshStandardMaterial({ color: 0x2f4655, metalness: 0.38, roughness: 0.46 });
+    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffaa45, emissive: 0xff6a18, emissiveIntensity: 0.7, roughness: 0.45 });
+    const proofMat = new THREE.MeshStandardMaterial({ color: 0x66b7ff, emissive: 0x2068b5, emissiveIntensity: 0.32, roughness: 0.55 });
+    const waxMat = new THREE.MeshStandardMaterial({ color: 0xc23a2c, emissive: 0x78150e, emissiveIntensity: 0.18, roughness: 0.58 });
+
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.1, 0.54), warmWoodMat);
+    bench.position.y = 0.45;
+    g.add(bench);
+    [-0.64, 0.64].forEach(x => {
+      [-0.18, 0.18].forEach(z => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.44, 0.08), darkWoodMat);
+        leg.position.set(x, 0.22, z);
+        g.add(leg);
+      });
+    });
+
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(1.32, 0.035, 0.035), ironMat);
+    rail.position.set(0, 0.61, -0.22);
+    g.add(rail);
+    [-0.48, 0, 0.48].forEach(x => {
+      const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.03, 18), emberMat);
+      marker.rotation.x = Math.PI / 2;
+      marker.position.set(x, 0.61, -0.22);
+      g.add(marker);
+    });
+
+    const planClamp = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.1, 0.34), coolIronMat);
+    planClamp.position.set(-0.48, 0.56, 0.05);
+    const planHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.44, 10), ironMat);
+    planHandle.rotation.z = Math.PI / 2;
+    planHandle.position.set(-0.48, 0.67, 0.05);
+    g.add(planClamp, planHandle);
+
+    const ingot = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.2), emberMat);
+    ingot.position.set(0, 0.58, 0.04);
+    ingot.rotation.z = -0.08;
+    g.add(ingot);
+
+    const stamp = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.16, 18), ironMat);
+    stamp.position.set(0.48, 0.66, 0.05);
+    const stampMark = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.013, 8, 24), waxMat);
+    stampMark.position.set(0.48, 0.56, 0.05);
+    stampMark.rotation.x = Math.PI / 2;
+    g.add(stamp, stampMark);
+
+    const labels = [
+      { x: -0.48, mat: proofMat },
+      { x: 0, mat: emberMat },
+      { x: 0.48, mat: waxMat },
+    ];
+    labels.forEach(({ x, mat }, i) => {
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.045, 0.055), mat);
+      plate.position.set(x, 0.5, 0.3);
+      plate.rotation.x = -0.35;
+      g.add(plate);
+      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.08 + i * 0.03, 0.018, 0.018), ironMat);
+      tick.position.set(x, 0.535, 0.34);
+      tick.rotation.z = i === 1 ? 0.35 : -0.35;
+      g.add(tick);
+    });
+
+    const sparkGroup = new THREE.Group();
+    sparkGroup.name = 'processForgeSparks';
+    for (let i = 0; i < 14; i++) {
+      const spark = new THREE.Mesh(new THREE.SphereGeometry(0.018 + (i % 3) * 0.004, 8, 6), emberMat);
+      const angle = (i / 14) * Math.PI * 2;
+      spark.userData.base = {
+        x: Math.cos(angle) * (0.2 + (i % 4) * 0.055),
+        y: 0.8 + (i % 5) * 0.055,
+        z: Math.sin(angle) * 0.14,
+        phase: i * 0.57,
+      };
+      spark.position.set(spark.userData.base.x, spark.userData.base.y, spark.userData.base.z);
+      sparkGroup.add(spark);
+    }
+    g.add(sparkGroup);
+    g.userData.processForgeSparks = sparkGroup;
+
+    g.position.set(npcPos[0], 0, npcPos[2]);
+    g.rotation.y = 0.18;
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }});
   return g;
@@ -1341,6 +1442,10 @@ function selectObject(key) {
     forgeWelcome();
     return;
   }
+  if (key === 'processforge') {
+    applySceneMode('forge');
+    forgePulseUntil = performance.now() + 1600;
+  }
 
   renderDialog({
     name: cfg.name,
@@ -1528,6 +1633,25 @@ function animate() {
     if (furnaceFireMesh.material && 'emissiveIntensity' in furnaceFireMesh.material) {
       furnaceFireMesh.material.emissiveIntensity = 1.35 + Math.sin(t * 10.0) * 0.18 + Math.random() * 0.08;
     }
+  }
+
+  // 闭环锻造台火星：少量小物件呼吸，强调“工序正在进行”
+  if (processForgeRig) {
+    processForgeRig.children.forEach((spark, i) => {
+      const base = spark.userData.base;
+      if (!base) return;
+      const pulse = Math.sin(t * 3.2 + base.phase);
+      spark.position.set(
+        base.x + Math.sin(t * 2.4 + base.phase) * 0.025,
+        base.y + pulse * 0.035,
+        base.z + Math.cos(t * 2.1 + base.phase) * 0.018
+      );
+      const scale = 0.82 + (pulse + 1) * 0.18;
+      spark.scale.setScalar(scale);
+      if (spark.material && 'emissiveIntensity' in spark.material) {
+        spark.material.emissiveIntensity = 0.55 + (pulse + 1) * 0.22 + (i % 3) * 0.04;
+      }
+    });
   }
 
   // NPC 呼吸起伏（基于初始高度做绝对偏移，避免累计上浮）
