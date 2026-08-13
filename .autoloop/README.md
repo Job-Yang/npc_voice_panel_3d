@@ -13,7 +13,8 @@
 ├── EXPERIMENT.md        实验框架：命题/变量/阶段/指标/产物清单（写论文的依据）
 ├── constitution.md      通用宪法骨架（怎么迭代/记录/验证/红线）
 ├── profile.md           场景锚：这作品是什么/目标/边界/护栏（Agent 不可改）
-├── engine/iterate.sh    引擎：cron 调它，拉起 Agent 跑一轮 + 采集指标 + 提交过程留档
+├── engine/supervisor.py 监督器：预热、分类自愈、同日恢复、终态上报
+├── engine/iterate.sh    单次 attempt 执行器：拉起 Agent、验证并采集指标
 ├── inputs/<date>.md     每轮公开外部输入卡：来源/观察/吸收/拒绝/转化路径
 ├── journal/<date>.md    Agent 每天亲手写的手记（+ assets/ 无痕验证效果图）
 ├── CHANGELOG.md         变更概览 + 每轮 commit hash
@@ -25,7 +26,15 @@
 ```
 
 ## 机制（一句话）
-`远端 cron → .autoloop/engine/iterate.sh → trae-cli exec（塞 constitution+profile）→ 一个完整 Agent 自己走完闭环 → 一起 push`
+`远端 cron → supervisor.py → preflight/version gate → iterate.sh attempt → 分类恢复 → 终态飞书/归档`
+
+- 02:45 预热认证、GitHub、飞书、沙箱、浏览器依赖和磁盘；引擎或 CLI 版本变化时额外执行一次真实模型 smoke。
+- 03:00 执行正式 attempt；基础设施故障在 03:15、03:45 继续同一个逻辑轮次，最多 3 次。
+- 同一天的所有 attempt 共享 `AutoLoopRun:<date>`，只计一个实验轮次。已有完整 input/journal 时跳过 Agent，
+  只恢复验证、报告和归档，避免重复创作或发布。
+- 认证、网络、CLI、视觉环境故障可以重试；输入卡或创意质量契约失败不机械重试。
+- 飞书和 Git 过程留档只在成功、不可重试失败或重试耗尽后执行一次，不产生中间失败噪音。
+
 - 定时层：远端服务机现成 **cron**（不用 iLoop 的 macOS launchd）。
 - 跑 Agent 层：复用 iLoop oncall 同款 `trae-cli exec` 无人值守姿势（`--sandbox workspace-write` +
   `approval_policy=never` + `--ephemeral`）。远端 oncall 已在用，凭证/权限现成。
@@ -42,16 +51,23 @@
 
 ## 部署到远端服务机（一次性）
 1. 远端 clone / pull 本仓，确保 `trae-cli` 在 PATH 且已登录（远端 oncall 已在用，凭证应就绪）。
-2. `chmod +x .autoloop/engine/iterate.sh`
-3. 先手动跑一轮验证链路：`bash .autoloop/engine/iterate.sh`
-4. 挂 cron（凌晨模型不排队）：
-   ```cron
-   0 3 * * *  /abs/npc_voice_panel_3d/.autoloop/engine/iterate.sh >> /abs/npc_voice_panel_3d/.autoloop/runs/cron.log 2>&1
-   ```
+2. `chmod +x .autoloop/engine/iterate.sh .autoloop/engine/install_supervisor_cron.sh`
+3. 先验证预热：`python3 .autoloop/engine/supervisor.py prewarm`
+4. 运行 `bash .autoloop/engine/install_supervisor_cron.sh` 安装并回读 cron。脚本会移除旧的单次 `iterate.sh`
+   调度，安装 02:45 预热与 03:00/03:15/03:45 恢复调度。
 
 ## 可调环境变量
 `AUTOLOOP_MODEL`(默认 gpt-5.5) · `AUTOLOOP_BRANCH`(默认 main) · `AUTOLOOP_TRAE_CLI`(不在 PATH 时给绝对路径) ·
-`AUTOLOOP_TIMEOUT`(默认 3600s) · `AUTOLOOP_ONLINE_URL`
+`AUTOLOOP_TIMEOUT`(默认 3600s) · `AUTOLOOP_ONLINE_URL` · `AUTOLOOP_MAX_ATTEMPTS`(默认 3) ·
+`AUTOLOOP_ATTEMPT_TIMEOUT`(默认 4500s)
+
+## Supervisor 状态与口径
+- 每日状态：`.autoloop/runs/<date>_supervisor/state.json`。
+- attempt 证据：`.autoloop/runs/<date>_attempt_01/` 等。
+- `succeeded`：全部门禁、飞书回读和 Git 归档完成。
+- `retry_wait`：基础设施故障，等待当日下一次调度恢复。
+- `failed_nonretryable`：输入/创意契约失败，保留证据但不重复消耗 Token。
+- `failed_exhausted`：3 次基础设施恢复或终态上报仍失败，需要人工处理。
 
 ## 怎么监督这个实验（人在环上）
 - **阶段 A 外部输入驱动的纯观察**：不建 HUMAN_FEEDBACK.md，但每轮必须学习公开外部来源；观察它如何筛选与转化。

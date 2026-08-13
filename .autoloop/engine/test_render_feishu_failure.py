@@ -53,6 +53,19 @@ class FailureSummaryTests(unittest.TestCase):
             self.assertIn("bad &lt;token&gt; &amp; exit", xml)
             self.assertNotIn("bad <token>", xml)
 
+    def test_supervisor_summary_has_priority(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            (run_dir / "supervisor_failure.txt").write_text(
+                "creative contract failed",
+                encoding="utf-8",
+            )
+            (run_dir / "final.txt").write_text("agent said done", encoding="utf-8")
+            self.assertEqual(
+                MODULE.failure_summary(run_dir),
+                "creative contract failed",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

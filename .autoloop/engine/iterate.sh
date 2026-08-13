@@ -35,8 +35,13 @@ TASK_TIMEOUT="${AUTOLOOP_TIMEOUT:-3600}"
 ONLINE_URL="${AUTOLOOP_ONLINE_URL:-https://job-yang.github.io/npc_voice_panel_3d/}"
 
 cd "${REPO_DIR}" || { echo "[autoloop] 无法进入仓库 ${REPO_DIR}"; exit 1; }
-TODAY="$(date +%Y-%m-%d)"; STAMP="$(date +%Y-%m-%d_%H%M%S)"
-RUN_DIR="${AUTOLOOP_DIR}/runs/${STAMP}"; mkdir -p "${RUN_DIR}"
+TODAY="${AUTOLOOP_DATE:-$(date +%Y-%m-%d)}"
+STAMP="${AUTOLOOP_RUN_ID:-$(date +%Y-%m-%d_%H%M%S)}"
+RUN_DIR="${AUTOLOOP_RUN_DIR:-${AUTOLOOP_DIR}/runs/${STAMP}}"
+RESUME="${AUTOLOOP_RESUME:-0}"
+DEFER_FINALIZATION="${AUTOLOOP_DEFER_FINALIZATION:-0}"
+ALLOW_ATTEMPT_DIRTY="${AUTOLOOP_ALLOW_ATTEMPT_DIRTY:-0}"
+mkdir -p "${RUN_DIR}"
 log() { echo "[autoloop][$(date '+%H:%M:%S')] $*"; }
 
 worktree_matches_origin() {
@@ -63,17 +68,22 @@ git fetch origin "${BRANCH}" 2>&1 | tee -a "${RUN_DIR}/git.log"
 # 防御：上一轮 TRAE 沙箱可能用平行 GIT_DIR 提交，导致本地工作区残留"未提交"文件
 # （其内容其实已 push 到远端）。这些残留会挡住 ff-only。若本地相对 origin 无实质差异，
 # 说明残留都已在远端，安全清理后再快进；只有真正的内容分叉才跳过本轮。
+PRESERVE_DIRTY=0
 if [ -n "$(git status --porcelain)" ]; then
   if worktree_matches_origin; then
     log "检测到工作区残留（内容已在远端），自动清理以恢复干净状态。"
     git checkout -- . 2>/dev/null || true
     # 排除 runs/：本轮 RUN_DIR 已在同步前建好，且历史 runs 已随远端快进拉回，勿误删。
     git clean -fd -e ".autoloop/runs" . 2>&1 | tee -a "${RUN_DIR}/git.log" || true
+  elif [ "${RESUME}" = "1" ] && [ "${ALLOW_ATTEMPT_DIRTY}" = "1" ]; then
+    PRESERVE_DIRTY=1
+    log "Supervisor 恢复上一 attempt，保留其工作区改动交给 Agent 继续处理。"
   else
     log "!! 工作区有未同步到远端的本地改动，为安全起见跳过本轮。"; echo dirty > "${RUN_DIR}/SKIPPED"; exit 0
   fi
 fi
-if ! git merge --ff-only "origin/${BRANCH}" 2>&1 | tee -a "${RUN_DIR}/git.log"; then
+if [ "${PRESERVE_DIRTY}" -eq 0 ] &&
+  ! git merge --ff-only "origin/${BRANCH}" 2>&1 | tee -a "${RUN_DIR}/git.log"; then
   log "!! 无法快进（分叉），本轮跳过，绝不强制覆盖。"; echo skipped > "${RUN_DIR}/SKIPPED"; exit 0
 fi
 HEAD_BEFORE="$(git rev-parse HEAD)"
@@ -89,6 +99,8 @@ bash "${ENGINE_DIR}/preflight.sh" "${RUN_DIR}/preflight.json" || PREFLIGHT_RC=$?
 PROMPT="今天是 ${TODAY}。下面是你的自迭代宪法（通用骨架 + 本仓画像）。请严格按它完成今天这一轮
 （回顾→现状盘点→摄取公开外部输入→消化筛选→改→本地验证→push→线上无痕验证→写手记→更新CHANGELOG）。
 你运行在远端、无人值守、stdin 已关闭，不要空等交互。
+这是 Supervisor 管理的 attempt；若工作区已有本日未完成改动，先读取现状和上一 attempt 证据，从断点继续，
+不要重复已经完成的创意或重新创建第二套本日 input/journal。
 仓库根=${REPO_DIR}（作品代码在此，实验数据写 .autoloop/）。分支=${BRANCH}。线上地址=${ONLINE_URL}
 本轮RUN_DIR=${RUN_DIR}（视觉验证 JSON、final、trace 等本轮证据写这里）。
 
@@ -102,7 +114,20 @@ FINAL_TXT="${RUN_DIR}/final.txt"; TRACE_JSONL="${RUN_DIR}/trae.jsonl"
 
 # ---- 4. 无人值守拉起 Agent（姿势对齐 iLoop oncall 网关）----
 AGENT_RC=0
-if [ "${PREFLIGHT_RC}" -eq 0 ]; then
+INPUT_CARD="${AUTOLOOP_DIR}/inputs/${TODAY}.md"
+JOURNAL="${AUTOLOOP_DIR}/journal/${TODAY}.md"
+RESUME_READY=0
+if [ "${RESUME}" = "1" ] && [ "${PRESERVE_DIRTY}" -eq 0 ] &&
+  [ -s "${INPUT_CARD}" ] && [ -s "${JOURNAL}" ]; then
+  python3 "${ENGINE_DIR}/validate_creative_round.py" \
+    "${INPUT_CARD}" "${JOURNAL}" "${RUN_DIR}/resume_validation.json" >/dev/null 2>&1 &&
+    RESUME_READY=1
+fi
+if [ "${RESUME_READY}" -eq 1 ]; then
+  log "检测到本日 input/journal 已形成，恢复后置验证，不重复启动 Agent。"
+  printf 'Supervisor 恢复模式：复用本日已形成的 input/journal，继续后置验证与收口。\n' > "${FINAL_TXT}"
+  : > "${TRACE_JSONL}"
+elif [ "${PREFLIGHT_RC}" -eq 0 ]; then
   log "preflight 通过，拉起 Agent（超时上限 ${TASK_TIMEOUT}s）……"
   "${TRAE_CLI}" exec \
     --permission-mode custom --sandbox workspace-write --disable hooks \
@@ -128,7 +153,6 @@ else
 fi
 
 # ---- 5. 外部输入门禁（缺输入卡或不可追溯来源时，该轮实验标记失败）----
-INPUT_CARD="${AUTOLOOP_DIR}/inputs/${TODAY}.md"
 INPUT_RC=0
 INPUT_MODE="missing"
 INPUT_SOURCE_COUNT=0
@@ -157,7 +181,6 @@ if [ "${INPUT_RC}" -ne 0 ]; then
 fi
 
 # ---- 6. 创意质量门禁（防止外部调研退化成低信息量的小修补）----
-JOURNAL="${AUTOLOOP_DIR}/journal/${TODAY}.md"
 CREATIVE_RC=0
 python3 "${ENGINE_DIR}/validate_creative_round.py" \
   "${INPUT_CARD}" "${JOURNAL}" "${RUN_DIR}/creative_validation.json" || CREATIVE_RC=$?
@@ -219,20 +242,23 @@ else
   log "!! 本轮异常 rc=${AGENT_RC}，trace 见 ${TRACE_JSONL}"; echo "rc=${AGENT_RC}" > "${RUN_DIR}/ERROR"
 fi
 
-# ---- 9. 同步飞书上帝视角文档（失败留证据，不阻断作品迭代）----
-log "同步飞书 AutoLoop 实验日志……"
-bash "${ENGINE_DIR}/report_feishu.sh" "${RUN_DIR}" "${TODAY}" \
-  >> "${RUN_DIR}/feishu_report.log" 2>&1 || log "!! 飞书同步失败，证据已写入本轮 runs。"
+# ---- 9/10. 终态报告与归档；Supervisor attempt 会延迟到最终结果后统一执行 ----
+if [ "${DEFER_FINALIZATION}" = "1" ]; then
+  log "Supervisor attempt 已完成，飞书报告与过程归档延迟到逻辑轮次终态。"
+else
+  log "同步飞书 AutoLoop 实验日志……"
+  bash "${ENGINE_DIR}/report_feishu.sh" "${RUN_DIR}" "${TODAY}" \
+    >> "${RUN_DIR}/feishu_report.log" 2>&1 || log "!! 飞书同步失败，证据已写入本轮 runs。"
 
-# ---- 10. 把过程留档、视觉证据提交入库（实验数据必须每轮保存并推送）----
-log "提交本轮过程留档、视觉证据与飞书回读……"
-git add "${AUTOLOOP_DIR}/runs/${STAMP}" 2>/dev/null || true
-[ -s "${ONLINE_SCREENSHOT}" ] && git add "${ONLINE_SCREENSHOT}" 2>/dev/null || true
-if ! git diff --cached --quiet 2>/dev/null; then
-  git -c core.hooksPath=/dev/null commit -m "chore(autoloop): 过程留档 ${STAMP}" 2>&1 | tee -a "${RUN_DIR}/git.log" || true
-  git fetch origin "${BRANCH}" >/dev/null 2>&1 || true
-  git merge --ff-only "origin/${BRANCH}" >/dev/null 2>&1 || true
-  git push origin "${BRANCH}" || log "!! 过程留档 push 失败，数据已在本地 ${RUN_DIR}"
+  log "提交本轮过程留档、视觉证据与飞书回读……"
+  git add "${RUN_DIR}" 2>/dev/null || true
+  [ -s "${ONLINE_SCREENSHOT}" ] && git add "${ONLINE_SCREENSHOT}" 2>/dev/null || true
+  if ! git diff --cached --quiet 2>/dev/null; then
+    git -c core.hooksPath=/dev/null commit -m "chore(autoloop): 过程留档 ${STAMP}" 2>&1 | tee -a "${RUN_DIR}/git.log" || true
+    git fetch origin "${BRANCH}" >/dev/null 2>&1 || true
+    git merge --ff-only "origin/${BRANCH}" >/dev/null 2>&1 || true
+    git push origin "${BRANCH}" || log "!! 过程留档 push 失败，数据已在本地 ${RUN_DIR}"
+  fi
 fi
 
 log "=== 收工 · HEAD=$(git rev-parse --short HEAD) ==="

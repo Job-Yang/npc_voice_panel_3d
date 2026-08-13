@@ -8,10 +8,11 @@ REPO_DIR="$(cd "${AUTOLOOP_DIR}/.." && pwd)"
 RUN_DIR="${1:?usage: report_feishu.sh <run-dir> <date>}"
 DATE="${2:?missing date}"
 STAMP="$(basename "${RUN_DIR}")"
+RUN_ID="${AUTOLOOP_RUN_ID:-${STAMP}}"
 JOURNAL="${AUTOLOOP_DIR}/journal/${DATE}.md"
 INPUT_CARD="${AUTOLOOP_DIR}/inputs/${DATE}.md"
 CONFIG="${AUTOLOOP_DIR}/feishu.json"
-MARKER="AutoLoopRun:${STAMP}"
+MARKER="AutoLoopRun:${RUN_ID}"
 
 if [ ! -f "${CONFIG}" ]; then
   printf '{"status":"skipped","reason":"missing config"}\n' > "${RUN_DIR}/feishu_report.json"
@@ -37,8 +38,11 @@ REPORT_SCHEMA="$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.read
 export LARKSUITE_CLI_NO_UPDATE_NOTIFIER=1
 export LARKSUITE_CLI_NO_SKILLS_NOTIFIER=1
 
-REPORT_MODE="failure"
-[ -f "${JOURNAL}" ] && REPORT_MODE="success"
+REPORT_MODE="${AUTOLOOP_REPORT_MODE:-}"
+if [ -z "${REPORT_MODE}" ]; then
+  REPORT_MODE="failure"
+  [ -f "${JOURNAL}" ] && REPORT_MODE="success"
+fi
 if "${LARK_CLI}" docs +fetch --as user --doc "${DOC_ID}" \
   --detail with-ids --format json > "${RUN_DIR}/feishu_marker_check.json" 2>&1 &&
   node -e 'const fs=require("fs"); const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); process.exit((d.data?.document?.content||"").includes(process.argv[2])?0:1)' \
@@ -66,7 +70,7 @@ ROUND="$(find "${AUTOLOOP_DIR}/journal" -maxdepth 1 -type f -name '20??-??-??.md
 APPEND_FILE="${RUN_DIR}/feishu_append.xml"
 META_FILE="${RUN_DIR}/feishu_round_meta.json"
 
-if [ -f "${JOURNAL}" ]; then
+if [ "${REPORT_MODE}" = "success" ] && [ -f "${JOURNAL}" ]; then
   node - "${META_FILE}" "${ROUND}" "${DATE}" "${COMMIT_SUBJECT}" "${COMMIT_HASH}" "${STAMP}" "${MARKER}" "${REPORT_SCHEMA}" <<'NODE'
 const fs = require("fs");
 const [path, round, date, subject, commit, stamp, marker, reportSchema] = process.argv.slice(2);

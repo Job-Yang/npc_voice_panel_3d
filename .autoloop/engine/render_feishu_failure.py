@@ -49,6 +49,10 @@ def metrics_failure(metrics_path):
 
 
 def failure_summary(run_dir):
+    supervisor = read_text(run_dir / "supervisor_failure.txt")
+    if supervisor:
+        return " ".join(supervisor.split())[:600]
+
     final = read_text(run_dir / "final.txt")
     if final:
         return " ".join(final.split())[:600]
