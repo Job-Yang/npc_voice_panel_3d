@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "identity": "user",
+  "data": {
+    "document": {
+      "content": "<fragment mode=\"keyword\" keyword=\"AutoLoopRun:2026-08-13_030001\"><h2 id=\"doxcnITKmxOBXIJ5XCMyMVCCkjc\">运行异常｜2026-08-13｜未形成有效实验轮次</h2><p id=\"doxcnegm3mzPan6zMlmNwfRfIbh\"><b>状态：</b>定时任务已触发，但 Agent 未生成 input/journal/作品 commit，因此不计入正式轮次。</p><p id=\"doxcnxTYnuYO0N2Stcz05OuyaJb\"><b>失败摘要：</b>Your ByteDance SSO session could not be refreshed. Please log out and sign in again.</p><p id=\"doxcneDFJIcYFcGDIIdLGcR3F2f\"><b>原始证据：</b><a href=\"https://github.com/Job-Yang/npc_voice_panel_3d/tree/main/.autoloop/runs/2026-08-13_030001\">查看本轮 run</a></p><p id=\"doxcnvAiwIlnL3hsommvjKG5Huf\"><code>AutoLoopRun:2026-08-13_030001</code></p><h1 id=\"doxcnar1k7Cskk4f3w5ggwgbhjd\">7. 阶段结论</h1><table id=\"doxcnUFqxbCLYyq4rcJ6qeU8doe\"><colgroup><col width=\"133\"/><col width=\"328\"/><col width=\"234\"/></colgroup><thead><tr><th vertical-align=\"top\"><p id=\"doxcnftFRxBot9OyH5ykV9vU5tb\">阶段</p></th><th vertical-align=\"top\"><p id=\"doxcnMX1N5iE28IjnRlDn7RcKPe\">结论</p></th><th vertical-align=\"top\"><p id=\"doxcnzkMHirXIIzjzYdTGOlF2Ig\">证据强度</p></th></tr></thead><tbody><tr><td vertical-align=\"top\"><p id=\"doxcnQdJ5BxGfOcLRN8u2OGQFJd\">Pilot 当前</p></td><td vertical-align=\"top\"><p id=\"doxcnn3ONxz1sxMld2JiLsqlZ1c\">已证明远端 Agent 能完成分析、改动、本地视觉验证、commit、push、线上验证和文档记录。</p></td><td vertical-align=\"top\"><p id=\"doxcn3UNoOhX3x3uGdmOJuqlx1c\">工程链路结论，已验证</p></td></tr><tr><td vertical-align=\"top\"><p id=\"doxcnsIonh0FaJUAzjZaEhjdTYk\">研究结论</p></td><td vertical-align=\"top\"><p id=\"doxcnrO8kn5NSCRLcMIDsJzxBqg\">样本不足，尚不能判断外部输入、记忆、频率、弱反馈或主动触发是否带来长期提升。</p></td><td vertical-align=\"top\"><p id=\"doxcnWPMyfJj2wRhZrNBK7Rb5df\">不得下结论</p></td></tr></tbody></table></fragment>",
+      "document_id": "Urw8drpGholNETx7CCBchka8ntd",
+      "revision_id": 55
+    }
+  },
+  "_notice": {
+    "skills": {
+      "command": "lark-cli update",
+      "current": "1.0.85",
+      "message": "lark-cli skills 1.0.85 out of sync with binary 1.0.76, run: lark-cli update",
+      "target": "1.0.76"
+    },
+    "update": {
+      "command": "lark-cli update",
+      "current": "1.0.76",
+      "latest": "1.0.86",
+      "message": "lark-cli 1.0.86 available, current 1.0.76, run: lark-cli update"
+    }
+  }
+}

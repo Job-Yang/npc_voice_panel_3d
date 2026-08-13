@@ -17,10 +17,6 @@ if [ ! -f "${CONFIG}" ]; then
   printf '{"status":"skipped","reason":"missing config"}\n' > "${RUN_DIR}/feishu_report.json"
   exit 0
 fi
-if [ ! -f "${JOURNAL}" ] && [ ! -f "${RUN_DIR}/final.txt" ]; then
-  printf '{"status":"skipped","reason":"missing journal and final"}\n' > "${RUN_DIR}/feishu_report.json"
-  exit 0
-fi
 
 LARK_CLI="${AUTOLOOP_LARK_CLI:-}"
 if [ -z "${LARK_CLI}" ]; then
@@ -91,20 +87,8 @@ NODE
   node "${ENGINE_DIR}/render_feishu_round.js" \
     "${INPUT_CARD}" "${JOURNAL}" "${APPEND_FILE}" "${META_FILE}"
 else
-  FAILURE_TEXT="$(sed -n '1,12p' "${RUN_DIR}/final.txt")"
-  node - "${APPEND_FILE}" "${DATE}" "${STAMP}" "${MARKER}" "${FAILURE_TEXT}" <<'NODE'
-const fs = require("fs");
-const [path, date, stamp, marker, failure] = process.argv.slice(2);
-const esc = (s) => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-fs.writeFileSync(path, [
-  "<hr/>",
-  `<h2>运行异常｜${esc(date)}｜未形成有效实验轮次</h2>`,
-  "<p><b>状态：</b>定时任务已触发，但 Agent 未生成 input/journal/作品 commit，因此不计入正式轮次。</p>",
-  `<p><b>失败摘要：</b>${esc(failure.replace(/\\s+/g, " ").slice(0, 600))}</p>`,
-  `<p><b>原始证据：</b><a href="https://github.com/Job-Yang/npc_voice_panel_3d/tree/main/.autoloop/runs/${esc(stamp)}">查看本轮 run</a></p>`,
-  `<p><code>${esc(marker)}</code></p>`,
-].join("\n") + "\n");
-NODE
+  python3 "${ENGINE_DIR}/render_feishu_failure.py" \
+    "${RUN_DIR}" "${DATE}" "${STAMP}" "${MARKER}" "${APPEND_FILE}"
 fi
 
 cd "${REPO_DIR}" || exit 1
@@ -115,17 +99,19 @@ if ! "${LARK_CLI}" docs +update --as user --doc "${DOC_ID}" --command append \
   exit 1
 fi
 
-SCREENSHOT=""
-for candidate in \
-  ".autoloop/journal/assets/${DATE}-online.png" \
-  ".autoloop/journal/assets/${DATE}-local.png" \
-  ".autoloop/journal/assets/${DATE}-local-diagnostic.png"; do
-  [ -f "${candidate}" ] && { SCREENSHOT="${candidate}"; break; }
-done
-if [ -n "${SCREENSHOT}" ]; then
-  "${LARK_CLI}" docs +media-insert --as user --doc "${DOC_ID}" --file "${SCREENSHOT}" \
-    --align center --width 720 --caption "第 ${ROUND} 轮页面效果（${DATE}）" \
-    --format json > "${RUN_DIR}/feishu_media.json" 2>&1 || true
+if [ "${REPORT_MODE}" = "success" ]; then
+  SCREENSHOT=""
+  for candidate in \
+    ".autoloop/journal/assets/${DATE}-online.png" \
+    ".autoloop/journal/assets/${DATE}-local.png" \
+    ".autoloop/journal/assets/${DATE}-local-diagnostic.png"; do
+    [ -f "${candidate}" ] && { SCREENSHOT="${candidate}"; break; }
+  done
+  if [ -n "${SCREENSHOT}" ]; then
+    "${LARK_CLI}" docs +media-insert --as user --doc "${DOC_ID}" --file "${SCREENSHOT}" \
+      --align center --width 720 --caption "第 ${ROUND} 轮页面效果（${DATE}）" \
+      --format json > "${RUN_DIR}/feishu_media.json" 2>&1 || true
+  fi
 fi
 
 # 每轮先追加到文末，再把“7. 阶段结论”整节移动回文末。这样每日轮次始终归属

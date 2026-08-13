@@ -1,0 +1,6 @@
+<hr/>
+<h2>运行异常｜2026-08-13｜未形成有效实验轮次</h2>
+<p><b>状态：</b>定时任务已触发，但 Agent 未生成 input/journal/作品 commit，因此不计入正式轮次。</p>
+<p><b>失败摘要：</b>Your ByteDance SSO session could not be refreshed. Please log out and sign in again.</p>
+<p><b>原始证据：</b><a href="https://github.com/Job-Yang/npc_voice_panel_3d/tree/main/.autoloop/runs/2026-08-13_030001">查看本轮 run</a></p>
+<p><code>AutoLoopRun:2026-08-13_030001</code></p>
