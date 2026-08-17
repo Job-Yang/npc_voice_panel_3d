@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import importlib.util
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -269,6 +270,30 @@ class StateMachineTests(unittest.TestCase):
             self.assertEqual(rc, 1)
             self.assertEqual(state["status"], "failed_exhausted")
             self.assertEqual(state["notification_rc"], 0)
+
+    def test_archive_pushes_execution_head_to_main(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            calls = []
+
+            def fake_run(command, **kwargs):
+                calls.append(command)
+                return subprocess.CompletedProcess(command, 0)
+
+            with mock.patch.object(MODULE, "REPO_DIR", repo), mock.patch.object(
+                MODULE, "AUTOLOOP_DIR", repo / ".autoloop"
+            ), mock.patch.object(subprocess, "run", side_effect=fake_run):
+                rc = MODULE.archive_round(
+                    "2099-01-01",
+                    repo / "supervisor",
+                    {"attempts": []},
+                )
+
+            self.assertEqual(rc, 0)
+            self.assertIn(
+                ["git", "push", "origin", "HEAD:main"],
+                calls,
+            )
 
 
 if __name__ == "__main__":
