@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -148,6 +149,26 @@ class WorkspaceRunnerTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
             self.assertIn("workspace_prepare_failed", state)
             self.assertIn(str(notifier), captured["command"])
+
+    def test_os_workspace_error_is_reported_and_notified(self):
+        with mock.patch.object(
+            MODULE,
+            "prepare_workspace",
+            side_effect=PermissionError("workspace denied"),
+        ), mock.patch.object(
+            MODULE,
+            "notify_workspace_failure",
+            return_value=0,
+        ) as notify:
+            with mock.patch.object(
+                sys,
+                "argv",
+                ["workspace_runner.py", "prepare"],
+            ):
+                rc = MODULE.main()
+
+        self.assertEqual(rc, 78)
+        notify.assert_called_once()
 
     def test_previous_day_pending_state_is_resumed(self):
         with tempfile.TemporaryDirectory() as directory:

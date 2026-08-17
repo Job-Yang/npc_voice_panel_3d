@@ -251,7 +251,7 @@ def main():
             )
             return 0
         return execute_supervisor(CONTROL_REPO, date, args.command)
-    except RuntimeError as error:
+    except (RuntimeError, OSError) as error:
         notification_rc = notify_workspace_failure(
             CONTROL_REPO,
             date,
