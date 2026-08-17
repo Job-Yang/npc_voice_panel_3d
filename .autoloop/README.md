@@ -34,6 +34,12 @@
   只恢复验证、报告和归档，避免重复创作或发布。
 - 认证、网络、CLI、视觉环境故障可以重试；输入卡或创意质量契约失败不机械重试。
 - 飞书和 Git 过程留档只在成功、不可重试失败或重试耗尽后执行一次，不产生中间失败噪音。
+- 异常终态会由当前 Lark 应用的 Bot 私聊当前已授权用户；消息发送后按 `message_id` 回读，
+  未验证送达则保持 `finalization_pending`，由下一次 cron 继续补偿。
+- Git 同步卡口会把原因和数量写入公开 run；完整 `git status` 文件清单只写远端
+  `~/.local/state/autoloop/`，随私聊通知发送，不进入公开 GitHub 仓库。
+- 预热的 Python 编译与单测缓存固定写入 `~/.cache/autoloop-supervisor/pycache`，
+  不在源码目录生成 `__pycache__`，避免监督器先写脏仓库再拦截自身。
 
 - 定时层：远端服务机现成 **cron**（不用 iLoop 的 macOS launchd）。
 - 跑 Agent 层：复用 iLoop oncall 同款 `trae-cli exec` 无人值守姿势（`--sandbox workspace-write` +
@@ -59,7 +65,7 @@
 ## 可调环境变量
 `AUTOLOOP_MODEL`(默认 gpt-5.5) · `AUTOLOOP_BRANCH`(默认 main) · `AUTOLOOP_TRAE_CLI`(不在 PATH 时给绝对路径) ·
 `AUTOLOOP_TIMEOUT`(默认 3600s) · `AUTOLOOP_ONLINE_URL` · `AUTOLOOP_MAX_ATTEMPTS`(默认 3) ·
-`AUTOLOOP_ATTEMPT_TIMEOUT`(默认 4500s)
+`AUTOLOOP_ATTEMPT_TIMEOUT`(默认 4500s) · `AUTOLOOP_PRIVATE_STATE_DIR`(默认 `~/.local/state/autoloop`)
 
 ## Supervisor 状态与口径
 - 每日状态：`.autoloop/runs/<date>_supervisor/state.json`。

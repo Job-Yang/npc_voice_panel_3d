@@ -25,6 +25,24 @@ def base_state():
 
 
 class ClassificationTests(unittest.TestCase):
+    def test_git_sync_skip_is_retryable_even_with_zero_exit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            (run_dir / "sync_failure.json").write_text(
+                json.dumps(
+                    {"stage": "git_sync", "reason": "dirty_worktree"}
+                ),
+                encoding="utf-8",
+            )
+            (run_dir / "SKIPPED").write_text(
+                "dirty_worktree\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                MODULE.classify_attempt(run_dir, 0),
+                ("retryable", "git_sync_dirty_worktree"),
+            )
+
     def test_auth_failure_is_retryable(self):
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory)
@@ -62,6 +80,10 @@ class ClassificationTests(unittest.TestCase):
 
 
 class StateMachineTests(unittest.TestCase):
+    def test_static_gate_python_cache_is_outside_repository(self):
+        cache_prefix = Path(MODULE.static_gate_env()["PYTHONPYCACHEPREFIX"])
+        self.assertFalse(cache_prefix.is_relative_to(MODULE.REPO_DIR))
+
     def test_retry_then_success_uses_one_logical_round(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "2099-01-01_supervisor"
@@ -139,6 +161,60 @@ class StateMachineTests(unittest.TestCase):
                 self.assertEqual(rc, 78)
                 self.assertEqual(state["status"], "prewarm_failed")
                 version_gate.assert_not_called()
+
+    def test_terminal_failure_requires_verified_notification(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "2099-01-01_supervisor"
+            path = root / "state.json"
+            run_dir = Path(directory) / "attempt_01"
+            run_dir.mkdir(parents=True)
+            state = base_state()
+            state.update(
+                {
+                    "core_outcome": "failure",
+                    "terminal_status": "failed_exhausted",
+                    "terminal_reason": "git_sync_dirty_worktree",
+                    "final_run_dir": str(run_dir),
+                    "attempts": [{"run_dir": str(run_dir)}],
+                }
+            )
+
+            with mock.patch.object(MODULE, "report_round", return_value=0), mock.patch.object(
+                MODULE, "notify_failure", return_value=1
+            ), mock.patch.object(MODULE, "archive_round") as archive:
+                rc = MODULE.finalize("2099-01-01", root, path, state)
+
+            self.assertEqual(rc, 1)
+            self.assertEqual(state["status"], "finalization_pending")
+            self.assertEqual(state["notification_rc"], 1)
+            archive.assert_not_called()
+
+    def test_exhausted_report_failure_notifies(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "2099-01-01_supervisor"
+            path = root / "state.json"
+            run_dir = Path(directory) / "attempt_01"
+            run_dir.mkdir(parents=True)
+            state = base_state()
+            state.update(
+                {
+                    "core_outcome": "success",
+                    "terminal_status": "succeeded",
+                    "final_run_dir": str(run_dir),
+                    "attempts": [{"run_dir": str(run_dir)}],
+                    "finalize_attempts": MODULE.MAX_ATTEMPTS - 1,
+                }
+            )
+
+            with mock.patch.object(MODULE, "report_round", return_value=1), mock.patch.object(
+                MODULE, "notify_failure", return_value=0
+            ) as notify:
+                rc = MODULE.finalize("2099-01-01", root, path, state)
+
+            self.assertEqual(rc, 1)
+            self.assertEqual(state["status"], "failed_exhausted")
+            self.assertEqual(state["terminal_reason"], "feishu_report_failed")
+            notify.assert_called_once()
 
 
 if __name__ == "__main__":

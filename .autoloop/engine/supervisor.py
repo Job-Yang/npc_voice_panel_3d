@@ -137,6 +137,14 @@ def command_override(name, default):
     return shlex.split(value) if value else default
 
 
+def static_gate_env():
+    env = os.environ.copy()
+    env["PYTHONPYCACHEPREFIX"] = str(
+        Path.home() / ".cache/autoloop-supervisor/pycache"
+    )
+    return env
+
+
 def engine_fingerprint():
     digest = hashlib.sha256()
     for path in sorted(ENGINE_DIR.glob("*")):
@@ -193,6 +201,7 @@ def version_gate(output_dir):
             result = subprocess.run(
                 command,
                 cwd=REPO_DIR,
+                env=static_gate_env(),
                 stdout=output,
                 stderr=subprocess.STDOUT,
                 check=False,
@@ -296,6 +305,7 @@ def prewarm(date, root, state):
 def classify_attempt(run_dir, returncode):
     run_dir = Path(run_dir)
     metrics = read_json(run_dir / "metrics.json", {})
+    sync_failure = read_json(run_dir / "sync_failure.json", {})
     trace = (
         read_text(run_dir / "trae.jsonl")
         + "\n"
@@ -303,6 +313,9 @@ def classify_attempt(run_dir, returncode):
         + "\n"
         + read_text(run_dir / "ERROR")
     ).lower()
+    if sync_failure or (run_dir / "SKIPPED").exists():
+        reason = sync_failure.get("reason") or read_text(run_dir / "SKIPPED") or "unknown"
+        return "retryable", f"git_sync_{reason}"
     if returncode == 0:
         return "success", "all_gates_passed"
     if metrics.get("preflight_rc", 0):
@@ -377,6 +390,32 @@ def report_round(date, run_dir, mode):
     )[0]
 
 
+def notify_failure(date, state_path, run_dir):
+    command = command_override(
+        "AUTOLOOP_NOTIFY_COMMAND",
+        [
+            sys.executable,
+            str(ENGINE_DIR / "notify_feishu_failure.py"),
+            date,
+            str(state_path),
+            str(run_dir),
+        ],
+    )
+    return run_logged(
+        command,
+        Path(run_dir) / "supervisor_notification.log",
+        timeout=90,
+        stdin=subprocess.DEVNULL,
+    )[0]
+
+
+def notify_terminal_failure(date, path, state, run_dir):
+    notify_rc = notify_failure(date, path, run_dir)
+    state["notification_rc"] = notify_rc
+    save_state(path, state)
+    return notify_rc
+
+
 def archive_round(date, root, state):
     paths = [root]
     paths.extend(REPO_DIR / item["run_dir"] for item in state["attempts"])
@@ -436,7 +475,11 @@ def finalize(date, root, path, state):
             if state["finalize_attempts"] >= MAX_ATTEMPTS
             else "finalization_pending"
         )
+        if state["status"] == "failed_exhausted":
+            state["terminal_reason"] = "feishu_report_failed"
         save_state(path, state)
+        if state["status"] == "failed_exhausted":
+            notify_terminal_failure(date, path, state, run_dir)
         return report_rc
 
     state["status"] = (
@@ -446,6 +489,18 @@ def finalize(date, root, path, state):
     )
     state["completed_at"] = now()
     save_state(path, state)
+
+    if mode == "failure":
+        notify_rc = notify_terminal_failure(date, path, state, run_dir)
+        if notify_rc:
+            state["status"] = (
+                "failed_exhausted"
+                if state["finalize_attempts"] >= MAX_ATTEMPTS
+                else "finalization_pending"
+            )
+            save_state(path, state)
+            return notify_rc
+
     archive_rc = archive_round(date, root, state)
     if archive_rc:
         state["status"] = (
@@ -453,8 +508,12 @@ def finalize(date, root, path, state):
             if state["finalize_attempts"] >= MAX_ATTEMPTS
             else "finalization_pending"
         )
+        if state["status"] == "failed_exhausted":
+            state["terminal_reason"] = "git_archive_failed"
         state["archive_rc"] = archive_rc
         save_state(path, state)
+        if state["status"] == "failed_exhausted":
+            notify_terminal_failure(date, path, state, run_dir)
     return archive_rc
 
 

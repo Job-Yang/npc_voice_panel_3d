@@ -44,6 +44,22 @@ ALLOW_ATTEMPT_DIRTY="${AUTOLOOP_ALLOW_ATTEMPT_DIRTY:-0}"
 mkdir -p "${RUN_DIR}"
 log() { echo "[autoloop][$(date '+%H:%M:%S')] $*"; }
 
+record_sync_failure() {
+  local reason="$1"
+  local repo_key private_dir status_path entry_count
+  repo_key="$(printf '%s' "${REPO_DIR}" | sha256sum | awk '{print substr($1,1,16)}')"
+  private_dir="${AUTOLOOP_PRIVATE_STATE_DIR:-${HOME}/.local/state/autoloop}/${repo_key}/${STAMP}"
+  mkdir -p "${private_dir}"
+  status_path="${private_dir}/sync-status.txt"
+  git status --porcelain=v1 --untracked-files=all > "${status_path}" 2>&1 || true
+  git diff --stat > "${private_dir}/sync-diff-stat.txt" 2>&1 || true
+  git diff --cached --stat > "${private_dir}/sync-cached-diff-stat.txt" 2>&1 || true
+  entry_count="$(grep -cve '^[[:space:]]*$' "${status_path}" 2>/dev/null || true)"
+  printf '{"stage":"git_sync","reason":"%s","dirty_entry_count":%s,"recorded_at":"%s"}\n' \
+    "${reason}" "${entry_count:-0}" "$(date -Iseconds)" > "${RUN_DIR}/sync_failure.json"
+  printf '%s\n' "${reason}" > "${RUN_DIR}/SKIPPED"
+}
+
 worktree_matches_origin() {
   git diff --quiet "origin/${BRANCH}" -- . \
     ':(exclude).autoloop/runs/**' \
@@ -79,12 +95,16 @@ if [ -n "$(git status --porcelain)" ]; then
     PRESERVE_DIRTY=1
     log "Supervisor 恢复上一 attempt，保留其工作区改动交给 Agent 继续处理。"
   else
-    log "!! 工作区有未同步到远端的本地改动，为安全起见跳过本轮。"; echo dirty > "${RUN_DIR}/SKIPPED"; exit 0
+    log "!! 工作区有未同步到远端的本地改动，为安全起见跳过本轮。"
+    record_sync_failure "dirty_worktree"
+    exit 79
   fi
 fi
 if [ "${PRESERVE_DIRTY}" -eq 0 ] &&
   ! git merge --ff-only "origin/${BRANCH}" 2>&1 | tee -a "${RUN_DIR}/git.log"; then
-  log "!! 无法快进（分叉），本轮跳过，绝不强制覆盖。"; echo skipped > "${RUN_DIR}/SKIPPED"; exit 0
+  log "!! 无法快进（分叉），本轮跳过，绝不强制覆盖。"
+  record_sync_failure "ff_only_merge_failed"
+  exit 79
 fi
 HEAD_BEFORE="$(git rev-parse HEAD)"
 
