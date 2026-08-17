@@ -337,6 +337,15 @@ def classify_attempt(run_dir, returncode):
 def run_attempt(date, root, state):
     attempt_number = len(state["attempts"]) + 1
     run_dir = RUNS_DIR / f"{date}_attempt_{attempt_number:02d}"
+    previous_reason = (
+        state["attempts"][-1].get("reason", "")
+        if state["attempts"]
+        else ""
+    )
+    allow_attempt_dirty = (
+        attempt_number > 1
+        and not previous_reason.startswith("git_sync_")
+    )
     env = os.environ.copy()
     env.update(
         {
@@ -345,7 +354,7 @@ def run_attempt(date, root, state):
             "AUTOLOOP_RUN_DIR": str(run_dir),
             "AUTOLOOP_RESUME": "1",
             "AUTOLOOP_DEFER_FINALIZATION": "1",
-            "AUTOLOOP_ALLOW_ATTEMPT_DIRTY": "1" if attempt_number > 1 else "0",
+            "AUTOLOOP_ALLOW_ATTEMPT_DIRTY": "1" if allow_attempt_dirty else "0",
         }
     )
     command = command_override(
@@ -409,9 +418,14 @@ def notify_failure(date, state_path, run_dir):
     )[0]
 
 
-def notify_terminal_failure(date, path, state, run_dir):
+def notify_terminal_failure(date, path, state, run_dir, resume_status):
     notify_rc = notify_failure(date, path, run_dir)
     state["notification_rc"] = notify_rc
+    if notify_rc:
+        state["notification_resume_status"] = resume_status
+        state["status"] = "notification_pending"
+    else:
+        state.pop("notification_resume_status", None)
     save_state(path, state)
     return notify_rc
 
@@ -479,7 +493,13 @@ def finalize(date, root, path, state):
             state["terminal_reason"] = "feishu_report_failed"
         save_state(path, state)
         if state["status"] == "failed_exhausted":
-            notify_terminal_failure(date, path, state, run_dir)
+            notify_terminal_failure(
+                date,
+                path,
+                state,
+                run_dir,
+                "failed_exhausted",
+            )
         return report_rc
 
     state["status"] = (
@@ -491,14 +511,14 @@ def finalize(date, root, path, state):
     save_state(path, state)
 
     if mode == "failure":
-        notify_rc = notify_terminal_failure(date, path, state, run_dir)
+        notify_rc = notify_terminal_failure(
+            date,
+            path,
+            state,
+            run_dir,
+            "finalization_pending",
+        )
         if notify_rc:
-            state["status"] = (
-                "failed_exhausted"
-                if state["finalize_attempts"] >= MAX_ATTEMPTS
-                else "finalization_pending"
-            )
-            save_state(path, state)
             return notify_rc
 
     archive_rc = archive_round(date, root, state)
@@ -513,7 +533,13 @@ def finalize(date, root, path, state):
         state["archive_rc"] = archive_rc
         save_state(path, state)
         if state["status"] == "failed_exhausted":
-            notify_terminal_failure(date, path, state, run_dir)
+            notify_terminal_failure(
+                date,
+                path,
+                state,
+                run_dir,
+                "failed_exhausted",
+            )
     return archive_rc
 
 
@@ -521,6 +547,22 @@ def run_supervisor(date, root, path, state):
     if state["status"] in FINAL_STATUSES:
         print(json.dumps(state, ensure_ascii=False))
         return 0 if state["status"] == "succeeded" else 1
+    if state["status"] == "notification_pending":
+        run_dir = REPO_DIR / state["final_run_dir"]
+        notify_rc = notify_failure(date, path, run_dir)
+        state["notification_rc"] = notify_rc
+        if notify_rc:
+            save_state(path, state)
+            return notify_rc
+        resume_status = state.pop(
+            "notification_resume_status",
+            "failed_exhausted",
+        )
+        state["status"] = resume_status
+        save_state(path, state)
+        if resume_status == "finalization_pending":
+            return finalize(date, root, path, state)
+        return 1
     if state["status"] == "finalization_pending":
         return finalize(date, root, path, state)
 
@@ -580,11 +622,31 @@ def run_supervisor(date, root, path, state):
     return 75
 
 
+def resume_previous_notifications(current_date):
+    for path in sorted(RUNS_DIR.glob("*_supervisor/state.json")):
+        root = path.parent
+        date = root.name.removesuffix("_supervisor")
+        if date >= current_date:
+            continue
+        state = read_json(path, {})
+        if state.get("status") != "notification_pending":
+            continue
+        try:
+            with supervisor_lock(date):
+                state = read_json(path, state)
+                if state.get("status") == "notification_pending":
+                    run_supervisor(date, root, path, state)
+        except SystemExit:
+            continue
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["prewarm", "run", "status"])
     args = parser.parse_args()
     date = round_date()
+    if args.command != "status":
+        resume_previous_notifications(date)
     root, path, state = load_state(date)
     root.mkdir(parents=True, exist_ok=True)
     with supervisor_lock(date):

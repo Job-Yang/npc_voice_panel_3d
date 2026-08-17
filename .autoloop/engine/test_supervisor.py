@@ -122,6 +122,33 @@ class StateMachineTests(unittest.TestCase):
                 self.assertEqual(len(state["attempts"]), 2)
                 finalize.assert_called_once()
 
+    def test_git_sync_retry_does_not_allow_dirty_resume(self):
+        state = base_state()
+        state["attempts"] = [
+            {
+                "number": 1,
+                "run_dir": ".autoloop/runs/attempt_01",
+                "classification": "retryable",
+                "reason": "git_sync_dirty_worktree",
+            }
+        ]
+        captured = {}
+
+        def fake_run_logged(command, log_path, **kwargs):
+            captured.update(kwargs["env"])
+            return 79, 0.1
+
+        with mock.patch.object(
+            MODULE, "run_logged", side_effect=fake_run_logged
+        ), mock.patch.object(
+            MODULE,
+            "classify_attempt",
+            return_value=("retryable", "git_sync_dirty_worktree"),
+        ):
+            MODULE.run_attempt("2099-01-01", Path("."), state)
+
+        self.assertEqual(captured["AUTOLOOP_ALLOW_ATTEMPT_DIRTY"], "0")
+
     def test_nonretryable_failure_finalizes_immediately(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "2099-01-01_supervisor"
@@ -185,7 +212,7 @@ class StateMachineTests(unittest.TestCase):
                 rc = MODULE.finalize("2099-01-01", root, path, state)
 
             self.assertEqual(rc, 1)
-            self.assertEqual(state["status"], "finalization_pending")
+            self.assertEqual(state["status"], "notification_pending")
             self.assertEqual(state["notification_rc"], 1)
             archive.assert_not_called()
 
@@ -215,6 +242,33 @@ class StateMachineTests(unittest.TestCase):
             self.assertEqual(state["status"], "failed_exhausted")
             self.assertEqual(state["terminal_reason"], "feishu_report_failed")
             notify.assert_called_once()
+
+    def test_pending_notification_resumes_after_verified_delivery(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "2099-01-01_supervisor"
+            path = root / "state.json"
+            run_dir = Path(directory) / "attempt_01"
+            run_dir.mkdir(parents=True)
+            state = base_state()
+            state.update(
+                {
+                    "status": "notification_pending",
+                    "notification_resume_status": "failed_exhausted",
+                    "final_run_dir": str(run_dir),
+                }
+            )
+
+            with mock.patch.object(MODULE, "notify_failure", return_value=0):
+                rc = MODULE.run_supervisor(
+                    "2099-01-01",
+                    root,
+                    path,
+                    state,
+                )
+
+            self.assertEqual(rc, 1)
+            self.assertEqual(state["status"], "failed_exhausted")
+            self.assertEqual(state["notification_rc"], 0)
 
 
 if __name__ == "__main__":
