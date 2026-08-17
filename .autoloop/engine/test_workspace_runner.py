@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import importlib.util
+import json
 import os
 import subprocess
 import tempfile
@@ -147,6 +148,90 @@ class WorkspaceRunnerTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
             self.assertIn("workspace_prepare_failed", state)
             self.assertIn(str(notifier), captured["command"])
+
+    def test_previous_day_pending_state_is_resumed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            old_workspace = root / "2099-01-01"
+            state_path = (
+                old_workspace
+                / ".autoloop/runs/2099-01-01_supervisor/state.json"
+            )
+            state_path.parent.mkdir(parents=True)
+            state_path.write_text(
+                json.dumps({"status": "notification_pending"}),
+                encoding="utf-8",
+            )
+
+            with mock.patch.object(
+                MODULE,
+                "workspace_root",
+                return_value=root,
+            ), mock.patch.object(MODULE, "supervisor_process", return_value=0) as run:
+                MODULE.resume_incomplete_workspaces(
+                    root / "control",
+                    "2099-01-02",
+                )
+
+            run.assert_called_once_with(
+                root / "control",
+                old_workspace,
+                "2099-01-01",
+                "run",
+            )
+
+    def test_external_launcher_loads_latest_runner_from_remote(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            remote = root / "remote.git"
+            seed = root / "seed"
+            control = root / "control"
+            home = root / "home"
+            external_launcher = root / "workspace_launcher.sh"
+
+            git(root, "init", "--bare", str(remote))
+            git(root, "init", "-b", "main", str(seed))
+            git(seed, "config", "user.name", "AutoLoop Test")
+            git(seed, "config", "user.email", "autoloop@example.com")
+            engine = seed / ".autoloop/engine"
+            engine.mkdir(parents=True)
+            external_launcher.write_bytes(
+                MODULE_PATH.with_name("workspace_launcher.sh").read_bytes()
+            )
+            (engine / "workspace_launcher.sh").write_bytes(
+                external_launcher.read_bytes()
+            )
+            (engine / "workspace_runner.py").write_text(
+                'print("runner-v1")\n',
+                encoding="utf-8",
+            )
+            git(seed, "add", ".")
+            git(seed, "commit", "-m", "runner v1")
+            git(seed, "remote", "add", "origin", str(remote))
+            git(seed, "push", "-u", "origin", "main")
+            git(root, "clone", "-b", "main", str(remote), str(control))
+
+            (engine / "workspace_runner.py").write_text(
+                'print("runner-v2")\n',
+                encoding="utf-8",
+            )
+            git(seed, "add", ".")
+            git(seed, "commit", "-m", "runner v2")
+            git(seed, "push", "origin", "main")
+            (control / "private.txt").write_text("dirty\n", encoding="utf-8")
+            external_launcher.chmod(0o755)
+
+            result = subprocess.run(
+                [str(external_launcher), str(control), "prepare"],
+                env={**os.environ, "HOME": str(home)},
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("runner-v2", result.stdout)
+            self.assertTrue((control / "private.txt").exists())
 
 
 if __name__ == "__main__":

@@ -467,7 +467,7 @@ def archive_round(date, root, state):
     if merge.returncode:
         return merge.returncode
     return subprocess.run(
-        ["git", "push", "origin", "main"], cwd=REPO_DIR, check=False
+        ["git", "push", "origin", "HEAD:main"], cwd=REPO_DIR, check=False
     ).returncode
 
 

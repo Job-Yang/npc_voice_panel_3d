@@ -123,7 +123,12 @@ def notify_workspace_failure(control_repo, date, error):
         json.dumps(state, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    notifier = control_repo / ".autoloop/engine/notify_feishu_failure.py"
+    notifier = Path(
+        os.environ.get(
+            "AUTOLOOP_NOTIFIER",
+            str(control_repo / ".autoloop/engine/notify_feishu_failure.py"),
+        )
+    )
     if not notifier.is_file():
         return 1
     return subprocess.run(
@@ -133,8 +138,42 @@ def notify_workspace_failure(control_repo, date, error):
     ).returncode
 
 
-def execute_supervisor(control_repo, date, command):
-    workspace = prepare_workspace(control_repo, date)
+def retry_private_notifications(control_repo):
+    failures = private_runtime_root(control_repo) / "workspace-failures"
+    if not failures.is_dir():
+        return
+    for state_path in sorted(failures.glob("*/state.json")):
+        run_dir = state_path.parent
+        ledger = run_dir / "feishu_notification.json"
+        try:
+            delivered = json.loads(
+                ledger.read_text(encoding="utf-8")
+            ).get("delivery_verified") is True
+        except (FileNotFoundError, json.JSONDecodeError):
+            delivered = False
+        if delivered:
+            continue
+        notifier = Path(
+            os.environ.get(
+                "AUTOLOOP_NOTIFIER",
+                str(control_repo / ".autoloop/engine/notify_feishu_failure.py"),
+            )
+        )
+        if notifier.is_file():
+            subprocess.run(
+                [
+                    sys.executable,
+                    str(notifier),
+                    run_dir.name,
+                    str(state_path),
+                    str(run_dir),
+                ],
+                cwd=control_repo,
+                check=False,
+            )
+
+
+def supervisor_process(control_repo, workspace, date, command):
     supervisor = workspace / ".autoloop/engine/supervisor.py"
     if not supervisor.is_file():
         raise RuntimeError(f"supervisor missing in daily workspace: {supervisor}")
@@ -152,6 +191,43 @@ def execute_supervisor(control_repo, date, command):
         env=env,
         check=False,
     ).returncode
+
+
+def resume_incomplete_workspaces(control_repo, current_date):
+    root = workspace_root(control_repo)
+    if not root.is_dir():
+        return
+    for workspace in sorted(path for path in root.iterdir() if path.is_dir()):
+        date = workspace.name
+        if date >= current_date:
+            continue
+        state_path = (
+            workspace
+            / ".autoloop/runs"
+            / f"{date}_supervisor"
+            / "state.json"
+        )
+        try:
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError):
+            continue
+        if state.get("status") not in {
+            "notification_pending",
+            "finalization_pending",
+        }:
+            continue
+        try:
+            supervisor_process(control_repo, workspace, date, "run")
+        except RuntimeError:
+            continue
+
+
+def execute_supervisor(control_repo, date, command):
+    if command != "status":
+        retry_private_notifications(control_repo)
+        resume_incomplete_workspaces(control_repo, date)
+    workspace = prepare_workspace(control_repo, date)
+    return supervisor_process(control_repo, workspace, date, command)
 
 
 def main():
