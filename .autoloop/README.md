@@ -26,22 +26,26 @@
 ```
 
 ## 机制（一句话）
-`远端 cron → supervisor.py → preflight/version gate → iterate.sh attempt → 分类恢复 → 终态飞书/归档`
+`远端 cron → workspace_runner.py → 当日隔离 worktree → supervisor.py → attempt → 分类恢复 → 终态飞书/归档`
 
-- 02:45 预热认证、GitHub、飞书、沙箱、浏览器依赖和磁盘；引擎或 CLI 版本变化时额外执行一次真实模型 smoke。
+- 控制仓只保存人工/历史现场；即使有未提交文件或本地分支分叉，也不会进入当天 Agent 上下文，更不会阻塞执行。
+- 02:45 从最新 `origin/main` 创建当天专属 worktree，再预热认证、GitHub、飞书、沙箱、浏览器依赖和磁盘；
+  引擎或 CLI 版本变化时额外执行一次真实模型 smoke。
 - 03:00 执行正式 attempt；基础设施故障在 03:15、03:45 继续同一个逻辑轮次，最多 3 次。
-- 同一天的所有 attempt 共享 `AutoLoopRun:<date>`，只计一个实验轮次。已有完整 input/journal 时跳过 Agent，
+- 同一天的所有 attempt 复用同一个隔离 worktree，支持未完成改动断点续跑；共享 `AutoLoopRun:<date>`，
+  只计一个实验轮次。已有完整 input/journal 时跳过 Agent，
   只恢复验证、报告和归档，避免重复创作或发布。
 - 认证、网络、CLI、视觉环境故障可以重试；输入卡或创意质量契约失败不机械重试。
 - 飞书和 Git 过程留档只在成功、不可重试失败或重试耗尽后执行一次，不产生中间失败噪音。
 - 异常终态会由当前 Lark 应用的 Bot 私聊当前已授权用户；消息发送后按 `message_id` 回读，
   未验证送达则保持 `finalization_pending`，由下一次 cron 继续补偿。
-- Git 同步卡口会把原因和数量写入公开 run；完整 `git status` 文件清单只写远端
-  `~/.local/state/autoloop/`，随私聊通知发送，不进入公开 GitHub 仓库。
+- 控制仓 Git 异常只记录为隔离事件，不再成为当天失败原因；只有无法获取 `origin/main` 且没有可恢复的
+  当日 worktree 时才触发失败通知。
 - 预热的 Python 编译与单测缓存固定写入 `~/.cache/autoloop-supervisor/pycache`，
   不在源码目录生成 `__pycache__`，避免监督器先写脏仓库再拦截自身。
 
-- 定时层：远端服务机现成 **cron**（不用 iLoop 的 macOS launchd）。
+- 定时层：远端服务机现成 **cron**（不用 iLoop 的 macOS launchd）；cron 日志写到
+  `~/.local/state/autoloop/`，不污染 Git 工作区。
 - 跑 Agent 层：复用 iLoop oncall 同款 `trae-cli exec` 无人值守姿势（`--sandbox workspace-write` +
   `approval_policy=never` + `--ephemeral`）。远端 oncall 已在用，凭证/权限现成。
 - 单仓：作品改动 + 实验数据共享一条 commit 历史，一起 push。Pages 只发作品本体，`.autoloop/` 不影响上线。
@@ -65,7 +69,8 @@
 ## 可调环境变量
 `AUTOLOOP_MODEL`(默认 gpt-5.5) · `AUTOLOOP_BRANCH`(默认 main) · `AUTOLOOP_TRAE_CLI`(不在 PATH 时给绝对路径) ·
 `AUTOLOOP_TIMEOUT`(默认 3600s) · `AUTOLOOP_ONLINE_URL` · `AUTOLOOP_MAX_ATTEMPTS`(默认 3) ·
-`AUTOLOOP_ATTEMPT_TIMEOUT`(默认 4500s) · `AUTOLOOP_PRIVATE_STATE_DIR`(默认 `~/.local/state/autoloop`)
+`AUTOLOOP_ATTEMPT_TIMEOUT`(默认 4500s) · `AUTOLOOP_PRIVATE_STATE_DIR`(默认 `~/.local/state/autoloop`) ·
+`AUTOLOOP_WORKSPACE_ROOT`(默认 `~/.local/share/autoloop/workspaces/<repo-key>`)
 
 ## Supervisor 状态与口径
 - 每日状态：`.autoloop/runs/<date>_supervisor/state.json`。
@@ -81,6 +86,7 @@
 - 看 AI 每天在想什么 → journal/；概览 → CHANGELOG.md；求助 → ASK_HUMAN.md；某轮细节/指标 → runs/。
 
 ## 安全底座
-- 只快进合并，冲突跳过本轮，**绝不** reset --hard / push -f。
+- 每日执行只基于 `origin/main` 的隔离 worktree；控制仓脏文件和分叉提交原样保留、永不自动提交。
+- 发布仍只允许普通 push，竞争更新按失败分类重试，**绝不** reset --hard / push -f。
 - 宪法禁止 Agent 改引擎自身与 profile、禁止毁 git 历史、禁止破坏现有 assets、一次只做一件事。
 - 翻车了 `git revert` 或回退某 commit 即可，一切可回溯。

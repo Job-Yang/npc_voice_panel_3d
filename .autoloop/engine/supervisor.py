@@ -193,6 +193,7 @@ def version_gate(output_dir):
         ["node", "--check", str(ENGINE_DIR / "verify_web.js")],
         [sys.executable, str(ENGINE_DIR / "test_supervisor.py")],
         [sys.executable, str(ENGINE_DIR / "test_render_feishu_failure.py")],
+        [sys.executable, str(ENGINE_DIR / "test_workspace_runner.py")],
     ]
     static_rc = 0
     static_log = output_dir / "version_static.log"
