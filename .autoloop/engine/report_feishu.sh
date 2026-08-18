@@ -100,7 +100,7 @@ fs.writeFileSync(path, `${JSON.stringify({
   commit_url: `${base}/commit/${commit}`,
   input_url: `${base}/blob/main/.autoloop/inputs/${date}.md`,
   journal_url: `${base}/blob/main/.autoloop/journal/${date}.md`,
-  run_url: `${base}/tree/main/.autoloop/runs/${stamp}`,
+  run_url: `${base}/tree/main/.autoloop/runs/public-evidence/${date}`,
 }, null, 2)}\n`);
 NODE
   node "${ENGINE_DIR}/render_feishu_round.js" \
