@@ -446,6 +446,15 @@ const OBJECT_CONFIG = {
       { label: '看 iLoop', type: 'iloop' },
     ],
   },
+  bellows: {
+    name: '风箱 · 给问题送氧',
+    meta: '点击物件',
+    line: '风箱不是摆设，它负责把空气送进炉心。老杨做 AI 协作也一样：目标、日志和截图越具体，火候越稳，问题越容易被烧到能锻的状态。',
+    actions: [
+      { label: '锻造一句', type: 'forge' },
+      { label: '找我协作', type: 'contact' },
+    ],
+  },
   forge: {
     name: '火炉 · 欢迎语锻造机',
     meta: '点击物件',
@@ -474,6 +483,8 @@ let furnaceFireBasePositions = null;
 let forgePulseUntil = 0;
 let processForgeRig = null;
 let intakeTrayRig = null;
+let bellowsRig = null;
+let bellowsBoostUntil = 0;
 let dialogActions = [];
 let selectedObjectKey = null;
 let yqClickCount = 0;
@@ -692,6 +703,12 @@ processForgeRig = processForge.userData.processForgeSparks;
 registerInteractive(processForge, 'processforge');
 scene.add(processForge);
 createHotspot('processforge', [-0.95, FLOOR_Y + 0.72, 2.18], [1.7, 0.9, 0.85]);
+const bellows = makeProp('bellows', [-1.18, 0, 1.58]);
+bellows.position.y += FLOOR_Y;
+bellowsRig = bellows.userData.bellowsRig;
+registerInteractive(bellows, 'bellows');
+scene.add(bellows);
+createHotspot('bellows', [-1.18, FLOOR_Y + 0.5, 1.58], [0.9, 0.72, 0.76]);
 const intakeTray = makeProp('intake', [1.05, 0, 3.42]);
 intakeTray.position.y += FLOOR_Y;
 intakeTrayRig = intakeTray.userData.intakeCards;
@@ -1060,6 +1077,81 @@ function makeProp(type, npcPos) {
     g.add(notice, nail);
     g.position.set(npcPos[0], 0, npcPos[2]);
     g.rotation.y = -0.2;
+  } else if (type === 'bellows') {
+    // 风箱：给炉火送氧，补上铁匠铺“控火”的可见动作
+    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x2f1a0e, roughness: 0.92 });
+    const leatherMat = new THREE.MeshStandardMaterial({ color: 0x5a321d, roughness: 0.86 });
+    const warmWoodMat = new THREE.MeshStandardMaterial({ color: 0x7a4928, roughness: 0.82 });
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xb57a35, metalness: 0.45, roughness: 0.38 });
+    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffa84a, emissive: 0xff6a18, emissiveIntensity: 0.58, roughness: 0.45 });
+    const hotMat = new THREE.MeshStandardMaterial({ color: 0xffcf6a, emissive: 0xff7a18, emissiveIntensity: 0.7, roughness: 0.42 });
+    const coolMat = new THREE.MeshStandardMaterial({ color: 0x5aa3ff, emissive: 0x1f5d9b, emissiveIntensity: 0.2, roughness: 0.58 });
+
+    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.08, 0.46), darkWoodMat);
+    stand.position.y = 0.22;
+    g.add(stand);
+    [-0.38, 0.38].forEach(x => {
+      [-0.16, 0.16].forEach(z => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.44, 0.07), darkWoodMat);
+        leg.position.set(x, 0.22, z);
+        g.add(leg);
+      });
+    });
+
+    const body = new THREE.Group();
+    body.name = 'bellowsBody';
+    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.08, 0.42), warmWoodMat);
+    lower.position.y = 0.42;
+    const leather = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.2, 0.36), leatherMat);
+    leather.name = 'bellowsLeather';
+    leather.position.y = 0.54;
+    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.07, 0.42), warmWoodMat);
+    upper.name = 'bellowsUpper';
+    upper.position.y = 0.68;
+    const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.48, 14), brassMat);
+    hinge.rotation.x = Math.PI / 2;
+    hinge.position.set(-0.44, 0.56, 0);
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.055, 0.08), warmWoodMat);
+    handle.name = 'bellowsHandle';
+    handle.position.set(-0.58, 0.72, 0);
+    const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.085, 0.42, 18), brassMat);
+    nozzle.rotation.z = Math.PI / 2;
+    nozzle.position.set(0.58, 0.55, 0);
+    body.add(lower, leather, upper, hinge, handle, nozzle);
+    g.add(body);
+
+    const airflow = new THREE.Group();
+    airflow.name = 'bellowsAirflow';
+    for (let i = 0; i < 8; i++) {
+      const mote = new THREE.Mesh(new THREE.SphereGeometry(0.026 + (i % 2) * 0.006, 8, 6), i % 3 === 0 ? hotMat : emberMat);
+      mote.userData.base = {
+        x: 0.76 + i * 0.11,
+        y: 0.55 + (i % 3) * 0.028,
+        z: (i % 2 ? 0.04 : -0.04),
+        phase: i * 0.63,
+      };
+      mote.position.set(mote.userData.base.x, mote.userData.base.y, mote.userData.base.z);
+      airflow.add(mote);
+    }
+    g.add(airflow);
+
+    const gauge = new THREE.Group();
+    gauge.name = 'bellowsGauge';
+    const gaugePost = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.46, 0.045), darkWoodMat);
+    gaugePost.position.set(0.16, 0.53, 0.36);
+    gauge.add(gaugePost);
+    [-0.12, 0.02, 0.16].forEach((y, i) => {
+      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.22 - i * 0.035, 0.035, 0.035), i === 2 ? hotMat : coolMat);
+      tick.name = `bellowsGaugeTick${i}`;
+      tick.position.set(0.16, 0.55 + y, 0.39);
+      gauge.add(tick);
+    });
+    g.add(gauge);
+
+    g.userData.bellowsRig = { upper, handle, leather, airflow, gauge };
+    g.position.set(npcPos[0], 0, npcPos[2]);
+    g.rotation.y = 0.15;
+    g.scale.setScalar(0.72);
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }});
   return g;
@@ -1530,6 +1622,11 @@ function selectObject(key) {
     applySceneMode('forge');
     forgePulseUntil = performance.now() + 1600;
   }
+  if (key === 'bellows') {
+    applySceneMode('forge');
+    forgePulseUntil = performance.now() + 1800;
+    bellowsBoostUntil = performance.now() + 1800;
+  }
 
   renderDialog({
     name: cfg.name,
@@ -1748,6 +1845,47 @@ function animate() {
       card.rotation.y = base.rot + Math.sin(t * 1.4 + base.phase) * 0.025;
       card.rotation.x = -0.22 + Math.cos(t * 1.6 + base.phase) * 0.018;
     });
+  }
+
+  // 风箱送风：开合、气流和火候刻度同步，点击后短暂加强炉火“送氧”感
+  if (bellowsRig) {
+    const boostLeft = Math.max(0, bellowsBoostUntil - performance.now());
+    const boost = boostLeft ? Math.sin((1 - boostLeft / 1800) * Math.PI) : 0;
+    const breath = (Math.sin(t * 2.2) + 1) * 0.5;
+    if (bellowsRig.upper) {
+      bellowsRig.upper.position.y = 0.66 + breath * 0.07 + boost * 0.035;
+      bellowsRig.upper.rotation.z = -0.03 + breath * 0.08;
+    }
+    if (bellowsRig.handle) {
+      bellowsRig.handle.position.y = 0.7 + breath * 0.08 + boost * 0.04;
+      bellowsRig.handle.rotation.z = -0.05 + breath * 0.12;
+    }
+    if (bellowsRig.leather) {
+      bellowsRig.leather.scale.y = 0.86 + breath * 0.28 + boost * 0.08;
+    }
+    if (bellowsRig.airflow) {
+      bellowsRig.airflow.children.forEach((mote, i) => {
+        const base = mote.userData.base;
+        if (!base) return;
+        const travel = (t * (0.55 + boost * 0.45) + i * 0.13) % 1;
+        mote.position.set(
+          base.x + travel * 0.76,
+          base.y + Math.sin(t * 4.2 + base.phase) * 0.035 + boost * 0.02,
+          base.z + Math.cos(t * 3.4 + base.phase) * 0.04
+        );
+        const scale = 0.65 + breath * 0.35 + boost * 0.55;
+        mote.scale.setScalar(scale);
+        if (mote.material && 'emissiveIntensity' in mote.material) {
+          mote.material.emissiveIntensity = 0.45 + breath * 0.35 + boost * 0.55 + (i % 2) * 0.06;
+        }
+      });
+    }
+    if (bellowsRig.gauge) {
+      bellowsRig.gauge.children.forEach((part, i) => {
+        if (!part.material || !('emissiveIntensity' in part.material)) return;
+        part.material.emissiveIntensity = 0.18 + Math.max(0, breath - i * 0.18) * 0.55 + boost * 0.42;
+      });
+    }
   }
 
   // NPC 呼吸起伏（基于初始高度做绝对偏移，避免累计上浮）
