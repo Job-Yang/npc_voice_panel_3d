@@ -192,6 +192,7 @@ def version_gate(output_dir):
         ["node", "--check", str(ENGINE_DIR / "render_feishu_round.js")],
         ["node", "--check", str(ENGINE_DIR / "verify_web.js")],
         [sys.executable, str(ENGINE_DIR / "test_supervisor.py")],
+        [sys.executable, str(ENGINE_DIR / "test_find_feishu_report_blocks.py")],
         [sys.executable, str(ENGINE_DIR / "test_render_feishu_failure.py")],
         [sys.executable, str(ENGINE_DIR / "test_publish_evidence.py")],
         [sys.executable, str(ENGINE_DIR / "test_workspace_runner.py")],

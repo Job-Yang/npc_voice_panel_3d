@@ -53,8 +53,23 @@ if "${LARK_CLI}" docs +fetch --as user --doc "${DOC_ID}" \
     printf '{"status":"success","result":"already_reported_and_verified","marker":"%s"}\n' "${MARKER}" > "${RUN_DIR}/feishu_report.json"
     exit 0
   fi
-  printf '{"status":"failed","reason":"existing report violates schema","marker":"%s"}\n' "${MARKER}" > "${RUN_DIR}/feishu_report.json"
-  exit 1
+  if [ "${REPORT_MODE}" = "success" ] &&
+    python3 "${ENGINE_DIR}/validate_feishu_report.py" \
+      "${RUN_DIR}/feishu_marker_check.json" "${MARKER}" "${REPORT_SCHEMA}" failure \
+      > "${RUN_DIR}/feishu_previous_failure_validation.log" 2>&1; then
+    OLD_REPORT_IDS="$(python3 "${ENGINE_DIR}/find_feishu_report_blocks.py" \
+      "${RUN_DIR}/feishu_marker_check.json" "${MARKER}")"
+    if [ -z "${OLD_REPORT_IDS}" ] ||
+      ! "${LARK_CLI}" docs +update --as user --doc "${DOC_ID}" \
+        --command block_delete --block-id "${OLD_REPORT_IDS}" --format json \
+        > "${RUN_DIR}/feishu_replace_failure.json" 2>&1; then
+      printf '{"status":"failed","reason":"replace previous failure failed","marker":"%s"}\n' "${MARKER}" > "${RUN_DIR}/feishu_report.json"
+      exit 1
+    fi
+  else
+    printf '{"status":"failed","reason":"existing report violates schema","marker":"%s"}\n' "${MARKER}" > "${RUN_DIR}/feishu_report.json"
+    exit 1
+  fi
 fi
 
 git -C "${REPO_DIR}" fetch origin main >/dev/null 2>&1 || true
