@@ -437,6 +437,15 @@ const OBJECT_CONFIG = {
       { label: '启动闭环彩蛋', type: 'iloop_easter' },
     ],
   },
+  intake: {
+    name: '门口委托托盘 · 目标截图日志',
+    meta: '点击物件',
+    line: '进铺子不用先写完美需求，先把目标、截图和日志放到托盘里。老杨最喜欢这种开局：问题可以粗糙，证据要具体，剩下的再上砧慢慢敲。',
+    actions: [
+      { label: '找我协作', type: 'contact' },
+      { label: '看 iLoop', type: 'iloop' },
+    ],
+  },
   forge: {
     name: '火炉 · 欢迎语锻造机',
     meta: '点击物件',
@@ -464,6 +473,7 @@ let fireVtxFrame = 0;   // 火焰顶点动画隔帧计数器（性能）
 let furnaceFireBasePositions = null;
 let forgePulseUntil = 0;
 let processForgeRig = null;
+let intakeTrayRig = null;
 let dialogActions = [];
 let selectedObjectKey = null;
 let yqClickCount = 0;
@@ -682,6 +692,12 @@ processForgeRig = processForge.userData.processForgeSparks;
 registerInteractive(processForge, 'processforge');
 scene.add(processForge);
 createHotspot('processforge', [-0.95, FLOOR_Y + 0.72, 2.18], [1.7, 0.9, 0.85]);
+const intakeTray = makeProp('intake', [1.05, 0, 3.42]);
+intakeTray.position.y += FLOOR_Y;
+intakeTrayRig = intakeTray.userData.intakeCards;
+registerInteractive(intakeTray, 'intake');
+scene.add(intakeTray);
+createHotspot('intake', [1.05, FLOOR_Y + 0.62, 3.42], [1.32, 0.88, 0.92]);
 
 function tickLoad() {
   loadCount++;
@@ -975,6 +991,75 @@ function makeProp(type, npcPos) {
 
     g.position.set(npcPos[0], 0, npcPos[2]);
     g.rotation.y = 0.18;
+  } else if (type === 'intake') {
+    // 委托托盘：把“目标、截图、日志”做成访客进门就能放下的三件材料
+    const trayMat = new THREE.MeshStandardMaterial({ color: 0x4b2d18, roughness: 0.9 });
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0x2a1810, roughness: 0.92 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x24272c, metalness: 0.45, roughness: 0.5 });
+    const targetMat = new THREE.MeshStandardMaterial({ color: 0xd8aa5c, emissive: 0x5a2f06, emissiveIntensity: 0.12, roughness: 0.72 });
+    const screenMat = new THREE.MeshStandardMaterial({ color: 0x2f6fb2, emissive: 0x124b8e, emissiveIntensity: 0.36, roughness: 0.48 });
+    const logMat = new THREE.MeshStandardMaterial({ color: 0x6f7d85, emissive: 0x24333a, emissiveIntensity: 0.18, roughness: 0.6 });
+    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffa34a, emissive: 0xff6a18, emissiveIntensity: 0.4, roughness: 0.5 });
+
+    const tray = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.08, 0.62), trayMat);
+    tray.position.y = 0.28;
+    g.add(tray);
+    [
+      [0, 0.35, -0.34, 1.18, 0.08, 0.08],
+      [0, 0.35, 0.34, 1.18, 0.08, 0.08],
+      [-0.6, 0.35, 0, 0.08, 0.08, 0.62],
+      [0.6, 0.35, 0, 0.08, 0.08, 0.62],
+    ].forEach(([x, y, z, w, h, d]) => {
+      const rim = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), rimMat);
+      rim.position.set(x, y, z);
+      g.add(rim);
+    });
+    [-0.38, 0.38].forEach(x => {
+      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.014, 8, 24), ironMat);
+      handle.position.set(x, 0.42, -0.37);
+      handle.rotation.x = Math.PI / 2;
+      g.add(handle);
+    });
+
+    const cards = new THREE.Group();
+    cards.name = 'intakeCards';
+    [
+      { x: -0.34, z: 0.02, rot: 0.08, mat: targetMat, accent: emberMat },
+      { x: 0, z: -0.02, rot: -0.05, mat: screenMat, accent: ironMat },
+      { x: 0.34, z: 0.03, rot: 0.06, mat: logMat, accent: emberMat },
+    ].forEach(({ x, z, rot, mat, accent }, i) => {
+      const card = new THREE.Group();
+      card.userData.base = { x, y: 0.44 + i * 0.018, z, rot, phase: i * 0.7 };
+      const paper = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.025, 0.36), mat);
+      paper.position.y = 0;
+      card.add(paper);
+      for (let line = 0; line < 3; line++) {
+        const strip = new THREE.Mesh(new THREE.BoxGeometry(0.16 + line * 0.035, 0.012, 0.012), accent);
+        strip.position.set(-0.02, 0.026, -0.09 + line * 0.07);
+        card.add(strip);
+      }
+      if (i === 1) {
+        const glare = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.014, 0.3), emberMat);
+        glare.position.set(0.075, 0.03, 0);
+        glare.rotation.y = -0.28;
+        card.add(glare);
+      }
+      card.position.set(x, card.userData.base.y, z);
+      card.rotation.y = rot;
+      card.rotation.x = -0.22;
+      cards.add(card);
+    });
+    g.add(cards);
+    g.userData.intakeCards = cards;
+
+    const notice = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.08, 0.055), targetMat);
+    notice.position.set(0, 0.62, -0.38);
+    notice.rotation.x = -0.2;
+    const nail = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), emberMat);
+    nail.position.set(0, 0.65, -0.42);
+    g.add(notice, nail);
+    g.position.set(npcPos[0], 0, npcPos[2]);
+    g.rotation.y = -0.2;
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }});
   return g;
@@ -1650,6 +1735,18 @@ function animate() {
       if (spark.material && 'emissiveIntensity' in spark.material) {
         spark.material.emissiveIntensity = 0.55 + (pulse + 1) * 0.22 + (i % 3) * 0.04;
       }
+    });
+  }
+
+  // 门口委托托盘：三张材料轻微起伏，暗示“带着证据进门”
+  if (intakeTrayRig) {
+    intakeTrayRig.children.forEach((card, i) => {
+      const base = card.userData.base;
+      if (!base) return;
+      const pulse = Math.sin(t * 1.8 + base.phase);
+      card.position.set(base.x, base.y + pulse * 0.014, base.z);
+      card.rotation.y = base.rot + Math.sin(t * 1.4 + base.phase) * 0.025;
+      card.rotation.x = -0.22 + Math.cos(t * 1.6 + base.phase) * 0.018;
     });
   }
 
