@@ -131,7 +131,11 @@ class WorkspaceRunnerTests(unittest.TestCase):
                 captured["command"] = command
                 return subprocess.CompletedProcess(command, 0)
 
-            with mock.patch.object(
+            with mock.patch.dict(
+                os.environ,
+                {},
+                clear=True,
+            ), mock.patch.object(
                 MODULE,
                 "private_runtime_root",
                 return_value=root / "runtime",

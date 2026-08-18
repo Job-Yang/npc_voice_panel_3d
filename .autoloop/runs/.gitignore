@@ -1,1 +1,4 @@
-/cron.log
+/*
+!/.gitignore
+!/public-evidence/
+!/public-evidence/**

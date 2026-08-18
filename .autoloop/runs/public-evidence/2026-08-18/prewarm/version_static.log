@@ -1,0 +1,36 @@
+............
+----------------------------------------------------------------------
+Ran 12 tests in 0.008s
+
+OK
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+From /tmp/tmpjmij93oy/remote
+ * branch            main       -> FETCH_HEAD
+Preparing worktree (new branch 'autoloop-run/2099-01-01')
+branch 'autoloop-run/2099-01-01' set up to track 'origin/main'.
+HEAD is now at 4ab1483 remote base
+..{"status": "workspace_failed", "date": "2026-08-18", "control_repo": "<REMOTE_HOME>/npc_voice_panel_3d", "error": "workspace denied", "notification_rc": 0}
+..From /tmp/tmpg60rei7r/remote
+ * branch            main       -> FETCH_HEAD
+Preparing worktree (new branch 'autoloop-run/2099-01-01')
+branch 'autoloop-run/2099-01-01' set up to track 'origin/main'.
+HEAD is now at daca48a base
+From /tmp/tmpg60rei7r/remote
+ * branch            main       -> FETCH_HEAD
+.F
+======================================================================
+FAIL: test_workspace_failure_uses_existing_notification_chain (__main__.WorkspaceRunnerTests.test_workspace_failure_uses_existing_notification_chain)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-18/.autoloop/engine/test_workspace_runner.py", line 151, in test_workspace_failure_uses_existing_notification_chain
+    self.assertIn(str(notifier), captured["command"])
+AssertionError: '/tmp/tmpa9iryawm/control/.autoloop/engine/notify_feishu_failure.py' not found in ['/usr/bin/python3', '<REMOTE_HOME>/.local/share/autoloop/launchers/42f7141541900ddc/notify_feishu_failure.py', '2099-01-01', '/tmp/tmpa9iryawm/runtime/workspace-failures/2099-01-01/state.json', '/tmp/tmpa9iryawm/runtime/workspace-failures/2099-01-01']
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.160s
+
+FAILED (failures=1)

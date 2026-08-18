@@ -193,6 +193,7 @@ def version_gate(output_dir):
         ["node", "--check", str(ENGINE_DIR / "verify_web.js")],
         [sys.executable, str(ENGINE_DIR / "test_supervisor.py")],
         [sys.executable, str(ENGINE_DIR / "test_render_feishu_failure.py")],
+        [sys.executable, str(ENGINE_DIR / "test_publish_evidence.py")],
         [sys.executable, str(ENGINE_DIR / "test_workspace_runner.py")],
     ]
     static_rc = 0
@@ -432,8 +433,26 @@ def notify_terminal_failure(date, path, state, run_dir, resume_status):
 
 
 def archive_round(date, root, state):
-    paths = [root]
-    paths.extend(REPO_DIR / item["run_dir"] for item in state["attempts"])
+    public_root = RUNS_DIR / "public-evidence" / date
+    command = [
+        sys.executable,
+        str(ENGINE_DIR / "publish_evidence.py"),
+        "--date",
+        date,
+        "--supervisor-root",
+        str(root),
+        "--output",
+        str(public_root),
+    ]
+    for item in state["attempts"]:
+        command.extend(
+            ["--attempt-dir", str(REPO_DIR / item["run_dir"])]
+        )
+    publish = subprocess.run(command, cwd=REPO_DIR, check=False)
+    if publish.returncode:
+        return publish.returncode
+
+    paths = [public_root]
     screenshot = AUTOLOOP_DIR / "journal/assets" / f"{date}-online.png"
     if screenshot.exists():
         paths.append(screenshot)

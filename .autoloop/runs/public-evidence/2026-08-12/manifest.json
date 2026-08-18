@@ -1,0 +1,14 @@
+{
+  "schema": "AutoLoopPublicEvidence:v1",
+  "date": "2026-08-12",
+  "policy": "allowlist_and_redact",
+  "platform_raw_payloads_published": false,
+  "excluded_file_count": 21,
+  "published_files": [
+    "2026-08-12_030001/final.txt",
+    "2026-08-12_030001/input_validation.json",
+    "2026-08-12_030001/metrics.json",
+    "2026-08-12_030001/preflight.json",
+    "state.json"
+  ]
+}

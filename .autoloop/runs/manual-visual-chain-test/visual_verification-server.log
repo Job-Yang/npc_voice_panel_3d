@@ -1,9 +1,0 @@
-127.0.0.1 - - [10/Aug/2026 19:57:18] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [10/Aug/2026 19:57:18] "GET /?autoloop_ts=1786363038407 HTTP/1.1" 200 -
-127.0.0.1 - - [10/Aug/2026 19:57:20] "GET /assets/bg_smithy.glb HTTP/1.1" 200 -
-127.0.0.1 - - [10/Aug/2026 19:57:20] "GET /assets/npc_master.glb HTTP/1.1" 200 -
-127.0.0.1 - - [10/Aug/2026 19:57:20] "GET /assets/npc_apprentice.glb HTTP/1.1" 200 -
-127.0.0.1 - - [10/Aug/2026 19:57:20] "GET /assets/npc_yq.glb HTTP/1.1" 200 -
-127.0.0.1 - - [10/Aug/2026 19:57:21] "GET /assets/voice/peasantwhat4.wav HTTP/1.1" 200 -
-127.0.0.1 - - [10/Aug/2026 19:57:21] "GET /assets/voice/peonwhat1.wav HTTP/1.1" 200 -
-127.0.0.1 - - [10/Aug/2026 19:57:35] "GET /assets/voice/peasantpissed1.wav HTTP/1.1" 200 -

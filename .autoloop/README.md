@@ -20,7 +20,7 @@
 ├── CHANGELOG.md         变更概览 + 每轮 commit hash
 ├── ASK_HUMAN.md         Agent 求助板
 ├── HUMAN_FEEDBACK.md    （阶段 B 才建）主人的低频批注，Agent 回顾时优先读 = 人类监督注入点
-├── feishu.json           飞书 all-in-one 观察文档配置（非密钥）
+├── feishu.example.json   飞书观察文档配置示例（真实配置在用户私有目录）
 └── runs/<ts>/           每轮过程留档：final / trace / metrics / 视觉验证 / 飞书写入回读（入库）
 仓库根 index.html + assets/   作品本体（GitHub Pages 只发这些）
 ```
@@ -41,6 +41,10 @@
   不因日期切换丢失恢复责任。
 - 认证、网络、CLI、视觉环境故障可以重试；输入卡或创意质量契约失败不机械重试。
 - 飞书和 Git 过程留档只在成功、不可重试失败或重试耗尽后执行一次，不产生中间失败噪音。
+- 原始 run、平台响应和完整回读只保留在远端私有 worktree；GitHub 仅发布
+  `runs/public-evidence/<date>/` 下经过白名单选择、字段裁剪、脱敏与二次扫描的证据包。
+- 飞书全文、block/document/user/message ID、媒体授权 URL、内部账号与绝对用户路径禁止进入公开证据；
+  隐私扫描未通过时归档必须失败，不能先提交后补救。
 - 异常终态会由当前 Lark 应用的 Bot 私聊当前已授权用户；消息发送后按 `message_id` 回读，
   未验证送达则保持 `finalization_pending`，由下一次 cron 继续补偿。
 - 控制仓 Git 异常只记录为隔离事件，不再成为当天失败原因；只有无法获取 `origin/main` 且没有可恢复的
@@ -53,8 +57,8 @@
 - 跑 Agent 层：复用 iLoop oncall 同款 `trae-cli exec` 无人值守姿势（`--sandbox workspace-write` +
   `approval_policy=never` + `--ephemeral`）。远端 oncall 已在用，凭证/权限现成。
 - 单仓：作品改动 + 实验数据共享一条 commit 历史，一起 push。Pages 只发作品本体，`.autoloop/` 不影响上线。
-- 飞书观察文档：<https://bytedance.larkoffice.com/docx/Urw8drpGholNETx7CCBchka8ntd>。每轮完成后由
-  `engine/report_feishu.sh` 追加“怎么想、怎么做、最终效果”，原始证据仍以仓库为准。
+- 飞书观察文档的真实 token/URL 保存在远端 `~/.config/autoloop/feishu.json`。每轮完成后由
+  `engine/report_feishu.sh` 追加“怎么想、怎么做、最终效果”，平台原始响应只留在远端私有 worktree。
 - 飞书记录格式由 `.autoloop/FEISHU_REPORT_FORMAT.md` 和 `AutoLoopReportSchema:v1` 固定：
   确定性脚本只生成 H2 轮次标题、六行摘要表、证据链接和截图；回读层级或表格不符合规范时同步直接失败。
 - 输入规则：每轮必须先调查至少 2 个公开可追溯来源，记录“看了什么→学到什么→为何吸收/拒绝→如何转化”。

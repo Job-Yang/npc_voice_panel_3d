@@ -11,7 +11,7 @@ STAMP="$(basename "${RUN_DIR}")"
 RUN_ID="${AUTOLOOP_RUN_ID:-${STAMP}}"
 JOURNAL="${AUTOLOOP_DIR}/journal/${DATE}.md"
 INPUT_CARD="${AUTOLOOP_DIR}/inputs/${DATE}.md"
-CONFIG="${AUTOLOOP_DIR}/feishu.json"
+CONFIG="${AUTOLOOP_FEISHU_CONFIG:-${HOME}/.config/autoloop/feishu.json}"
 MARKER="AutoLoopRun:${RUN_ID}"
 
 if [ ! -f "${CONFIG}" ]; then

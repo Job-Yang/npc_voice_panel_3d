@@ -1,7 +1,0 @@
-bwrap=passed
-trae_login=passed
-trae_models=passed
-trae_sandbox=passed
-github=passed
-feishu=passed
-disk=passed

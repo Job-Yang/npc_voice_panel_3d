@@ -1,6 +1,0 @@
-<hr/>
-<h2>运行异常｜2026-08-18｜未形成有效实验轮次</h2>
-<p><b>状态：</b>定时任务已触发，但 Agent 未生成 input/journal/作品 commit，因此不计入正式轮次。</p>
-<p><b>失败摘要：</b>Supervisor 已完成分类恢复但未能完成本轮：prewarm_infrastructure。共执行 1 个 attempt；详情见 supervisor state.json。</p>
-<p><b>原始证据：</b><a href="https://github.com/Job-Yang/npc_voice_panel_3d/tree/main/.autoloop/runs/2026-08-18_attempt_01">查看本轮 run</a></p>
-<p><code>AutoLoopRun:2026-08-18</code></p>
