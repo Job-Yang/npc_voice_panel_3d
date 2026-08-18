@@ -9,8 +9,9 @@ OUTPUT="${1:?usage: preflight.sh <output-json>}"
 export PATH="${HOME}/.local/bin:${HOME}/.npm-global/bin:${PATH:-/usr/bin:/bin}"
 TRAE_CLI="${AUTOLOOP_TRAE_CLI:-${HOME}/.local/bin/trae-cli}"
 LARK_CLI="${AUTOLOOP_LARK_CLI:-${HOME}/.npm-global/bin/lark-cli}"
+FEISHU_CONFIG="${AUTOLOOP_FEISHU_CONFIG:-${HOME}/.config/autoloop/feishu.json}"
 DOC_ID="$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).document_id)' \
-  "${AUTOLOOP_DIR}/feishu.json" 2>/dev/null || true)"
+  "${FEISHU_CONFIG}" 2>/dev/null || true)"
 
 mkdir -p "$(dirname "${OUTPUT}")"
 WORK_DIR="$(dirname "${OUTPUT}")"
