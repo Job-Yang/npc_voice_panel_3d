@@ -77,6 +77,7 @@ class WorkspaceRunnerTests(unittest.TestCase):
             )
             self.assertFalse((workspace / "private-note.txt").exists())
             self.assertFalse((workspace / "local-commit.txt").exists())
+            self.assertTrue((workspace / ".git").is_dir())
             self.assertEqual((control / "tracked.txt").read_bytes(), before_tracked)
             self.assertEqual(
                 (control / "private-note.txt").read_bytes(),

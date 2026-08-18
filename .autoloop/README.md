@@ -26,22 +26,23 @@
 ```
 
 ## 机制（一句话）
-`远端 cron → workspace_runner.py → 当日隔离 worktree → supervisor.py → attempt → 分类恢复 → 终态飞书/归档`
+`远端 cron → workspace_runner.py → 当日独立 clone → supervisor.py → attempt → 分类恢复 → 终态飞书/归档`
 
 - 控制仓只保存人工/历史现场；即使有未提交文件或本地分支分叉，也不会进入当天 Agent 上下文，更不会阻塞执行。
 - cron 启动器位于仓库外，每次先从最新 `origin/main` 自刷新 launcher、runner 和通知器；控制仓本地分支
   不更新也不会卡住机制升级。
-- 02:45 从最新 `origin/main` 创建当天专属 worktree，再预热认证、GitHub、飞书、沙箱、浏览器依赖和磁盘；
+- 02:45 从最新 `origin/main` 创建当天独立 clone，工作文件与 `.git` 元数据都位于沙箱可写根内，再预热认证、
+  GitHub、飞书、沙箱、浏览器依赖和磁盘；
   引擎或 CLI 版本变化时额外执行一次真实模型 smoke。
 - 03:00 执行正式 attempt；基础设施故障在 03:15、03:45 继续同一个逻辑轮次，最多 3 次。
-- 同一天的所有 attempt 复用同一个隔离 worktree，支持未完成改动断点续跑；共享 `AutoLoopRun:<date>`，
+- 同一天的所有 attempt 复用同一个隔离 clone，支持未完成改动断点续跑；共享 `AutoLoopRun:<date>`，
   只计一个实验轮次。已有完整 input/journal 时跳过 Agent，
   只恢复验证、报告和归档，避免重复创作或发布。
-- 新一天启动前会扫描旧 worktree 的 `notification_pending/finalization_pending`，先补齐历史通知与归档，
+- 新一天启动前会扫描旧 clone 的 `notification_pending/finalization_pending`，先补齐历史通知与归档，
   不因日期切换丢失恢复责任。
 - 认证、网络、CLI、视觉环境故障可以重试；输入卡或创意质量契约失败不机械重试。
 - 飞书和 Git 过程留档只在成功、不可重试失败或重试耗尽后执行一次，不产生中间失败噪音。
-- 原始 run、平台响应和完整回读只保留在远端私有 worktree；GitHub 仅发布
+- 原始 run、平台响应和完整回读只保留在远端私有 clone；GitHub 仅发布
   `runs/public-evidence/<date>/` 下经过白名单选择、字段裁剪、脱敏与二次扫描的证据包。
 - 飞书全文、block/document/user/message ID、媒体授权 URL、内部账号与绝对用户路径禁止进入公开证据；
   隐私扫描未通过时归档必须失败，不能先提交后补救。
@@ -94,7 +95,7 @@
 - 看 AI 每天在想什么 → journal/；概览 → CHANGELOG.md；求助 → ASK_HUMAN.md；某轮细节/指标 → runs/。
 
 ## 安全底座
-- 每日执行只基于 `origin/main` 的隔离 worktree；控制仓脏文件和分叉提交原样保留、永不自动提交。
+- 每日执行只基于 `origin/main` 的独立 clone；控制仓脏文件和分叉提交原样保留、永不自动提交。
 - 发布仍只允许普通 push，竞争更新按失败分类重试，**绝不** reset --hard / push -f。
 - 隔离分支发布使用显式 `HEAD:main`，禁止把长期控制仓的本地 `main` 当作发布源。
 - 宪法禁止 Agent 改引擎自身与 profile、禁止毁 git 历史、禁止破坏现有 assets、一次只做一件事。

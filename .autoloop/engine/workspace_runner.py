@@ -50,10 +50,6 @@ def git_output(control_repo, arguments):
     return result.stdout.strip()
 
 
-def worktree_branch(date):
-    return f"autoloop-run/{date}"
-
-
 def private_runtime_root(control_repo):
     digest = hashlib.sha256(str(control_repo).encode()).hexdigest()[:16]
     return Path.home() / ".local/state/autoloop" / digest
@@ -64,39 +60,43 @@ def prepare_workspace(control_repo, date):
     workspace = root / date
     root.mkdir(parents=True, exist_ok=True)
 
-    fetch = run_git(control_repo, ["fetch", REMOTE, BRANCH])
-    if fetch.returncode and not (workspace / ".git").exists():
-        raise RuntimeError("fetch failed and no resumable daily workspace exists")
-
-    if (workspace / ".git").exists():
+    if (workspace / ".git").is_dir():
+        run_git(workspace, ["fetch", REMOTE, BRANCH])
         return workspace
     if workspace.exists():
-        raise RuntimeError(f"workspace path exists but is not a git worktree: {workspace}")
-
-    remote_ref = f"{REMOTE}/{BRANCH}"
-    branch = worktree_branch(date)
-    existing = run_git(
-        control_repo,
-        ["show-ref", "--verify", "--quiet", f"refs/heads/{branch}"],
-    )
-    if existing.returncode == 0:
-        add = run_git(control_repo, ["worktree", "add", str(workspace), branch])
-    else:
-        add = run_git(
-            control_repo,
-            ["worktree", "add", "-b", branch, str(workspace), remote_ref],
+        raise RuntimeError(
+            f"workspace path exists but is not an independent clone: {workspace}"
         )
-    if add.returncode:
-        raise RuntimeError(f"failed to create daily worktree: {workspace}")
+
+    remote_url = git_output(
+        control_repo,
+        ["remote", "get-url", REMOTE],
+    )
+    clone = subprocess.run(
+        [
+            "git",
+            "clone",
+            "--branch",
+            BRANCH,
+            "--single-branch",
+            remote_url,
+            str(workspace),
+        ],
+        cwd=control_repo,
+        check=False,
+    )
+    if clone.returncode:
+        raise RuntimeError(f"failed to create daily clone: {workspace}")
 
     metadata = {
         "schema": "AutoLoopWorkspace:v1",
         "date": date,
         "control_repo": str(control_repo),
         "workspace": str(workspace),
-        "branch": branch,
-        "base_ref": remote_ref,
-        "base_commit": git_output(control_repo, ["rev-parse", remote_ref]),
+        "workspace_type": "independent_clone",
+        "branch": BRANCH,
+        "base_ref": f"{REMOTE}/{BRANCH}",
+        "base_commit": git_output(workspace, ["rev-parse", "HEAD"]),
         "created_at": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
     (root / f"{date}.json").write_text(
