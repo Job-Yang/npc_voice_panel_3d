@@ -1,39 +1,39 @@
 {
-  "prewarm_failures": 3,
-  "terminal_reason": "prewarm_infrastructure",
-  "finalize_attempts": 1,
-  "terminal_status": "failed_exhausted",
-  "attempts": [
-    {
-      "number": 1,
-      "run_dir": ".autoloop/runs/2026-08-18_attempt_01",
-      "returncode": 78,
-      "classification": "retryable",
-      "reason": "prewarm_infrastructure",
-      "finished_at": "2026-08-17T19:45:18.280864+00:00"
-    }
-  ],
   "prewarm": {
-    "status": "failed",
+    "status": "passed",
     "preflight_rc": 0,
-    "version_gate_rc": 1,
-    "duration_seconds": 4.822,
-    "checked_at": "2026-08-17T19:45:18.280595+00:00",
+    "version_gate_rc": 0,
+    "duration_seconds": 4.622,
+    "checked_at": "2026-08-18T03:29:50.972915+00:00",
     "details": {
-      "status": "failed",
-      "stage": "static_gate",
-      "static_rc": 1,
-      "fingerprint": "3732fc1d06095043a540178a1cfd0a02594fea07d2f7302f442847ee3ee448b1",
+      "status": "passed",
+      "stage": "model_smoke",
+      "static_rc": 0,
+      "smoke": "AUTOLOOP_MODEL_OK",
+      "smoke_rc": 0,
+      "fingerprint": "08fb8fd90e9fbec18ac6fe4520d7e5a365ab62b8774753f774437a4dddfae327",
       "versions": {
         "trae_cli": "traecli 0.200.19(internal edition)",
         "lark_cli": "lark-cli version 1.0.79"
       }
     }
   },
+  "terminal_status": "succeeded",
   "schema": "AutoLoopSupervisor:v1",
-  "core_outcome": "failure",
+  "attempts": [
+    {
+      "number": 1,
+      "run_dir": ".autoloop/runs/2026-08-18_attempt_01",
+      "returncode": 0,
+      "classification": "success",
+      "reason": "all_gates_passed",
+      "duration_seconds": 729.699,
+      "finished_at": "2026-08-18T03:42:24.836650+00:00"
+    }
+  ],
+  "core_outcome": "success",
+  "status": "succeeded",
+  "finalize_attempts": 2,
   "report_rc": 0,
-  "notification_rc": 0,
-  "date": "2026-08-18",
-  "status": "failed_exhausted"
+  "date": "2026-08-18"
 }

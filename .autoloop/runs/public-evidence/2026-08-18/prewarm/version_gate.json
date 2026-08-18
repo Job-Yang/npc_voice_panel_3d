@@ -1,8 +1,10 @@
 {
-  "status": "failed",
-  "stage": "static_gate",
-  "static_rc": 1,
-  "fingerprint": "3732fc1d06095043a540178a1cfd0a02594fea07d2f7302f442847ee3ee448b1",
+  "status": "passed",
+  "stage": "model_smoke",
+  "static_rc": 0,
+  "smoke": "AUTOLOOP_MODEL_OK",
+  "smoke_rc": 0,
+  "fingerprint": "08fb8fd90e9fbec18ac6fe4520d7e5a365ab62b8774753f774437a4dddfae327",
   "versions": {
     "trae_cli": "traecli 0.200.19(internal edition)",
     "lark_cli": "lark-cli version 1.0.79"

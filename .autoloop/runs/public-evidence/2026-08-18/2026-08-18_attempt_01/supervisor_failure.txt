@@ -1,1 +1,0 @@
-Supervisor 已完成分类恢复但未能完成本轮：prewarm_infrastructure。共执行 1 个 attempt；详情见 supervisor state.json。

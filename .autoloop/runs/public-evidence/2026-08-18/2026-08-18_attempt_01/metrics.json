@@ -1,0 +1,13 @@
+{
+  "date": "2026-08-18", "stamp": "2026-08-18", "agent_rc": 0,
+  "preflight_rc": 0,
+  "input_validation_rc": 0,
+  "creative_validation_rc": 0,
+  "input_mode": "public_external",
+  "input_source_count": 4,
+  "visual_verification_rc": 0,
+  "committed": false,
+  "head_before": "ffe4cb7ebeb1a90ac1898dded2b41e0327cebcbf", "head_after": "ffe4cb7ebeb1a90ac1898dded2b41e0327cebcbf",
+  "commit_oneline": "ffe4cb7 fix(autoloop): use private Feishu config in preflight",
+  "diff_shortstat": "0 0 0"
+}
