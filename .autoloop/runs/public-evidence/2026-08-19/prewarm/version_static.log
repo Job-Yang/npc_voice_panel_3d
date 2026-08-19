@@ -1,0 +1,32 @@
+............
+----------------------------------------------------------------------
+Ran 12 tests in 0.007s
+
+OK
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.032s
+
+OK
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.002s
+
+OK
+Cloning into '/tmp/tmplzl1_ehd/workspaces/2099-01-01'...
+done.
+..{"status": "workspace_failed", "date": "2026-08-19", "control_repo": "<REMOTE_HOME>/npc_voice_panel_3d", "error": "workspace denied", "notification_rc": 0}
+..Cloning into '/tmp/tmpi_scuo_5/workspaces/2099-01-01'...
+done.
+From /tmp/tmpi_scuo_5/remote
+ * branch            main       -> FETCH_HEAD
+..
+----------------------------------------------------------------------
+Ran 6 tests in 0.150s
+
+OK
