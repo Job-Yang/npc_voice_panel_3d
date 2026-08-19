@@ -114,6 +114,7 @@ def selected_state(path):
         "prewarm",
         "prewarm_failures",
         "core_outcome",
+        "user_outcome",
         "terminal_status",
         "terminal_reason",
         "report_rc",

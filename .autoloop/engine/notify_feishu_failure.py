@@ -111,20 +111,45 @@ def dirty_paths(run_dir):
 
 def notification_text(date, state, run_dir, document_url):
     reason = state.get("terminal_reason") or state.get("next_reason") or "unknown"
-    status = state.get("terminal_status") or state.get("status") or "failed"
-    lines = [
-        f"AutoLoop 异常通知 | {date}",
-        f"状态：{status}",
-        f"原因：{reason}",
-        f"已执行 attempt：{len(state.get('attempts', []))}",
-    ]
+    core_succeeded = state.get("core_outcome") == "success"
+    recovered_from = state.get("recovered_from")
+    if state.get("user_outcome") == "success" and recovered_from:
+        lines = [
+            f"AutoLoop 收口已自动修复 | {date}",
+            "整体结论：成功",
+            "作品与线上验证：成功",
+            "飞书实验报告：成功",
+            "脱敏证据归档：成功",
+            f"已修复问题：{recovered_from}",
+            "后续动作：无需人工处理。",
+        ]
+    elif core_succeeded:
+        title = f"AutoLoop 部分成功，收口自动修复中 | {date}"
+        report_result = "成功" if state.get("report_rc") == 0 else "失败"
+        archive_result = "成功" if state.get("archive_rc") == 0 else "失败"
+        lines = [
+            title,
+            "整体结论：部分成功（作品已上线，可正常使用）",
+            "作品与线上验证：成功",
+            f"飞书实验报告：{report_result}",
+            f"脱敏证据归档：{archive_result}",
+            f"收口问题：{reason}",
+            "后续动作：AutoLoop 将继续自动修复收口，不会重跑或回退作品。",
+        ]
+    else:
+        lines = [
+            f"AutoLoop 任务失败，需要介入 | {date}",
+            "整体结论：失败（作品未完成或未通过验证）",
+            f"失败原因：{reason}",
+        ]
+    lines.append(f"已执行 attempt：{len(state.get('attempts', []))}")
     paths = dirty_paths(run_dir)
     if paths:
         lines.extend(["远端未提交/未跟踪文件：", *[f"- {item}" for item in paths]])
     lines.extend(
         [
             f"实验日志：{document_url}",
-            "原始证据正在执行终态归档；若链接缺失，以本通知中的文件清单为准。",
+            "公开证据只包含脱敏内容；归档未完成时以本通知结论为准。",
         ]
     )
     return "\n".join(lines)
@@ -132,12 +157,29 @@ def notification_text(date, state, run_dir, document_url):
 
 def notify(date, state_path, run_dir):
     run_dir = Path(run_dir)
-    ledger_path = run_dir / "feishu_notification.json"
+    state = read_json(state_path, {})
+    recovered = (
+        state.get("user_outcome") == "success"
+        and bool(state.get("recovered_from"))
+    )
+    ledger_path = run_dir / (
+        "feishu_recovery_notification.json"
+        if recovered
+        else "feishu_notification.json"
+    )
     existing = read_json(ledger_path, {})
     if existing.get("delivery_verified") is True:
         return 0
 
-    config = read_json(AUTOLOOP_DIR / "feishu.json", {})
+    config = read_json(
+        Path(
+            os.environ.get(
+                "AUTOLOOP_FEISHU_CONFIG",
+                str(Path.home() / ".config/autoloop/feishu.json"),
+            )
+        ),
+        {},
+    )
     document_url = config.get("url", "")
     cli = find_lark_cli()
     if not cli:
@@ -161,7 +203,6 @@ def notify(date, state_path, run_dir):
         )
         return 1
 
-    state = read_json(state_path, {})
     text = notification_text(date, state, run_dir, document_url)
     send_rc, sent, send_error = run_json(
         [
@@ -175,7 +216,7 @@ def notify(date, state_path, run_dir):
             "--text",
             text,
             "--idempotency-key",
-            f"autoloop-failure-{date}",
+            f"autoloop-terminal-{date}-{state.get('user_outcome', 'failure')}",
             "--format",
             "json",
         ]

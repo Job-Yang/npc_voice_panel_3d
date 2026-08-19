@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import importlib.util
 import json
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -240,7 +241,8 @@ class StateMachineTests(unittest.TestCase):
                 rc = MODULE.finalize("2099-01-01", root, path, state)
 
             self.assertEqual(rc, 1)
-            self.assertEqual(state["status"], "failed_exhausted")
+            self.assertEqual(state["status"], "partial_success")
+            self.assertEqual(state["user_outcome"], "partial_success")
             self.assertEqual(state["terminal_reason"], "feishu_report_failed")
             notify.assert_called_once()
 
@@ -271,29 +273,239 @@ class StateMachineTests(unittest.TestCase):
             self.assertEqual(state["status"], "failed_exhausted")
             self.assertEqual(state["notification_rc"], 0)
 
-    def test_archive_pushes_execution_head_to_main(self):
+    def test_exhausted_archive_failure_is_partial_and_remains_recoverable(self):
         with tempfile.TemporaryDirectory() as directory:
-            repo = Path(directory)
-            calls = []
+            root = Path(directory) / "2099-01-01_supervisor"
+            path = root / "state.json"
+            run_dir = Path(directory) / "attempt_01"
+            run_dir.mkdir(parents=True)
+            state = base_state()
+            state.update(
+                {
+                    "core_outcome": "success",
+                    "terminal_status": "succeeded",
+                    "final_run_dir": str(run_dir),
+                    "attempts": [{"run_dir": str(run_dir)}],
+                    "finalize_attempts": MODULE.MAX_ATTEMPTS - 1,
+                }
+            )
 
-            def fake_run(command, **kwargs):
-                calls.append(command)
-                return subprocess.CompletedProcess(command, 0)
+            with mock.patch.object(
+                MODULE,
+                "report_round",
+                return_value=0,
+            ), mock.patch.object(
+                MODULE,
+                "archive_round",
+                return_value=128,
+            ), mock.patch.object(
+                MODULE,
+                "notify_failure",
+                return_value=0,
+            ):
+                rc = MODULE.finalize("2099-01-01", root, path, state)
+
+            self.assertEqual(rc, 128)
+            self.assertEqual(state["status"], "partial_success")
+            self.assertEqual(state["user_outcome"], "partial_success")
+            self.assertEqual(state["terminal_reason"], "git_archive_failed")
+
+            with mock.patch.object(
+                MODULE,
+                "report_round",
+                return_value=0,
+            ), mock.patch.object(
+                MODULE,
+                "archive_round",
+                return_value=0,
+            ), mock.patch.object(
+                MODULE,
+                "notify_failure",
+                return_value=0,
+            ):
+                rc = MODULE.run_supervisor("2099-01-01", root, path, state)
+
+            self.assertEqual(rc, 0)
+            self.assertEqual(state["status"], "succeeded")
+            self.assertEqual(state["user_outcome"], "success")
+            self.assertEqual(state["archive_rc"], 0)
+            self.assertNotIn("terminal_reason", state)
+            self.assertEqual(state["recovered_from"], "git_archive_failed")
+
+    def test_legacy_exhausted_finalization_is_migrated_and_recovered(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "2099-01-01_supervisor"
+            path = root / "state.json"
+            run_dir = Path(directory) / "attempt_01"
+            run_dir.mkdir(parents=True)
+            state = base_state()
+            state.update(
+                {
+                    "status": "failed_exhausted",
+                    "core_outcome": "success",
+                    "terminal_status": "succeeded",
+                    "terminal_reason": "git_archive_failed",
+                    "archive_rc": 128,
+                    "final_run_dir": str(run_dir),
+                    "attempts": [{"run_dir": str(run_dir)}],
+                }
+            )
+
+            with mock.patch.object(
+                MODULE,
+                "report_round",
+                return_value=0,
+            ), mock.patch.object(
+                MODULE,
+                "archive_round",
+                return_value=0,
+            ), mock.patch.object(
+                MODULE,
+                "notify_failure",
+                return_value=0,
+            ):
+                rc = MODULE.run_supervisor("2099-01-01", root, path, state)
+
+            self.assertEqual(rc, 0)
+            self.assertEqual(state["status"], "succeeded")
+            self.assertEqual(state["user_outcome"], "success")
+            self.assertEqual(state["recovered_from"], "git_archive_failed")
+
+    def test_archive_uses_fresh_remote_base_despite_diverged_execution_clone(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            remote = root / "remote.git"
+            seed = root / "seed"
+            repo = root / "execution"
+
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True)
+            subprocess.run(
+                ["git", "init", "-b", "main", str(seed)],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "Test"],
+                cwd=seed,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.email", "test@example.com"],
+                cwd=seed,
+                check=True,
+            )
+            (seed / "base.txt").write_text("base\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=seed, check=True)
+            subprocess.run(
+                ["git", "commit", "-m", "base"],
+                cwd=seed,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "remote", "add", "origin", str(remote)],
+                cwd=seed,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "push", "-u", "origin", "main"],
+                cwd=seed,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "clone", "-b", "main", str(remote), str(repo)],
+                check=True,
+            )
+
+            (seed / "remote.txt").write_text("remote\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=seed, check=True)
+            subprocess.run(
+                ["git", "commit", "-m", "remote advance"],
+                cwd=seed,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "push", "origin", "main"],
+                cwd=seed,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "Test"],
+                cwd=repo,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.email", "test@example.com"],
+                cwd=repo,
+                check=True,
+            )
+            (repo / "local.txt").write_text("local\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=repo, check=True)
+            subprocess.run(
+                ["git", "commit", "-m", "local divergence"],
+                cwd=repo,
+                check=True,
+            )
+            (repo / "private.txt").write_text("keep private\n", encoding="utf-8")
+
+            auto = repo / ".autoloop"
+            engine = auto / "engine"
+            runs = auto / "runs"
+            supervisor_root = runs / "2099-01-01_supervisor"
+            attempt = runs / "2099-01-01_attempt_01"
+            engine.mkdir(parents=True)
+            supervisor_root.mkdir(parents=True)
+            attempt.mkdir(parents=True)
+            shutil.copy2(
+                Path(__file__).with_name("publish_evidence.py"),
+                engine / "publish_evidence.py",
+            )
+            (supervisor_root / "state.json").write_text(
+                json.dumps(
+                    {
+                        "schema": "AutoLoopSupervisor:v1",
+                        "date": "2099-01-01",
+                        "status": "succeeded",
+                        "core_outcome": "success",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (attempt / "metrics.json").write_text(
+                '{"agent_rc": 0}\n',
+                encoding="utf-8",
+            )
 
             with mock.patch.object(MODULE, "REPO_DIR", repo), mock.patch.object(
-                MODULE, "AUTOLOOP_DIR", repo / ".autoloop"
-            ), mock.patch.object(subprocess, "run", side_effect=fake_run):
+                MODULE, "AUTOLOOP_DIR", auto
+            ), mock.patch.object(MODULE, "RUNS_DIR", runs), mock.patch.object(
+                MODULE, "ENGINE_DIR", engine
+            ):
                 rc = MODULE.archive_round(
                     "2099-01-01",
-                    repo / "supervisor",
-                    {"attempts": []},
+                    supervisor_root,
+                    {
+                        "attempts": [
+                            {
+                                "run_dir": ".autoloop/runs/2099-01-01_attempt_01"
+                            }
+                        ]
+                    },
                 )
 
             self.assertEqual(rc, 0)
-            self.assertIn(
-                ["git", "push", "origin", "HEAD:main"],
-                calls,
+            archived = subprocess.run(
+                [
+                    "git",
+                    "--git-dir",
+                    str(remote),
+                    "show",
+                    "main:.autoloop/runs/public-evidence/2099-01-01/state.json",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
             )
+            self.assertIn('"status": "succeeded"', archived.stdout)
+            self.assertTrue((repo / "private.txt").exists())
 
 
 if __name__ == "__main__":

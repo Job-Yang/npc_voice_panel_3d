@@ -14,6 +14,66 @@ SPEC.loader.exec_module(MODULE)
 
 
 class NotificationTests(unittest.TestCase):
+    def test_partial_success_notification_is_not_self_contradictory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            text = MODULE.notification_text(
+                "2099-01-01",
+                {
+                    "core_outcome": "success",
+                    "user_outcome": "partial_success",
+                    "terminal_status": "succeeded",
+                    "terminal_reason": "git_archive_failed",
+                    "report_rc": 0,
+                    "archive_rc": 128,
+                    "attempts": [{}],
+                },
+                Path(directory),
+                "https://example.com/doc",
+            )
+
+        self.assertIn("部分成功", text)
+        self.assertIn("作品与线上验证：成功", text)
+        self.assertIn("脱敏证据归档：失败", text)
+        self.assertIn("继续自动修复", text)
+        self.assertNotIn("状态：succeeded", text)
+
+    def test_core_failure_is_reported_as_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            text = MODULE.notification_text(
+                "2099-01-01",
+                {
+                    "core_outcome": "failure",
+                    "terminal_reason": "creative_contract",
+                    "attempts": [{}],
+                },
+                Path(directory),
+                "",
+            )
+
+        self.assertIn("任务失败，需要介入", text)
+        self.assertIn("作品未完成或未通过验证", text)
+
+    def test_recovery_notification_declares_full_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            text = MODULE.notification_text(
+                "2099-01-01",
+                {
+                    "core_outcome": "success",
+                    "user_outcome": "success",
+                    "recovered_from": "git_archive_failed",
+                    "report_rc": 0,
+                    "archive_rc": 0,
+                    "attempts": [{}],
+                },
+                Path(directory),
+                "https://example.com/doc",
+            )
+
+        self.assertIn("收口已自动修复", text)
+        self.assertIn("整体结论：成功", text)
+        self.assertIn("无需人工处理", text)
+        self.assertNotIn("部分成功", text)
+
     def test_notification_includes_captured_dirty_paths(self):
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory)

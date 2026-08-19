@@ -9,8 +9,10 @@ import hashlib
 import json
 import os
 import shlex
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -453,47 +455,112 @@ def archive_round(date, root, state):
     if publish.returncode:
         return publish.returncode
 
-    paths = [public_root]
+    remote = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=REPO_DIR,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if remote.returncode or not remote.stdout.strip():
+        return remote.returncode or 1
+
+    sources = [(public_root, Path(".autoloop/runs/public-evidence") / date)]
     screenshot = AUTOLOOP_DIR / "journal/assets" / f"{date}-online.png"
     if screenshot.exists():
-        paths.append(screenshot)
-    subprocess.run(["git", "add", *map(str, paths)], cwd=REPO_DIR, check=False)
-    diff = subprocess.run(
-        ["git", "diff", "--cached", "--quiet"], cwd=REPO_DIR, check=False
-    )
-    if diff.returncode:
-        commit = subprocess.run(
-            [
-                "git",
-                "-c",
-                "core.hooksPath=/dev/null",
-                "commit",
-                "-m",
-                f"chore(autoloop): Supervisor 留档 {date}",
-            ],
-            cwd=REPO_DIR,
-            check=False,
+        sources.append(
+            (
+                screenshot,
+                Path(".autoloop/journal/assets") / screenshot.name,
+            )
         )
-        if commit.returncode:
-            return commit.returncode
-    fetch = subprocess.run(
-        ["git", "fetch", "origin", "main"], cwd=REPO_DIR, check=False
-    )
-    if fetch.returncode:
-        return fetch.returncode
-    merge = subprocess.run(
-        ["git", "merge", "--ff-only", "origin/main"], cwd=REPO_DIR, check=False
-    )
-    if merge.returncode:
-        return merge.returncode
-    return subprocess.run(
-        ["git", "push", "origin", "HEAD:main"], cwd=REPO_DIR, check=False
-    ).returncode
+
+    last_rc = 1
+    for _ in range(MAX_ATTEMPTS):
+        with tempfile.TemporaryDirectory(prefix=f"autoloop-archive-{date}-") as directory:
+            clean_repo = Path(directory) / "repo"
+            clone = subprocess.run(
+                [
+                    "git",
+                    "clone",
+                    "--branch",
+                    "main",
+                    "--single-branch",
+                    remote.stdout.strip(),
+                    str(clean_repo),
+                ],
+                cwd=REPO_DIR,
+                check=False,
+            )
+            if clone.returncode:
+                last_rc = clone.returncode
+                continue
+
+            for source, relative in sources:
+                destination = clean_repo / relative
+                if source.is_dir():
+                    if destination.exists():
+                        shutil.rmtree(destination)
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copytree(source, destination)
+                else:
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source, destination)
+
+            relative_paths = [str(relative) for _, relative in sources]
+            add = subprocess.run(
+                ["git", "add", *relative_paths],
+                cwd=clean_repo,
+                check=False,
+            )
+            if add.returncode:
+                return add.returncode
+            diff = subprocess.run(
+                ["git", "diff", "--cached", "--quiet"],
+                cwd=clean_repo,
+                check=False,
+            )
+            if diff.returncode == 0:
+                return 0
+            commit = subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "-c",
+                    "user.name=AutoLoop",
+                    "-c",
+                    "user.email=autoloop@localhost",
+                    "commit",
+                    "-m",
+                    f"chore(autoloop): Supervisor 留档 {date}",
+                ],
+                cwd=clean_repo,
+                check=False,
+            )
+            if commit.returncode:
+                return commit.returncode
+            push = subprocess.run(
+                ["git", "push", "origin", "HEAD:main"],
+                cwd=clean_repo,
+                check=False,
+            )
+            if push.returncode == 0:
+                return 0
+            last_rc = push.returncode
+    return last_rc
 
 
 def finalize(date, root, path, state):
     run_dir = REPO_DIR / state["final_run_dir"]
     mode = "success" if state.get("core_outcome") == "success" else "failure"
+    previous_finalization_failure = (
+        state.get("terminal_reason")
+        if state.get("core_outcome") == "success"
+        and state.get("terminal_reason")
+        in {"git_archive_failed", "feishu_report_failed"}
+        else None
+    )
     if mode == "failure":
         (run_dir / "supervisor_failure.txt").write_text(
             "Supervisor 已完成分类恢复但未能完成本轮："
@@ -505,21 +572,29 @@ def finalize(date, root, path, state):
     report_rc = report_round(date, run_dir, mode)
     state["report_rc"] = report_rc
     if report_rc:
+        exhausted = state["finalize_attempts"] >= MAX_ATTEMPTS
         state["status"] = (
-            "failed_exhausted"
-            if state["finalize_attempts"] >= MAX_ATTEMPTS
+            "partial_success"
+            if exhausted and state.get("core_outcome") == "success"
+            else "failed_exhausted"
+            if exhausted
             else "finalization_pending"
         )
-        if state["status"] == "failed_exhausted":
+        state["user_outcome"] = (
+            "partial_success"
+            if state.get("core_outcome") == "success"
+            else "failure"
+        )
+        if exhausted:
             state["terminal_reason"] = "feishu_report_failed"
         save_state(path, state)
-        if state["status"] == "failed_exhausted":
+        if exhausted:
             notify_terminal_failure(
                 date,
                 path,
                 state,
                 run_dir,
-                "failed_exhausted",
+                state["status"],
             )
         return report_rc
 
@@ -528,6 +603,12 @@ def finalize(date, root, path, state):
         if state.get("core_outcome") == "success"
         else state.get("terminal_status", "failed_exhausted")
     )
+    state["user_outcome"] = (
+        "success" if state.get("core_outcome") == "success" else "failure"
+    )
+    if state.get("core_outcome") == "success":
+        state.pop("terminal_reason", None)
+        state.pop("archive_rc", None)
     state["completed_at"] = now()
     save_state(path, state)
 
@@ -544,27 +625,62 @@ def finalize(date, root, path, state):
 
     archive_rc = archive_round(date, root, state)
     if archive_rc:
+        exhausted = state["finalize_attempts"] >= MAX_ATTEMPTS
         state["status"] = (
-            "failed_exhausted"
-            if state["finalize_attempts"] >= MAX_ATTEMPTS
+            "partial_success"
+            if exhausted and state.get("core_outcome") == "success"
+            else "failed_exhausted"
+            if exhausted
             else "finalization_pending"
         )
-        if state["status"] == "failed_exhausted":
+        state["user_outcome"] = (
+            "partial_success"
+            if state.get("core_outcome") == "success"
+            else "failure"
+        )
+        if exhausted:
             state["terminal_reason"] = "git_archive_failed"
         state["archive_rc"] = archive_rc
         save_state(path, state)
-        if state["status"] == "failed_exhausted":
+        if exhausted:
             notify_terminal_failure(
                 date,
                 path,
                 state,
                 run_dir,
-                "failed_exhausted",
+                state["status"],
             )
+    else:
+        recovered_from = previous_finalization_failure
+        state["status"] = (
+            "succeeded"
+            if state.get("core_outcome") == "success"
+            else state.get("terminal_status", "failed_exhausted")
+        )
+        state["user_outcome"] = (
+            "success" if state.get("core_outcome") == "success" else "failure"
+        )
+        state["archive_rc"] = 0
+        if state.get("core_outcome") == "success":
+            state.pop("terminal_reason", None)
+            if recovered_from:
+                state["recovered_from"] = recovered_from
+        save_state(path, state)
+        if recovered_from:
+            notify_failure(date, path, run_dir)
     return archive_rc
 
 
 def run_supervisor(date, root, path, state):
+    if (
+        state.get("status") == "failed_exhausted"
+        and state.get("core_outcome") == "success"
+        and state.get("terminal_reason")
+        in {"git_archive_failed", "feishu_report_failed"}
+    ):
+        state["status"] = "partial_success"
+        state["user_outcome"] = "partial_success"
+        save_state(path, state)
     if state["status"] in FINAL_STATUSES:
         print(json.dumps(state, ensure_ascii=False))
         return 0 if state["status"] == "succeeded" else 1
@@ -581,10 +697,10 @@ def run_supervisor(date, root, path, state):
         )
         state["status"] = resume_status
         save_state(path, state)
-        if resume_status == "finalization_pending":
+        if resume_status in {"finalization_pending", "partial_success"}:
             return finalize(date, root, path, state)
         return 1
-    if state["status"] == "finalization_pending":
+    if state["status"] in {"finalization_pending", "partial_success"}:
         return finalize(date, root, path, state)
 
     if state["status"] == "retry_wait" or state.get("prewarm", {}).get("status") != "passed":

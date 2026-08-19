@@ -211,10 +211,17 @@ def resume_incomplete_workspaces(control_repo, current_date):
             state = json.loads(state_path.read_text(encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError):
             continue
+        recoverable_legacy_finalization = (
+            state.get("status") == "failed_exhausted"
+            and state.get("core_outcome") == "success"
+            and state.get("terminal_reason")
+            in {"git_archive_failed", "feishu_report_failed"}
+        )
         if state.get("status") not in {
             "notification_pending",
             "finalization_pending",
-        }:
+            "partial_success",
+        } and not recoverable_legacy_finalization:
             continue
         try:
             supervisor_process(control_repo, workspace, date, "run")
