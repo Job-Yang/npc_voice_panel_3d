@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "checked_at": "2026-08-19T19:00:22.622Z",
+  "checks": {
+    "bwrap": "passed",
+    "trae_auth_refresh": "passed",
+    "trae_models": "passed",
+    "trae_sandbox": "passed",
+    "github": "passed",
+    "feishu": "passed",
+    "disk": "passed"
+  }
+}

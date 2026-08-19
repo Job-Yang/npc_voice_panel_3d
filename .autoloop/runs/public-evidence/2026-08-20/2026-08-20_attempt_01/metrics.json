@@ -1,0 +1,13 @@
+{
+  "date": "2026-08-20", "stamp": "2026-08-20", "agent_rc": 0,
+  "preflight_rc": 0,
+  "input_validation_rc": 0,
+  "creative_validation_rc": 0,
+  "input_mode": "public_external",
+  "input_source_count": 4,
+  "visual_verification_rc": 0,
+  "committed": false,
+  "head_before": "1f1de4d3bb06890a6ca1229829a2345849a30c37", "head_after": "1f1de4d3bb06890a6ca1229829a2345849a30c37",
+  "commit_oneline": "1f1de4d fix(autoloop): enforce redacted-only archive recovery",
+  "diff_shortstat": "0 0 0"
+}

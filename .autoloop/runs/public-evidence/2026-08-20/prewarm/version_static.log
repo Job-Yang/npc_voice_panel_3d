@@ -1,0 +1,71 @@
+...hint: Using 'master' as the name for the initial branch. This default branch name
+hint: is subject to change. To configure the initial branch name to use in all
+hint: of your new repositories, which will suppress this warning, call:
+hint: 
+hint: 	git config --global init.defaultBranch <name>
+hint: 
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint: 
+hint: 	git branch -m <name>
+Initialized empty Git repository in /tmp/tmppfgul11r/remote.git/
+Initialized empty Git repository in /tmp/tmppfgul11r/seed/.git/
+[main (root-commit) be50cf7] base
+ 1 file changed, 1 insertion(+)
+ create mode 100644 base.txt
+To /tmp/tmppfgul11r/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+Cloning into '/tmp/tmppfgul11r/execution'...
+done.
+[main e26f24a] remote advance
+ 1 file changed, 1 insertion(+)
+ create mode 100644 remote.txt
+To /tmp/tmppfgul11r/remote.git
+   be50cf7..e26f24a  main -> main
+[main e3e1a0b] local divergence
+ 1 file changed, 1 insertion(+)
+ create mode 100644 local.txt
+Cloning into '/tmp/autoloop-archive-2099-01-01-x9ta16id/repo'...
+done.
+[main 3aed45c] chore(autoloop): Supervisor 留档 2099-01-01
+ 4 files changed, 23 insertions(+)
+ create mode 100644 .autoloop/runs/public-evidence/2099-01-01/2099-01-01_attempt_01/metrics.json
+ create mode 100644 .autoloop/runs/public-evidence/2099-01-01/manifest.json
+ create mode 100644 .autoloop/runs/public-evidence/2099-01-01/privacy-scan.json
+ create mode 100644 .autoloop/runs/public-evidence/2099-01-01/state.json
+To /tmp/tmppfgul11r/remote.git
+   e26f24a..3aed45c  HEAD -> main
+fatal: path '.autoloop/journal/assets/2099-01-01-online.png' does not exist in 'main'
+............
+----------------------------------------------------------------------
+Ran 15 tests in 0.115s
+
+OK
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.021s
+
+OK
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.002s
+
+OK
+Cloning into '/tmp/tmpapci6y93/workspaces/2099-01-01'...
+done.
+..{"status": "workspace_failed", "date": "2026-08-20", "control_repo": "<REMOTE_HOME>/npc_voice_panel_3d", "error": "workspace denied", "notification_rc": 0}
+..Cloning into '/tmp/tmpu363y3tp/workspaces/2099-01-01'...
+done.
+From /tmp/tmpu363y3tp/remote
+ * branch            main       -> FETCH_HEAD
+..
+----------------------------------------------------------------------
+Ran 6 tests in 0.148s
+
+OK
