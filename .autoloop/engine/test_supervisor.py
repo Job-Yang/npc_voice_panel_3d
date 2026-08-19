@@ -371,6 +371,58 @@ class StateMachineTests(unittest.TestCase):
             self.assertEqual(state["user_outcome"], "success")
             self.assertEqual(state["recovered_from"], "git_archive_failed")
 
+    def test_failed_recovery_notification_is_retried_without_rerunning_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "2099-01-01_supervisor"
+            path = root / "state.json"
+            run_dir = Path(directory) / "attempt_01"
+            run_dir.mkdir(parents=True)
+            state = base_state()
+            state.update(
+                {
+                    "status": "partial_success",
+                    "core_outcome": "success",
+                    "user_outcome": "partial_success",
+                    "terminal_status": "succeeded",
+                    "terminal_reason": "git_archive_failed",
+                    "final_run_dir": str(run_dir),
+                    "attempts": [{"run_dir": str(run_dir)}],
+                }
+            )
+
+            with mock.patch.object(
+                MODULE,
+                "report_round",
+                return_value=0,
+            ), mock.patch.object(
+                MODULE,
+                "archive_round",
+                return_value=0,
+            ), mock.patch.object(
+                MODULE,
+                "notify_failure",
+                return_value=1,
+            ):
+                rc = MODULE.run_supervisor("2099-01-01", root, path, state)
+
+            self.assertEqual(rc, 1)
+            self.assertEqual(state["status"], "notification_pending")
+            self.assertEqual(
+                state["notification_resume_status"],
+                "succeeded",
+            )
+
+            with mock.patch.object(
+                MODULE,
+                "notify_failure",
+                return_value=0,
+            ), mock.patch.object(MODULE, "run_attempt") as attempt:
+                rc = MODULE.run_supervisor("2099-01-01", root, path, state)
+
+            self.assertEqual(rc, 0)
+            self.assertEqual(state["status"], "succeeded")
+            attempt.assert_not_called()
+
     def test_archive_uses_fresh_remote_base_despite_diverged_execution_clone(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -458,6 +510,9 @@ class StateMachineTests(unittest.TestCase):
                 Path(__file__).with_name("publish_evidence.py"),
                 engine / "publish_evidence.py",
             )
+            screenshot = auto / "journal/assets/2099-01-01-online.png"
+            screenshot.parent.mkdir(parents=True)
+            screenshot.write_bytes(b"unscanned screenshot")
             (supervisor_root / "state.json").write_text(
                 json.dumps(
                     {
@@ -505,6 +560,18 @@ class StateMachineTests(unittest.TestCase):
                 text=True,
             )
             self.assertIn('"status": "succeeded"', archived.stdout)
+            screenshot_check = subprocess.run(
+                [
+                    "git",
+                    "--git-dir",
+                    str(remote),
+                    "cat-file",
+                    "-e",
+                    "main:.autoloop/journal/assets/2099-01-01-online.png",
+                ],
+                check=False,
+            )
+            self.assertNotEqual(screenshot_check.returncode, 0)
             self.assertTrue((repo / "private.txt").exists())
 
 

@@ -466,14 +466,6 @@ def archive_round(date, root, state):
         return remote.returncode or 1
 
     sources = [(public_root, Path(".autoloop/runs/public-evidence") / date)]
-    screenshot = AUTOLOOP_DIR / "journal/assets" / f"{date}-online.png"
-    if screenshot.exists():
-        sources.append(
-            (
-                screenshot,
-                Path(".autoloop/journal/assets") / screenshot.name,
-            )
-        )
 
     last_rc = 1
     for _ in range(MAX_ATTEMPTS):
@@ -667,7 +659,15 @@ def finalize(date, root, path, state):
                 state["recovered_from"] = recovered_from
         save_state(path, state)
         if recovered_from:
-            notify_failure(date, path, run_dir)
+            notify_rc = notify_terminal_failure(
+                date,
+                path,
+                state,
+                run_dir,
+                "succeeded",
+            )
+            if notify_rc:
+                return notify_rc
     return archive_rc
 
 
@@ -699,7 +699,7 @@ def run_supervisor(date, root, path, state):
         save_state(path, state)
         if resume_status in {"finalization_pending", "partial_success"}:
             return finalize(date, root, path, state)
-        return 1
+        return 0 if resume_status == "succeeded" else 1
     if state["status"] in {"finalization_pending", "partial_success"}:
         return finalize(date, root, path, state)
 
