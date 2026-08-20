@@ -464,6 +464,15 @@ const OBJECT_CONFIG = {
       { label: '老杨是谁', type: 'profile' },
     ],
   },
+  archsign: {
+    name: '炉门铺招 · 老杨开炉迎客',
+    meta: '点击物件',
+    line: '先看门楣再进铺子：这里是老杨的铁匠铺，也是 YQ / iLoop 的欢迎口。带着问题进门，火会亮、牌会响，里面有人接活。',
+    actions: [
+      { label: '老杨是谁', type: 'profile' },
+      { label: '找我协作', type: 'contact' },
+    ],
+  },
   forge: {
     name: '火炉 · 欢迎语锻造机',
     meta: '点击物件',
@@ -496,6 +505,8 @@ let bellowsRig = null;
 let bellowsBoostUntil = 0;
 let touchmarkRig = null;
 let touchmarkBoostUntil = 0;
+let archSignRig = null;
+let archSignBoostUntil = 0;
 let dialogActions = [];
 let selectedObjectKey = null;
 let yqClickCount = 0;
@@ -699,6 +710,12 @@ const interactiveObjects = {}; // { key: { root, config } }
 let loadCount = 0;
 const TOTAL = Object.keys(NPC_CONFIG).length + 1; // +1 for bg
 createHotspot('forge', [0, FLOOR_Y + 0.7, 1.05], [1.8, 1.5, 1.3]);
+const archSign = makeProp('archsign', [0, 0, 3.78]);
+archSign.position.y += FLOOR_Y;
+archSignRig = archSign.userData.archSignRig;
+registerInteractive(archSign, 'archsign');
+scene.add(archSign);
+createHotspot('archsign', [0, FLOOR_Y + 1.78, 3.78], [2.45, 0.9, 0.52]);
 const loopBoard = makeProp('loopboard', [1.35, 0, 2.65]);
 loopBoard.position.y += FLOOR_Y;
 registerInteractive(loopBoard, 'loopboard');
@@ -1259,6 +1276,112 @@ function makeProp(type, npcPos) {
     g.position.set(npcPos[0], 0, npcPos[2]);
     g.rotation.y = -0.22;
     g.scale.setScalar(0.68);
+  } else if (type === 'archsign') {
+    // 炉门铺招：把“欢迎页”的第一眼识别做成铁匠铺门楣
+    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x2c180d, roughness: 0.94 });
+    const warmWoodMat = new THREE.MeshStandardMaterial({ color: 0x6f3f20, roughness: 0.86 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x20242a, metalness: 0.62, roughness: 0.42 });
+    const signMat = new THREE.MeshStandardMaterial({ color: 0x3b2416, roughness: 0.82 });
+    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffa44a, emissive: 0xff6918, emissiveIntensity: 0.5, roughness: 0.48 });
+    const hotMat = new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0xff8a1c, emissiveIntensity: 0.82, roughness: 0.42 });
+    const coolMat = new THREE.MeshStandardMaterial({ color: 0x66b7ff, emissive: 0x2068b5, emissiveIntensity: 0.36, roughness: 0.55 });
+
+    const leftPost = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.55, 0.12), darkWoodMat);
+    leftPost.position.set(-1.08, 0.78, 0);
+    const rightPost = leftPost.clone();
+    rightPost.position.x = 1.08;
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.46, 0.16, 0.16), warmWoodMat);
+    lintel.position.set(0, 1.54, 0);
+    const sill = new THREE.Mesh(new THREE.BoxGeometry(2.18, 0.055, 0.16), darkWoodMat);
+    sill.position.set(0, 0.08, 0.02);
+    g.add(leftPost, rightPost, lintel, sill);
+
+    [-0.82, 0.82].forEach(x => {
+      const strap = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.18), ironMat);
+      strap.position.set(x, 1.55, 0.035);
+      const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), emberMat);
+      rivet.position.set(x, 1.55, 0.13);
+      g.add(strap, rivet);
+    });
+
+    const signGroup = new THREE.Group();
+    signGroup.name = 'archSignBoard';
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.44, 0.07), signMat);
+    sign.position.y = 1.18;
+    signGroup.add(sign);
+    [-0.52, 0.52].forEach(x => {
+      const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.34, 8), ironMat);
+      chain.position.set(x, 1.42, 0.02);
+      chain.rotation.z = x < 0 ? -0.1 : 0.1;
+      signGroup.add(chain);
+    });
+
+    const anvilIcon = new THREE.Group();
+    const anvilTop = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.045, 0.05), ironMat);
+    anvilTop.position.set(-0.42, 1.18, 0.06);
+    const anvilBase = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.09, 0.05), ironMat);
+    anvilBase.position.set(-0.42, 1.11, 0.06);
+    const anvilHorn = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.16, 14), ironMat);
+    anvilHorn.rotation.z = -Math.PI / 2;
+    anvilHorn.position.set(-0.2, 1.18, 0.06);
+    anvilIcon.add(anvilTop, anvilBase, anvilHorn);
+    signGroup.add(anvilIcon);
+
+    [
+      [-0.02, 1.1, 0.18, 0.022],
+      [0.05, 1.1, 0.18, 0.022],
+      [0.015, 1.1, 0.14, 0.022],
+      [0.17, 1.1, 0.13, 0.022],
+      [0.23, 1.1, 0.19, 0.022],
+      [0.29, 1.1, 0.13, 0.022],
+    ].forEach(([x, y, h, w], i) => {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.032), hotMat);
+      bar.position.set(x, y, 0.08);
+      if (i === 2) bar.rotation.z = Math.PI / 2;
+      if (i === 3) bar.rotation.z = -0.5;
+      if (i === 5) bar.rotation.z = 0.5;
+      signGroup.add(bar);
+    });
+    const loopRing = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.012, 8, 28), coolMat);
+    loopRing.position.set(0.52, 1.18, 0.08);
+    loopRing.rotation.x = Math.PI / 2;
+    signGroup.add(loopRing);
+    const loopSpark = new THREE.Mesh(new THREE.SphereGeometry(0.026, 10, 8), hotMat);
+    loopSpark.position.set(0.62, 1.22, 0.08);
+    signGroup.add(loopSpark);
+    g.add(signGroup);
+
+    const lamps = new THREE.Group();
+    lamps.name = 'archSignLamps';
+    [-1.0, 1.0].forEach(x => {
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), hotMat);
+      lamp.position.set(x, 1.26, 0.12);
+      const cage = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.008, 8, 18), ironMat);
+      cage.position.copy(lamp.position);
+      cage.rotation.x = Math.PI / 2;
+      lamps.add(lamp, cage);
+    });
+    g.add(lamps);
+
+    const thresholdSparks = new THREE.Group();
+    thresholdSparks.name = 'archSignSparks';
+    for (let i = 0; i < 10; i++) {
+      const spark = new THREE.Mesh(new THREE.SphereGeometry(0.014 + (i % 3) * 0.004, 8, 6), i % 2 ? emberMat : hotMat);
+      spark.userData.base = {
+        x: -0.72 + i * 0.16,
+        y: 0.14 + (i % 3) * 0.03,
+        z: 0.1 + (i % 2) * 0.03,
+        phase: i * 0.66,
+      };
+      spark.position.set(spark.userData.base.x, spark.userData.base.y, spark.userData.base.z);
+      thresholdSparks.add(spark);
+    }
+    g.add(thresholdSparks);
+
+    g.userData.archSignRig = { signGroup, lamps, thresholdSparks };
+    g.position.set(npcPos[0], 0, npcPos[2]);
+    g.rotation.y = 0;
+    g.scale.setScalar(0.82);
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }});
   return g;
@@ -1739,6 +1862,11 @@ function selectObject(key) {
     forgePulseUntil = performance.now() + 1700;
     touchmarkBoostUntil = performance.now() + 2100;
   }
+  if (key === 'archsign') {
+    applySceneMode('forge');
+    forgePulseUntil = performance.now() + 1900;
+    archSignBoostUntil = performance.now() + 2200;
+  }
 
   renderDialog({
     name: cfg.name,
@@ -2036,6 +2164,44 @@ function animate() {
         spark.scale.setScalar(0.72 + (pulse + 1) * 0.14 + boost * 0.65);
         if (spark.material && 'emissiveIntensity' in spark.material) {
           spark.material.emissiveIntensity = 0.5 + (pulse + 1) * 0.22 + boost * 0.9;
+        }
+      });
+    }
+  }
+
+  // 炉门铺招：门牌轻摆、暖灯呼吸，点击后像开炉迎客一样短暂亮起
+  if (archSignRig) {
+    const boostLeft = Math.max(0, archSignBoostUntil - performance.now());
+    const boost = boostLeft ? Math.sin((1 - boostLeft / 2200) * Math.PI) : 0;
+    const swing = Math.sin(t * 1.15) * (0.035 + boost * 0.035);
+    if (archSignRig.signGroup) {
+      archSignRig.signGroup.rotation.z = swing;
+      archSignRig.signGroup.position.y = Math.sin(t * 1.6) * 0.018 - boost * 0.02;
+      archSignRig.signGroup.traverse(part => {
+        if (!part.material || !('emissiveIntensity' in part.material)) return;
+        part.material.emissiveIntensity = Math.max(part.material.emissiveIntensity || 0, 0.28 + boost * 0.45);
+      });
+    }
+    if (archSignRig.lamps) {
+      archSignRig.lamps.children.forEach((part, i) => {
+        if (!part.material || !('emissiveIntensity' in part.material)) return;
+        const glow = 0.44 + Math.sin(t * 2.6 + i) * 0.14 + boost * 0.72;
+        part.material.emissiveIntensity = Math.max(0.12, glow);
+      });
+    }
+    if (archSignRig.thresholdSparks) {
+      archSignRig.thresholdSparks.children.forEach((spark, i) => {
+        const base = spark.userData.base;
+        if (!base) return;
+        const pulse = Math.sin(t * 3.0 + base.phase);
+        spark.position.set(
+          base.x + Math.sin(t * 1.8 + base.phase) * (0.012 + boost * 0.018),
+          base.y + pulse * (0.018 + boost * 0.04),
+          base.z + Math.cos(t * 2.2 + base.phase) * 0.012
+        );
+        spark.scale.setScalar(0.75 + (pulse + 1) * 0.16 + boost * 0.55);
+        if (spark.material && 'emissiveIntensity' in spark.material) {
+          spark.material.emissiveIntensity = 0.45 + (pulse + 1) * 0.2 + boost * 0.75 + (i % 2) * 0.06;
         }
       });
     }
