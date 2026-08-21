@@ -50,18 +50,56 @@ function clip(value, limit) {
 function candidates(markdown) {
   const lines = markdown.split(/\r?\n/);
   const result = [];
-  for (let index = 0; index < lines.length; index += 1) {
-    const match = lines[index].match(/^##\s+候选\s*\d+[：:]\s*(.+)$/);
-    if (!match) continue;
+
+  function appendCandidate(title, start, end) {
     let url = "";
-    for (let cursor = index + 1; cursor < lines.length && !/^##\s+/.test(lines[cursor]); cursor += 1) {
+    for (let cursor = start; cursor < end; cursor += 1) {
       const urlMatch = lines[cursor].match(/URL[：:]\s*(https?:\/\/\S+)/);
       if (urlMatch) {
-        url = urlMatch[1];
+        url = urlMatch[1].replace(/[)>，。；;]+$/, "");
         break;
       }
     }
-    result.push({ title: match[1].replaceAll("`", "").trim(), url });
+    result.push({ title: title.replaceAll("`", "").trim(), url });
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].match(/^##\s+候选\s*\d+[：:]\s*(.+)$/);
+    if (!match) continue;
+    let end = index + 1;
+    while (end < lines.length && !/^##\s+/.test(lines[end])) {
+      end += 1;
+    }
+    appendCandidate(match[1], index + 1, end);
+  }
+
+  const publicSourcesStart = lines.findIndex(
+    (line) => line.trim() === "## 公开来源",
+  );
+  if (publicSourcesStart >= 0) {
+    let publicSourcesEnd = publicSourcesStart + 1;
+    while (
+      publicSourcesEnd < lines.length &&
+      !/^##\s+/.test(lines[publicSourcesEnd])
+    ) {
+      publicSourcesEnd += 1;
+    }
+    for (
+      let index = publicSourcesStart + 1;
+      index < publicSourcesEnd;
+      index += 1
+    ) {
+      const match = lines[index].match(/^\s*\d+[.)、]\s+(.+)$/);
+      if (!match) continue;
+      let end = index + 1;
+      while (
+        end < publicSourcesEnd &&
+        !/^\s*\d+[.)、]\s+/.test(lines[end])
+      ) {
+        end += 1;
+      }
+      appendCandidate(match[1], index + 1, end);
+    }
   }
   return result;
 }
