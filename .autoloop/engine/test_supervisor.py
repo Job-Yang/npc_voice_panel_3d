@@ -310,6 +310,12 @@ class StateMachineTests(unittest.TestCase):
             self.assertEqual(state["user_outcome"], "partial_success")
             self.assertEqual(state["terminal_reason"], "git_archive_failed")
 
+            archived_state = {}
+
+            def successful_archive(date, supervisor_root, current):
+                archived_state.update(current)
+                return 0
+
             with mock.patch.object(
                 MODULE,
                 "report_round",
@@ -317,7 +323,7 @@ class StateMachineTests(unittest.TestCase):
             ), mock.patch.object(
                 MODULE,
                 "archive_round",
-                return_value=0,
+                side_effect=successful_archive,
             ), mock.patch.object(
                 MODULE,
                 "notify_failure",
@@ -331,6 +337,11 @@ class StateMachineTests(unittest.TestCase):
             self.assertEqual(state["archive_rc"], 0)
             self.assertNotIn("terminal_reason", state)
             self.assertEqual(state["recovered_from"], "git_archive_failed")
+            self.assertEqual(archived_state["archive_rc"], 0)
+            self.assertEqual(
+                archived_state["recovered_from"],
+                "git_archive_failed",
+            )
 
     def test_legacy_exhausted_finalization_is_migrated_and_recovered(self):
         with tempfile.TemporaryDirectory() as directory:

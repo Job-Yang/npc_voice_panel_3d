@@ -616,6 +616,10 @@ def finalize(date, root, path, state):
         if notify_rc:
             return notify_rc
 
+    state["archive_rc"] = 0
+    if previous_finalization_failure:
+        state["recovered_from"] = previous_finalization_failure
+    save_state(path, state)
     archive_rc = archive_round(date, root, state)
     if archive_rc:
         exhausted = state["finalize_attempts"] >= MAX_ATTEMPTS
@@ -656,8 +660,6 @@ def finalize(date, root, path, state):
         state["archive_rc"] = 0
         if state.get("core_outcome") == "success":
             state.pop("terminal_reason", None)
-            if recovered_from:
-                state["recovered_from"] = recovered_from
         save_state(path, state)
         if recovered_from:
             notify_rc = notify_terminal_failure(

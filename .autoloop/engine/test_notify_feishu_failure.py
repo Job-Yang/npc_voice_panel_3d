@@ -53,6 +53,24 @@ class NotificationTests(unittest.TestCase):
         self.assertIn("任务失败，需要介入", text)
         self.assertIn("作品未完成或未通过验证", text)
 
+    def test_report_failure_marks_archive_as_not_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            text = MODULE.notification_text(
+                "2099-01-01",
+                {
+                    "core_outcome": "success",
+                    "user_outcome": "partial_success",
+                    "terminal_reason": "feishu_report_failed",
+                    "report_rc": 1,
+                    "attempts": [{}],
+                },
+                Path(directory),
+                "",
+            )
+
+        self.assertIn("飞书实验报告：失败", text)
+        self.assertIn("脱敏证据归档：未执行", text)
+
     def test_recovery_notification_declares_full_success(self):
         with tempfile.TemporaryDirectory() as directory:
             text = MODULE.notification_text(

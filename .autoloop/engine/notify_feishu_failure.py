@@ -126,7 +126,13 @@ def notification_text(date, state, run_dir, document_url):
     elif core_succeeded:
         title = f"AutoLoop 部分成功，收口自动修复中 | {date}"
         report_result = "成功" if state.get("report_rc") == 0 else "失败"
-        archive_result = "成功" if state.get("archive_rc") == 0 else "失败"
+        archive_result = (
+            "未执行"
+            if "archive_rc" not in state
+            else "成功"
+            if state.get("archive_rc") == 0
+            else "失败"
+        )
         lines = [
             title,
             "整体结论：部分成功（作品已上线，可正常使用）",
