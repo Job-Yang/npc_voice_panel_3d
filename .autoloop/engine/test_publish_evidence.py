@@ -28,6 +28,7 @@ class PublishEvidenceTests(unittest.TestCase):
                         "date": "2099-01-01",
                         "status": "failed_exhausted",
                         "terminal_reason": "static_gate",
+                        "recovered_from": "feishu_report_failed",
                         "private_field": "must not publish",
                     }
                 ),
@@ -64,6 +65,10 @@ class PublishEvidenceTests(unittest.TestCase):
             self.assertIn("<REMOTE_HOME>", public_log)
             self.assertIn("<REDACTED_INTERNAL_EMAIL>", public_log)
             self.assertNotIn("private_field", (output / "state.json").read_text())
+            self.assertIn(
+                "feishu_report_failed",
+                (output / "state.json").read_text(),
+            )
             self.assertFalse(manifest["platform_raw_payloads_published"])
             scan = json.loads(
                 (output / "privacy-scan.json").read_text(encoding="utf-8")

@@ -120,6 +120,7 @@ def selected_state(path):
         "report_rc",
         "notification_rc",
         "archive_rc",
+        "recovered_from",
     }
     return {key: state[key] for key in keep if key in state}
 
