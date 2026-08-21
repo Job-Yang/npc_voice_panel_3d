@@ -124,7 +124,10 @@ def notification_text(date, state, run_dir, document_url):
             "后续动作：无需人工处理。",
         ]
     elif core_succeeded:
+        repair_blocked = state.get("status") == "partial_success_blocked"
         title = f"AutoLoop 部分成功，收口自动修复中 | {date}"
+        if repair_blocked:
+            title = f"AutoLoop 部分成功，收口需要介入 | {date}"
         report_result = "成功" if state.get("report_rc") == 0 else "失败"
         archive_result = (
             "未执行"
@@ -140,7 +143,12 @@ def notification_text(date, state, run_dir, document_url):
             f"飞书实验报告：{report_result}",
             f"脱敏证据归档：{archive_result}",
             f"收口问题：{reason}",
-            "后续动作：AutoLoop 将继续自动修复收口，不会重跑或回退作品。",
+            (
+                "后续动作：已完成一次受限自修但仍未恢复，需要人工介入；"
+                "不会重跑或回退作品。"
+                if repair_blocked
+                else "后续动作：AutoLoop 将继续自动修复收口，不会重跑或回退作品。"
+            ),
         ]
     else:
         lines = [

@@ -71,6 +71,26 @@ class NotificationTests(unittest.TestCase):
         self.assertIn("飞书实验报告：失败", text)
         self.assertIn("脱敏证据归档：未执行", text)
 
+    def test_exhausted_repair_requests_intervention(self):
+        with tempfile.TemporaryDirectory() as directory:
+            text = MODULE.notification_text(
+                "2099-01-01",
+                {
+                    "status": "partial_success_blocked",
+                    "core_outcome": "success",
+                    "user_outcome": "partial_success",
+                    "terminal_reason": "feishu_report_repair_failed",
+                    "report_rc": 1,
+                    "attempts": [{}],
+                },
+                Path(directory),
+                "",
+            )
+
+        self.assertIn("收口需要介入", text)
+        self.assertIn("已完成一次受限自修", text)
+        self.assertNotIn("将继续自动修复", text)
+
     def test_recovery_notification_declares_full_success(self):
         with tempfile.TemporaryDirectory() as directory:
             text = MODULE.notification_text(

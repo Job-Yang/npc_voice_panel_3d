@@ -8,6 +8,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -22,7 +23,12 @@ AUTOLOOP_DIR = ENGINE_DIR.parent
 REPO_DIR = AUTOLOOP_DIR.parent
 RUNS_DIR = Path(os.environ.get("AUTOLOOP_RUNS_DIR", AUTOLOOP_DIR / "runs"))
 MAX_ATTEMPTS = int(os.environ.get("AUTOLOOP_MAX_ATTEMPTS", "3"))
-FINAL_STATUSES = {"succeeded", "failed_nonretryable", "failed_exhausted"}
+FINAL_STATUSES = {
+    "succeeded",
+    "failed_nonretryable",
+    "failed_exhausted",
+    "partial_success_blocked",
+}
 RETRYABLE_PATTERNS = (
     "could not be refreshed",
     "refresh token",
@@ -198,6 +204,7 @@ def version_gate(output_dir):
         [sys.executable, str(ENGINE_DIR / "test_render_feishu_failure.py")],
         [sys.executable, str(ENGINE_DIR / "test_render_feishu_round.py")],
         [sys.executable, str(ENGINE_DIR / "test_publish_evidence.py")],
+        [sys.executable, str(ENGINE_DIR / "test_repair_engine.py")],
         [sys.executable, str(ENGINE_DIR / "test_workspace_runner.py")],
     ]
     static_rc = 0
@@ -436,6 +443,78 @@ def notify_terminal_failure(date, path, state, run_dir, resume_status):
     return notify_rc
 
 
+def failure_signature(phase, evidence_path):
+    evidence = read_text(evidence_path)[-12000:]
+    evidence = re.sub(r"https?://\S+", "<URL>", evidence)
+    evidence = re.sub(
+        r"(?:/data00)?/home/[^/\s\"']+",
+        "<REMOTE_HOME>",
+        evidence,
+    )
+    evidence = re.sub(r"/Users/[^/\s\"']+", "<LOCAL_HOME>", evidence)
+    normalized = "\n".join(
+        line.strip() for line in evidence.splitlines() if line.strip()
+    )
+    return hashlib.sha256(
+        f"{phase}\n{normalized}".encode()
+    ).hexdigest()[:16]
+
+
+def maybe_repair_engine(date, root, state, phase, evidence_path):
+    signature = failure_signature(phase, evidence_path)
+    repairs = state.setdefault("repairs", {})
+    current = repairs.get(phase, {})
+    if current.get("signature") == signature:
+        current["occurrences"] = current.get("occurrences", 0) + 1
+    else:
+        current = {
+            "signature": signature,
+            "occurrences": 1,
+            "attempts": 0,
+            "status": "observed",
+        }
+    repairs[phase] = current
+    if current["occurrences"] < 2 or current["attempts"] >= 1:
+        return False
+
+    current["attempts"] += 1
+    current["status"] = "repairing"
+    result_path = root / "repair" / phase / signature / "result.json"
+    command = command_override(
+        "AUTOLOOP_REPAIR_ENGINE_COMMAND",
+        [
+            sys.executable,
+            str(ENGINE_DIR / "repair_engine.py"),
+            "--date",
+            date,
+            "--phase",
+            phase,
+            "--evidence",
+            str(evidence_path),
+            "--execution-repo",
+            str(REPO_DIR),
+            "--result",
+            str(result_path),
+        ],
+    )
+    rc, duration = run_logged(
+        command,
+        result_path.parent / "orchestrator.log",
+        timeout=int(os.environ.get("AUTOLOOP_REPAIR_TIMEOUT", "1200")) + 60,
+        stdin=subprocess.DEVNULL,
+    )
+    result = read_json(result_path, {})
+    current.update(
+        {
+            "status": "applied" if rc == 0 else "failed",
+            "result_rc": rc,
+            "duration_seconds": duration,
+            "result": result,
+        }
+    )
+    return rc == 0
+
+
 def archive_round(date, root, state):
     public_root = RUNS_DIR / "public-evidence" / date
     command = [
@@ -564,6 +643,49 @@ def finalize(date, root, path, state):
     state["finalize_attempts"] = state.get("finalize_attempts", 0) + 1
     report_rc = report_round(date, run_dir, mode)
     state["report_rc"] = report_rc
+    if report_rc:
+        repair_applied = maybe_repair_engine(
+            date,
+            root,
+            state,
+            "feishu_report",
+            run_dir / "supervisor_report.log",
+        )
+        if repair_applied:
+            report_rc = report_round(date, run_dir, mode)
+            state["report_rc"] = report_rc
+            state["repairs"]["feishu_report"]["status"] = (
+                "recovered" if report_rc == 0 else "repair_validation_failed"
+            )
+        repair = state.get("repairs", {}).get("feishu_report", {})
+        repair_exhausted = (
+            report_rc
+            and repair.get("occurrences", 0) >= 2
+            and repair.get("attempts", 0) >= 1
+            and repair.get("status")
+            in {"failed", "repair_validation_failed"}
+        )
+        if repair_exhausted:
+            state["status"] = (
+                "partial_success_blocked"
+                if state.get("core_outcome") == "success"
+                else "failed_exhausted"
+            )
+            state["user_outcome"] = (
+                "partial_success"
+                if state.get("core_outcome") == "success"
+                else "failure"
+            )
+            state["terminal_reason"] = "feishu_report_repair_failed"
+            save_state(path, state)
+            notify_terminal_failure(
+                date,
+                path,
+                state,
+                run_dir,
+                state["status"],
+            )
+            return report_rc
     if report_rc:
         exhausted = state["finalize_attempts"] >= MAX_ATTEMPTS
         state["status"] = (
@@ -711,6 +833,37 @@ def run_supervisor(date, root, path, state):
         save_state(path, state)
         if prewarm_rc:
             state["prewarm_failures"] = state.get("prewarm_failures", 0) + 1
+            evidence_path = (
+                root / "prewarm/version_static.log"
+                if state.get("prewarm", {}).get("details", {}).get("stage")
+                == "static_gate"
+                else root / "prewarm/preflight.log"
+            )
+            if maybe_repair_engine(
+                date,
+                root,
+                state,
+                "prewarm",
+                evidence_path,
+            ):
+                prewarm_rc = prewarm(date, root, state)
+                if prewarm_rc == 0:
+                    state["repairs"]["prewarm"]["status"] = "recovered"
+                else:
+                    state["repairs"]["prewarm"][
+                        "status"
+                    ] = "repair_validation_failed"
+                save_state(path, state)
+            repair = state.get("repairs", {}).get("prewarm", {})
+            if (
+                prewarm_rc
+                and repair.get("occurrences", 0) >= 2
+                and repair.get("attempts", 0) >= 1
+                and repair.get("status")
+                in {"failed", "repair_validation_failed"}
+            ):
+                state["prewarm_failures"] = MAX_ATTEMPTS
+        if prewarm_rc:
             if state["prewarm_failures"] >= MAX_ATTEMPTS:
                 state["core_outcome"] = "failure"
                 state["terminal_status"] = "failed_exhausted"

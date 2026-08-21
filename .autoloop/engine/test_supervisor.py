@@ -82,6 +82,175 @@ class ClassificationTests(unittest.TestCase):
 
 
 class StateMachineTests(unittest.TestCase):
+    def test_same_failure_signature_triggers_one_repair_on_second_occurrence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence = root / "failure.log"
+            evidence.write_text(
+                "Error: deterministic parser mismatch\n",
+                encoding="utf-8",
+            )
+            state = {}
+            calls = []
+
+            def fake_run_logged(command, log_path, **kwargs):
+                calls.append(command)
+                result_path = Path(
+                    command[command.index("--result") + 1]
+                )
+                result_path.parent.mkdir(parents=True, exist_ok=True)
+                result_path.write_text(
+                    json.dumps(
+                        {
+                            "status": "applied",
+                            "commit": "abc123",
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                return 0, 1.0
+
+            with mock.patch.object(
+                MODULE,
+                "run_logged",
+                side_effect=fake_run_logged,
+            ):
+                first = MODULE.maybe_repair_engine(
+                    "2099-01-01",
+                    root,
+                    state,
+                    "feishu_report",
+                    evidence,
+                )
+                second = MODULE.maybe_repair_engine(
+                    "2099-01-01",
+                    root,
+                    state,
+                    "feishu_report",
+                    evidence,
+                )
+                third = MODULE.maybe_repair_engine(
+                    "2099-01-01",
+                    root,
+                    state,
+                    "feishu_report",
+                    evidence,
+                )
+
+            self.assertFalse(first)
+            self.assertTrue(second)
+            self.assertFalse(third)
+            self.assertEqual(len(calls), 1)
+            repair = state["repairs"]["feishu_report"]
+            self.assertEqual(repair["occurrences"], 3)
+            self.assertEqual(repair["attempts"], 1)
+            self.assertEqual(repair["status"], "applied")
+
+    def test_report_repair_retries_finalize_without_rerunning_attempt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "2099-01-01_supervisor"
+            path = root / "state.json"
+            run_dir = Path(directory) / "attempt_01"
+            run_dir.mkdir(parents=True)
+            state = base_state()
+            state.update(
+                {
+                    "core_outcome": "success",
+                    "terminal_status": "succeeded",
+                    "final_run_dir": str(run_dir),
+                    "attempts": [{"run_dir": str(run_dir)}],
+                }
+            )
+
+            def fake_repair(date, supervisor_root, current, phase, evidence):
+                current.setdefault("repairs", {})[phase] = {
+                    "status": "applied",
+                }
+                return True
+
+            with mock.patch.object(
+                MODULE,
+                "report_round",
+                side_effect=[1, 0],
+            ) as report, mock.patch.object(
+                MODULE,
+                "maybe_repair_engine",
+                side_effect=fake_repair,
+            ) as repair, mock.patch.object(
+                MODULE,
+                "archive_round",
+                return_value=0,
+            ), mock.patch.object(MODULE, "run_attempt") as attempt:
+                rc = MODULE.finalize("2099-01-01", root, path, state)
+
+            self.assertEqual(rc, 0)
+            self.assertEqual(report.call_count, 2)
+            repair.assert_called_once()
+            attempt.assert_not_called()
+            self.assertEqual(state["status"], "succeeded")
+            self.assertEqual(
+                state["repairs"]["feishu_report"]["status"],
+                "recovered",
+            )
+
+    def test_failed_repair_stops_identical_report_retries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "2099-01-01_supervisor"
+            path = root / "state.json"
+            run_dir = Path(directory) / "attempt_01"
+            run_dir.mkdir(parents=True)
+            state = base_state()
+            state.update(
+                {
+                    "core_outcome": "success",
+                    "terminal_status": "succeeded",
+                    "final_run_dir": str(run_dir),
+                    "attempts": [{"run_dir": str(run_dir)}],
+                    "repairs": {
+                        "feishu_report": {
+                            "signature": "same",
+                            "occurrences": 1,
+                            "attempts": 0,
+                            "status": "observed",
+                        }
+                    },
+                }
+            )
+
+            def failed_repair(date, supervisor_root, current, phase, evidence):
+                current["repairs"][phase].update(
+                    {
+                        "occurrences": 2,
+                        "attempts": 1,
+                        "status": "failed",
+                    }
+                )
+                return False
+
+            with mock.patch.object(
+                MODULE,
+                "report_round",
+                return_value=1,
+            ) as report, mock.patch.object(
+                MODULE,
+                "maybe_repair_engine",
+                side_effect=failed_repair,
+            ), mock.patch.object(
+                MODULE,
+                "notify_failure",
+                return_value=0,
+            ) as notify:
+                rc = MODULE.finalize("2099-01-01", root, path, state)
+
+            self.assertEqual(rc, 1)
+            self.assertEqual(report.call_count, 1)
+            self.assertEqual(state["status"], "partial_success_blocked")
+            self.assertEqual(
+                state["terminal_reason"],
+                "feishu_report_repair_failed",
+            )
+            notify.assert_called_once()
+
     def test_static_gate_python_cache_is_outside_repository(self):
         cache_prefix = Path(MODULE.static_gate_env()["PYTHONPYCACHEPREFIX"])
         self.assertFalse(cache_prefix.is_relative_to(MODULE.REPO_DIR))
