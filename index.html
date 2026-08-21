@@ -473,6 +473,15 @@ const OBJECT_CONFIG = {
       { label: '找我协作', type: 'contact' },
     ],
   },
+  smokehood: {
+    name: '排烟罩 · 混乱出炉',
+    meta: '点击物件',
+    line: '炉火要旺，也要把烟带走。老杨做 iLoop 也一样：热问题进炉，噪声顺着烟道排出去，只留下能锻、能验、能交付的铁。',
+    actions: [
+      { label: '看 iLoop', type: 'iloop' },
+      { label: '找我协作', type: 'contact' },
+    ],
+  },
   forge: {
     name: '火炉 · 欢迎语锻造机',
     meta: '点击物件',
@@ -507,6 +516,8 @@ let touchmarkRig = null;
 let touchmarkBoostUntil = 0;
 let archSignRig = null;
 let archSignBoostUntil = 0;
+let smokeHoodRig = null;
+let smokeHoodBoostUntil = 0;
 let dialogActions = [];
 let selectedObjectKey = null;
 let yqClickCount = 0;
@@ -710,6 +721,12 @@ const interactiveObjects = {}; // { key: { root, config } }
 let loadCount = 0;
 const TOTAL = Object.keys(NPC_CONFIG).length + 1; // +1 for bg
 createHotspot('forge', [0, FLOOR_Y + 0.7, 1.05], [1.8, 1.5, 1.3]);
+const smokeHood = makeProp('smokehood', [0, 0, 0.86]);
+smokeHood.position.y += FLOOR_Y;
+smokeHoodRig = smokeHood.userData.smokeHoodRig;
+registerInteractive(smokeHood, 'smokehood');
+scene.add(smokeHood);
+createHotspot('smokehood', [0, FLOOR_Y + 1.78, 0.86], [1.5, 1.05, 0.62]);
 const archSign = makeProp('archsign', [0, 0, 3.78]);
 archSign.position.y += FLOOR_Y;
 archSignRig = archSign.userData.archSignRig;
@@ -1382,6 +1399,96 @@ function makeProp(type, npcPos) {
     g.position.set(npcPos[0], 0, npcPos[2]);
     g.rotation.y = 0;
     g.scale.setScalar(0.82);
+  } else if (type === 'smokehood') {
+    // 排烟罩：让炉火上方有“把混乱排出去”的可见呼吸层
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x1d2025, metalness: 0.58, roughness: 0.5 });
+    const darkIronMat = new THREE.MeshStandardMaterial({ color: 0x111419, metalness: 0.5, roughness: 0.62 });
+    const sootMat = new THREE.MeshStandardMaterial({ color: 0x2b2b2c, roughness: 0.96 });
+    const emberMat = new THREE.MeshStandardMaterial({ color: 0xff9b42, emissive: 0xff5a16, emissiveIntensity: 0.54, roughness: 0.48 });
+    const coolMat = new THREE.MeshStandardMaterial({ color: 0x78b7d8, emissive: 0x1f5f83, emissiveIntensity: 0.26, roughness: 0.6 });
+    const smokeMats = [
+      new THREE.MeshStandardMaterial({ color: 0x6f6a61, transparent: true, opacity: 0.22, roughness: 1, depthWrite: false }),
+      new THREE.MeshStandardMaterial({ color: 0x9a8d78, transparent: true, opacity: 0.16, roughness: 1, depthWrite: false }),
+    ];
+
+    const hood = new THREE.Mesh(new THREE.ConeGeometry(0.72, 0.42, 4, 1, true), ironMat);
+    hood.name = 'smokeHoodCanopy';
+    hood.position.set(0, 1.58, -0.08);
+    hood.rotation.y = Math.PI / 4;
+    hood.scale.set(1.46, 0.58, 0.58);
+    const hoodLip = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.025, 8, 4), darkIronMat);
+    hoodLip.position.set(0, 1.46, -0.08);
+    hoodLip.rotation.set(Math.PI / 2, 0, Math.PI / 4);
+    hoodLip.scale.set(1.46, 0.58, 1);
+    const flue = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.82, 18), darkIronMat);
+    flue.name = 'smokeHoodFlue';
+    flue.position.set(0, 2.03, -0.16);
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.17, 0.08, 18), ironMat);
+    cap.position.set(0, 2.48, -0.16);
+    g.add(hood, hoodLip, flue, cap);
+
+    [-0.46, 0.46].forEach(x => {
+      const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.72, 8), ironMat);
+      chain.position.set(x, 1.82, 0.06);
+      chain.rotation.z = x < 0 ? -0.08 : 0.08;
+      const hook = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.008, 8, 16), ironMat);
+      hook.position.set(x, 1.47, 0.07);
+      hook.rotation.x = Math.PI / 2;
+      g.add(chain, hook);
+    });
+
+    const draftGauge = new THREE.Group();
+    draftGauge.name = 'smokeHoodDraftGauge';
+    const gaugePost = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.54, 0.035), darkIronMat);
+    gaugePost.position.set(-0.76, 1.62, 0.06);
+    draftGauge.add(gaugePost);
+    for (let i = 0; i < 4; i++) {
+      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.18 + i * 0.03, 0.028, 0.026), i < 2 ? coolMat : emberMat);
+      tick.name = `smokeHoodDraftTick${i}`;
+      tick.position.set(-0.66, 1.43 + i * 0.13, 0.08);
+      draftGauge.add(tick);
+    }
+    g.add(draftGauge);
+
+    const smoke = new THREE.Group();
+    smoke.name = 'smokeHoodPlume';
+    for (let i = 0; i < 18; i++) {
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(0.07 + (i % 4) * 0.018, 12, 8), smokeMats[i % smokeMats.length]);
+      puff.userData.base = {
+        x: (i % 3 - 1) * 0.08,
+        y: 1.42 + i * 0.055,
+        z: -0.1 + ((i * 7) % 5 - 2) * 0.025,
+        phase: i * 0.53,
+        radius: 0.05 + (i % 5) * 0.018,
+      };
+      puff.position.set(puff.userData.base.x, puff.userData.base.y, puff.userData.base.z);
+      smoke.add(puff);
+    }
+    g.add(smoke);
+
+    const filterSparks = new THREE.Group();
+    filterSparks.name = 'smokeHoodFilterSparks';
+    for (let i = 0; i < 12; i++) {
+      const spark = new THREE.Mesh(new THREE.SphereGeometry(0.013 + (i % 2) * 0.006, 8, 6), i % 3 === 0 ? coolMat : emberMat);
+      spark.userData.base = {
+        x: -0.38 + i * 0.07,
+        y: 1.36 + (i % 3) * 0.035,
+        z: 0.02 + (i % 2) * 0.045,
+        phase: i * 0.69,
+      };
+      spark.position.set(spark.userData.base.x, spark.userData.base.y, spark.userData.base.z);
+      filterSparks.add(spark);
+    }
+    g.add(filterSparks);
+
+    const sootPlate = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.035, 0.08), sootMat);
+    sootPlate.position.set(0, 1.34, 0.05);
+    g.add(sootPlate);
+
+    g.userData.smokeHoodRig = { smoke, filterSparks, draftGauge, flue, hood };
+    g.position.set(npcPos[0], 0, npcPos[2]);
+    g.rotation.y = 0;
+    g.scale.setScalar(0.82);
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }});
   return g;
@@ -1867,6 +1974,11 @@ function selectObject(key) {
     forgePulseUntil = performance.now() + 1900;
     archSignBoostUntil = performance.now() + 2200;
   }
+  if (key === 'smokehood') {
+    applySceneMode('forge');
+    forgePulseUntil = performance.now() + 1800;
+    smokeHoodBoostUntil = performance.now() + 2400;
+  }
 
   renderDialog({
     name: cfg.name,
@@ -2204,6 +2316,59 @@ function animate() {
           spark.material.emissiveIntensity = 0.45 + (pulse + 1) * 0.2 + boost * 0.75 + (i % 2) * 0.06;
         }
       });
+    }
+  }
+
+  // 排烟罩：烟流持续上升，点击后抽力增强，表达“热问题进炉、噪声排走”
+  if (smokeHoodRig) {
+    const boostLeft = Math.max(0, smokeHoodBoostUntil - performance.now());
+    const boost = boostLeft ? Math.sin((1 - boostLeft / 2400) * Math.PI) : 0;
+    const draft = 0.5 + Math.sin(t * 1.4) * 0.5;
+    if (smokeHoodRig.smoke) {
+      smokeHoodRig.smoke.children.forEach((puff, i) => {
+        const base = puff.userData.base;
+        if (!base) return;
+        const rise = (t * (0.22 + boost * 0.2) + i * 0.071) % 1;
+        const spread = base.radius + rise * (0.2 + boost * 0.05);
+        puff.position.set(
+          base.x + Math.sin(t * 1.8 + base.phase) * spread,
+          base.y + rise * (0.82 + boost * 0.28),
+          base.z + Math.cos(t * 1.35 + base.phase) * spread * 0.72
+        );
+        const scale = 0.75 + rise * 0.75 + draft * 0.14 + boost * 0.28;
+        puff.scale.setScalar(scale);
+        if (puff.material) {
+          puff.material.opacity = Math.max(0.05, 0.24 - rise * 0.17 + boost * 0.06);
+        }
+      });
+    }
+    if (smokeHoodRig.filterSparks) {
+      smokeHoodRig.filterSparks.children.forEach((spark, i) => {
+        const base = spark.userData.base;
+        if (!base) return;
+        const pulse = Math.sin(t * 3.1 + base.phase);
+        spark.position.set(
+          base.x + Math.sin(t * 2.2 + base.phase) * (0.018 + boost * 0.035),
+          base.y + pulse * (0.015 + boost * 0.04),
+          base.z + Math.cos(t * 2.5 + base.phase) * 0.018
+        );
+        spark.scale.setScalar(0.76 + (pulse + 1) * 0.14 + boost * 0.42);
+        if (spark.material && 'emissiveIntensity' in spark.material) {
+          spark.material.emissiveIntensity = 0.34 + (pulse + 1) * 0.16 + boost * 0.72;
+        }
+      });
+    }
+    if (smokeHoodRig.draftGauge) {
+      smokeHoodRig.draftGauge.children.forEach((part, i) => {
+        if (!part.material || !('emissiveIntensity' in part.material)) return;
+        part.material.emissiveIntensity = 0.16 + Math.max(0, draft - i * 0.11) * 0.4 + boost * 0.55;
+      });
+    }
+    if (smokeHoodRig.flue) {
+      smokeHoodRig.flue.scale.y = 1 + draft * 0.018 + boost * 0.035;
+    }
+    if (smokeHoodRig.hood?.material && 'emissiveIntensity' in smokeHoodRig.hood.material) {
+      smokeHoodRig.hood.material.emissiveIntensity = 0.04 + boost * 0.16;
     }
   }
 
