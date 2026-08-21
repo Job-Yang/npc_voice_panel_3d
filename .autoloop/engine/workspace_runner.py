@@ -193,6 +193,46 @@ def supervisor_process(control_repo, workspace, date, command):
     ).returncode
 
 
+def reconcile_public_success(control_repo, date, state_path, state):
+    result = run_git(
+        control_repo,
+        [
+            "show",
+            f"{REMOTE}/{BRANCH}:.autoloop/runs/public-evidence/{date}/state.json",
+        ],
+        capture=True,
+    )
+    if result.returncode:
+        return False
+    try:
+        public_state = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return False
+    if (
+        public_state.get("status") != "succeeded"
+        or public_state.get("core_outcome") != "success"
+    ):
+        return False
+    state.update(
+        {
+            "status": "succeeded",
+            "user_outcome": "success",
+            "core_outcome": "success",
+            "terminal_status": "succeeded",
+            "report_rc": public_state.get("report_rc", 0),
+            "archive_rc": public_state.get("archive_rc", 0),
+            "reconciled_from_public_evidence": True,
+            "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        }
+    )
+    state.pop("terminal_reason", None)
+    state_path.write_text(
+        json.dumps(state, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return True
+
+
 def resume_incomplete_workspaces(control_repo, current_date):
     root = workspace_root(control_repo)
     if not root.is_dir():
@@ -210,6 +250,13 @@ def resume_incomplete_workspaces(control_repo, current_date):
         try:
             state = json.loads(state_path.read_text(encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError):
+            continue
+        if reconcile_public_success(
+            control_repo,
+            date,
+            state_path,
+            state,
+        ):
             continue
         recoverable_legacy_finalization = (
             state.get("status") == "failed_exhausted"

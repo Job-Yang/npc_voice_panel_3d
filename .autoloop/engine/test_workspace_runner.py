@@ -193,6 +193,10 @@ class WorkspaceRunnerTests(unittest.TestCase):
                 MODULE,
                 "workspace_root",
                 return_value=root,
+            ), mock.patch.object(
+                MODULE,
+                "reconcile_public_success",
+                return_value=False,
             ), mock.patch.object(MODULE, "supervisor_process", return_value=0) as run:
                 MODULE.resume_incomplete_workspaces(
                     root / "control",
@@ -204,6 +208,130 @@ class WorkspaceRunnerTests(unittest.TestCase):
                 old_workspace,
                 "2099-01-01",
                 "run",
+            )
+
+    def test_public_success_reconciles_stale_private_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "state.json"
+            state = {
+                "status": "failed_exhausted",
+                "core_outcome": "success",
+                "terminal_reason": "feishu_report_failed",
+            }
+            public_state = {
+                "status": "succeeded",
+                "core_outcome": "success",
+                "report_rc": 0,
+                "archive_rc": 0,
+            }
+            result = subprocess.CompletedProcess(
+                ["git", "show"],
+                0,
+                stdout=json.dumps(public_state),
+                stderr="",
+            )
+
+            with mock.patch.object(
+                MODULE,
+                "run_git",
+                return_value=result,
+            ):
+                reconciled = MODULE.reconcile_public_success(
+                    root / "control",
+                    "2099-01-01",
+                    state_path,
+                    state,
+                )
+
+            persisted = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertTrue(reconciled)
+            self.assertEqual(persisted["status"], "succeeded")
+            self.assertEqual(persisted["terminal_status"], "succeeded")
+            self.assertEqual(persisted["user_outcome"], "success")
+            self.assertEqual(persisted["report_rc"], 0)
+            self.assertEqual(persisted["archive_rc"], 0)
+            self.assertTrue(persisted["reconciled_from_public_evidence"])
+            self.assertNotIn("terminal_reason", persisted)
+
+    def test_public_non_success_does_not_overwrite_private_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "state.json"
+            original = {
+                "status": "partial_success",
+                "core_outcome": "success",
+                "terminal_reason": "git_archive_failed",
+            }
+            state_path.write_text(
+                json.dumps(original),
+                encoding="utf-8",
+            )
+            result = subprocess.CompletedProcess(
+                ["git", "show"],
+                0,
+                stdout=json.dumps(
+                    {
+                        "status": "partial_success",
+                        "core_outcome": "success",
+                    }
+                ),
+                stderr="",
+            )
+
+            with mock.patch.object(
+                MODULE,
+                "run_git",
+                return_value=result,
+            ):
+                reconciled = MODULE.reconcile_public_success(
+                    root / "control",
+                    "2099-01-01",
+                    state_path,
+                    dict(original),
+                )
+
+            self.assertFalse(reconciled)
+            self.assertEqual(
+                json.loads(state_path.read_text(encoding="utf-8")),
+                original,
+            )
+
+    def test_invalid_public_state_does_not_overwrite_private_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            state_path = root / "state.json"
+            original = {
+                "status": "failed_exhausted",
+                "core_outcome": "success",
+            }
+            state_path.write_text(
+                json.dumps(original),
+                encoding="utf-8",
+            )
+            result = subprocess.CompletedProcess(
+                ["git", "show"],
+                0,
+                stdout="{invalid",
+                stderr="",
+            )
+
+            with mock.patch.object(
+                MODULE,
+                "run_git",
+                return_value=result,
+            ):
+                reconciled = MODULE.reconcile_public_success(
+                    root / "control",
+                    "2099-01-01",
+                    state_path,
+                    dict(original),
+                )
+
+            self.assertFalse(reconciled)
+            self.assertEqual(
+                json.loads(state_path.read_text(encoding="utf-8")),
+                original,
             )
 
     def test_external_launcher_loads_latest_runner_from_remote(self):
