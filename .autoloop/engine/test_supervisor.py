@@ -360,6 +360,26 @@ class StateMachineTests(unittest.TestCase):
                 self.assertEqual(state["status"], "prewarm_failed")
                 version_gate.assert_not_called()
 
+    def test_prewarm_preserves_terminal_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "2099-01-01_supervisor"
+            state = base_state()
+            state.update(
+                {
+                    "status": "succeeded",
+                    "core_outcome": "success",
+                    "terminal_status": "succeeded",
+                }
+            )
+            original = dict(state)
+
+            with mock.patch.object(MODULE, "run_logged") as run_logged:
+                rc = MODULE.prewarm("2099-01-01", root, state)
+
+            self.assertEqual(rc, 0)
+            self.assertEqual(state, original)
+            run_logged.assert_not_called()
+
     def test_terminal_failure_requires_verified_notification(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "2099-01-01_supervisor"

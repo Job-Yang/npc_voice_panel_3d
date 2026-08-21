@@ -288,6 +288,8 @@ def version_gate(output_dir):
 
 
 def prewarm(date, root, state):
+    if state.get("status") in FINAL_STATUSES:
+        return 0
     prewarm_dir = root / "prewarm"
     prewarm_dir.mkdir(parents=True, exist_ok=True)
     output = prewarm_dir / "preflight.json"
