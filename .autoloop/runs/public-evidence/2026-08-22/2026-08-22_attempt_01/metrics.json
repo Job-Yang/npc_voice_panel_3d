@@ -1,0 +1,13 @@
+{
+  "date": "2026-08-22", "stamp": "2026-08-22", "agent_rc": 0,
+  "preflight_rc": 0,
+  "input_validation_rc": 0,
+  "creative_validation_rc": 0,
+  "input_mode": "public_external",
+  "input_source_count": 4,
+  "visual_verification_rc": 0,
+  "committed": false,
+  "head_before": "3c12903ba7794caf84528bf3b8b7d7169a90f78d", "head_after": "3c12903ba7794caf84528bf3b8b7d7169a90f78d",
+  "commit_oneline": "3c12903 fix(autoloop): keep terminal prewarm idempotent",
+  "diff_shortstat": "0 0 0"
+}
