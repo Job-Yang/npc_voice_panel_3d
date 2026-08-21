@@ -3,7 +3,7 @@
   "date": "2026-08-21",
   "policy": "allowlist_and_redact",
   "platform_raw_payloads_published": false,
-  "excluded_file_count": 39,
+  "excluded_file_count": 40,
   "published_files": [
     "2026-08-21_attempt_01/creative_validation.json",
     "2026-08-21_attempt_01/feishu_notification.json",
