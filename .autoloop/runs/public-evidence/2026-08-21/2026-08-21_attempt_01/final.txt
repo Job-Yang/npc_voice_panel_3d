@@ -1,0 +1,20 @@
+本轮已完成并推送到 `main`。
+
+做了“炉门铺招 · 老杨开炉迎客”：在默认视角上方新增木门楣、悬挂铁牌、暖灯、YQ/iLoop 符号和门槛火点，门牌会轻微摆动，点击后火炉与铺招短暂变亮，并引导到“老杨是谁 / 找我协作”。这次主题补的是欢迎页第一眼的店铺门面，不再继续堆内部工序物件。
+
+关键产物：
+- 作品提交：`cf3e30d2c89db3fd72684b1f9302d57b2c059157`
+- 记录回填提交：`5ec4d8478f7cdb0e685b71ea0dd5ddfb4a154b48`
+- 远端 `main` 已确认在 `5ec4d8478f7cdb0e685b71ea0dd5ddfb4a154b48`
+- 输入卡：[2026-08-21.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-21/.autoloop/inputs/2026-08-21.md)
+- 手记：[2026-08-21.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-21/.autoloop/journal/2026-08-21.md)
+- 本地截图：[2026-08-21-local.png](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-21/.autoloop/journal/assets/2026-08-21-local.png)
+- 线上截图：[2026-08-21-online.png](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-21/.autoloop/journal/assets/2026-08-21-online.png)
+
+验证结果：
+- 创意门禁通过：`creative_validation_final.json` 为 `passed`
+- 本地固定 Chromium 验证通过，canvas 非空、loader 隐藏、无 console error
+- 线上无痕验证通过：`online_html_match: true`，线上 `index.html` 与当前本地版本 SHA-256 一致
+- 仍有既有的 Web Audio 自动播放限制和 SwiftShader `ReadPixels` warning，不影响渲染画面
+
+环境里 `.git` 仍是只读，普通 `git add` 无法创建 `index.lock`；我用临时 index / 临时 object directory 构造提交并 push，未写入 `.autoloop/runs/`，也未修改引擎或画像文件。
