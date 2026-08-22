@@ -482,6 +482,15 @@ const OBJECT_CONFIG = {
       { label: '找我协作', type: 'contact' },
     ],
   },
+  trophywall: {
+    name: '成品样品墙 · 已锻成果',
+    meta: '点击物件',
+    line: '墙上挂的不是奖杯，是能回炉的样品：iLoop 闭环环扣、LinkMap 链路刀胚、包体积守门秤锤。老杨做主页，也得让成品自己说话。',
+    actions: [
+      { label: '看最近项目', type: 'projects' },
+      { label: '看 iLoop', type: 'iloop' },
+    ],
+  },
   forge: {
     name: '火炉 · 欢迎语锻造机',
     meta: '点击物件',
@@ -518,6 +527,8 @@ let archSignRig = null;
 let archSignBoostUntil = 0;
 let smokeHoodRig = null;
 let smokeHoodBoostUntil = 0;
+let trophyWallRig = null;
+let trophyWallBoostUntil = 0;
 let dialogActions = [];
 let selectedObjectKey = null;
 let yqClickCount = 0;
@@ -760,6 +771,12 @@ touchmarkRig = touchmark.userData.touchmarkRig;
 registerInteractive(touchmark, 'touchmark');
 scene.add(touchmark);
 createHotspot('touchmark', [2.28, FLOOR_Y + 0.58, 2.36], [0.88, 0.9, 0.76]);
+const trophyWall = makeProp('trophywall', [2.95, 0, 3.22]);
+trophyWall.position.y += FLOOR_Y;
+trophyWallRig = trophyWall.userData.trophyWallRig;
+registerInteractive(trophyWall, 'trophywall');
+scene.add(trophyWall);
+createHotspot('trophywall', [2.95, FLOOR_Y + 1.12, 3.22], [1.25, 1.7, 0.5]);
 const intakeTray = makeProp('intake', [1.05, 0, 3.42]);
 intakeTray.position.y += FLOOR_Y;
 intakeTrayRig = intakeTray.userData.intakeCards;
@@ -1489,6 +1506,111 @@ function makeProp(type, npcPos) {
     g.position.set(npcPos[0], 0, npcPos[2]);
     g.rotation.y = 0;
     g.scale.setScalar(0.82);
+  } else if (type === 'trophywall') {
+    // 成品样品墙：把老杨已经锻过的工具方向从对话里拿到默认画面中
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x342013, roughness: 0.9 });
+    const beamMat = new THREE.MeshStandardMaterial({ color: 0x21140d, roughness: 0.94 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x24282e, metalness: 0.58, roughness: 0.44 });
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xb17936, metalness: 0.46, roughness: 0.42 });
+    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffa34a, emissive: 0xff6718, emissiveIntensity: 0.58, roughness: 0.45 });
+    const hotMat = new THREE.MeshStandardMaterial({ color: 0xffd06a, emissive: 0xff8b18, emissiveIntensity: 0.9, roughness: 0.38 });
+    const coolMat = new THREE.MeshStandardMaterial({ color: 0x6eb7ff, emissive: 0x1f66b0, emissiveIntensity: 0.42, roughness: 0.52 });
+    const slateMat = new THREE.MeshStandardMaterial({ color: 0x58636a, emissive: 0x1d2b34, emissiveIntensity: 0.16, roughness: 0.64 });
+
+    const back = new THREE.Mesh(new THREE.BoxGeometry(1.28, 1.18, 0.08), wallMat);
+    back.position.set(0, 1.05, 0);
+    const topBeam = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.09, 0.11), beamMat);
+    topBeam.position.set(0, 1.68, 0.02);
+    const bottomBeam = topBeam.clone();
+    bottomBeam.position.y = 0.42;
+    const leftRail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.32, 0.1), beamMat);
+    leftRail.position.set(-0.68, 1.05, 0.02);
+    const rightRail = leftRail.clone();
+    rightRail.position.x = 0.68;
+    g.add(back, topBeam, bottomBeam, leftRail, rightRail);
+
+    const titlePlate = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.09, 0.035), brassMat);
+    titlePlate.name = 'trophyWallTitlePlate';
+    titlePlate.position.set(0, 1.58, 0.075);
+    g.add(titlePlate);
+    [-0.22, -0.08, 0.08, 0.23].forEach((x, i) => {
+      const mark = new THREE.Mesh(new THREE.BoxGeometry(0.11 + i * 0.025, 0.018, 0.018), i % 2 ? hotMat : coolMat);
+      mark.position.set(x, 1.585, 0.105);
+      mark.rotation.z = i % 2 ? -0.12 : 0.12;
+      g.add(mark);
+    });
+
+    const samples = new THREE.Group();
+    samples.name = 'trophyWallSamples';
+    const sampleData = [
+      { x: -0.42, y: 1.18, mat: coolMat, label: 0 },
+      { x: 0, y: 1.18, mat: hotMat, label: 1 },
+      { x: 0.42, y: 1.18, mat: emberMat, label: 2 },
+    ];
+    sampleData.forEach(({ x, y, mat, label }, i) => {
+      const hook = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.2, 10), ironMat);
+      hook.position.set(x, y + 0.28, 0.08);
+      hook.rotation.x = Math.PI / 2;
+      samples.add(hook);
+
+      const sample = new THREE.Group();
+      sample.userData.base = { x, y, z: 0.12, phase: i * 0.74 };
+      sample.name = `trophyWallSample${i}`;
+      if (i === 0) {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.016, 8, 30), mat);
+        ring.rotation.x = Math.PI / 2;
+        const clasp = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.03, 0.035), ironMat);
+        clasp.position.set(0, -0.12, 0);
+        sample.add(ring, clasp);
+      } else if (i === 1) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.34, 0.035), mat);
+        blade.rotation.z = -0.18;
+        const spine = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.38, 0.04), ironMat);
+        spine.position.x = -0.055;
+        spine.rotation.z = -0.18;
+        sample.add(blade, spine);
+      } else {
+        const weight = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.14, 0.16, 20), mat);
+        weight.rotation.x = Math.PI / 2;
+        const handle = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.012, 8, 22), ironMat);
+        handle.position.y = 0.13;
+        handle.rotation.x = Math.PI / 2;
+        sample.add(weight, handle);
+      }
+      sample.position.set(x, y, 0.12);
+      samples.add(sample);
+
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.028), slateMat);
+      plate.name = `trophyWallLabel${label}`;
+      plate.position.set(x, 0.77, 0.105);
+      samples.add(plate);
+      for (let tick = 0; tick < 3; tick++) {
+        const notch = new THREE.Mesh(new THREE.BoxGeometry(0.05 + tick * 0.018, 0.012, 0.012), tick === i ? mat : ironMat);
+        notch.position.set(x - 0.08 + tick * 0.08, 0.773, 0.13);
+        samples.add(notch);
+      }
+    });
+    g.add(samples);
+
+    const embers = new THREE.Group();
+    embers.name = 'trophyWallEmbers';
+    for (let i = 0; i < 14; i++) {
+      const ember = new THREE.Mesh(new THREE.SphereGeometry(0.013 + (i % 3) * 0.004, 8, 6), i % 2 ? hotMat : emberMat);
+      ember.userData.base = {
+        x: -0.55 + i * 0.085,
+        y: 0.48 + (i % 5) * 0.18,
+        z: 0.13,
+        phase: i * 0.57,
+      };
+      ember.position.set(ember.userData.base.x, ember.userData.base.y, ember.userData.base.z);
+      embers.add(ember);
+    }
+    g.add(embers);
+
+    g.userData.trophyWallRig = { samples, embers, titlePlate };
+    g.position.set(npcPos[0], 0, npcPos[2]);
+    g.rotation.y = -0.58;
+    g.scale.setScalar(0.86);
   }
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }});
   return g;
@@ -1979,6 +2101,11 @@ function selectObject(key) {
     forgePulseUntil = performance.now() + 1800;
     smokeHoodBoostUntil = performance.now() + 2400;
   }
+  if (key === 'trophywall') {
+    applySceneMode('forge');
+    forgePulseUntil = performance.now() + 1600;
+    trophyWallBoostUntil = performance.now() + 2600;
+  }
 
   renderDialog({
     name: cfg.name,
@@ -2369,6 +2496,56 @@ function animate() {
     }
     if (smokeHoodRig.hood?.material && 'emissiveIntensity' in smokeHoodRig.hood.material) {
       smokeHoodRig.hood.material.emissiveIntensity = 0.04 + boost * 0.16;
+    }
+  }
+
+  // 成品样品墙：三件样品依次亮起，强调“这里已经锻出可验收的东西”
+  if (trophyWallRig) {
+    const boostLeft = Math.max(0, trophyWallBoostUntil - performance.now());
+    const boost = boostLeft ? Math.sin((1 - boostLeft / 2600) * Math.PI) : 0;
+    if (trophyWallRig.samples) {
+      trophyWallRig.samples.children.forEach((part, i) => {
+        const base = part.userData.base;
+        if (!base) {
+          if (part.material && 'emissiveIntensity' in part.material) {
+            part.material.emissiveIntensity = Math.max(part.material.emissiveIntensity || 0, 0.14 + boost * 0.28);
+          }
+          return;
+        }
+        const wave = Math.sin(t * 1.7 + base.phase);
+        const sequence = boostLeft ? Math.max(0, 1 - boostLeft / 2600 - i * 0.13) : 0;
+        const ping = Math.sin(Math.min(1, sequence) * Math.PI);
+        part.position.set(
+          base.x,
+          base.y + wave * 0.018 - ping * 0.025,
+          base.z + ping * 0.035
+        );
+        part.rotation.z = Math.sin(t * 1.25 + base.phase) * 0.035 + ping * 0.08;
+        part.scale.setScalar(1 + ping * 0.16);
+        part.traverse(piece => {
+          if (!piece.material || !('emissiveIntensity' in piece.material)) return;
+          piece.material.emissiveIntensity = 0.34 + (wave + 1) * 0.11 + ping * 0.85;
+        });
+      });
+    }
+    if (trophyWallRig.embers) {
+      trophyWallRig.embers.children.forEach((ember, i) => {
+        const base = ember.userData.base;
+        if (!base) return;
+        const pulse = Math.sin(t * 2.8 + base.phase);
+        ember.position.set(
+          base.x + Math.sin(t * 1.9 + base.phase) * (0.012 + boost * 0.025),
+          base.y + pulse * (0.014 + boost * 0.04),
+          base.z + Math.cos(t * 2.4 + base.phase) * 0.014
+        );
+        ember.scale.setScalar(0.72 + (pulse + 1) * 0.14 + boost * 0.45);
+        if (ember.material && 'emissiveIntensity' in ember.material) {
+          ember.material.emissiveIntensity = 0.42 + (pulse + 1) * 0.2 + boost * 0.75 + (i % 3) * 0.04;
+        }
+      });
+    }
+    if (trophyWallRig.titlePlate?.material && 'emissiveIntensity' in trophyWallRig.titlePlate.material) {
+      trophyWallRig.titlePlate.material.emissiveIntensity = 0.12 + Math.sin(t * 2.1) * 0.04 + boost * 0.44;
     }
   }
 
