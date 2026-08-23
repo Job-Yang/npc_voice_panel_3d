@@ -491,6 +491,15 @@ const OBJECT_CONFIG = {
       { label: '看 iLoop', type: 'iloop' },
     ],
   },
+  toolrack: {
+    name: '掌钳工具架 · 调试器在手边',
+    meta: '点击物件',
+    line: '钳子、锤子、量尺和证据牌都挂在手边：日志先夹稳，截图量清楚，构建敲过关，回滚钩留好。老杨用 AI，也先把调试工具摆顺。',
+    actions: [
+      { label: '找我协作', type: 'contact' },
+      { label: '看 iLoop', type: 'iloop' },
+    ],
+  },
   forge: {
     name: '火炉 · 欢迎语锻造机',
     meta: '点击物件',
@@ -529,6 +538,8 @@ let smokeHoodRig = null;
 let smokeHoodBoostUntil = 0;
 let trophyWallRig = null;
 let trophyWallBoostUntil = 0;
+let toolRackRig = null;
+let toolRackBoostUntil = 0;
 let dialogActions = [];
 let selectedObjectKey = null;
 let yqClickCount = 0;
@@ -759,6 +770,12 @@ processForgeRig = processForge.userData.processForgeSparks;
 registerInteractive(processForge, 'processforge');
 scene.add(processForge);
 createHotspot('processforge', [-0.95, FLOOR_Y + 0.72, 2.18], [1.7, 0.9, 0.85]);
+const toolRack = makeProp('toolrack', [-2.85, 0, 2.98]);
+toolRack.position.y += FLOOR_Y;
+toolRackRig = toolRack.userData.toolRackRig;
+registerInteractive(toolRack, 'toolrack');
+scene.add(toolRack);
+createHotspot('toolrack', [-2.85, FLOOR_Y + 1.02, 2.98], [1.28, 1.45, 0.48]);
 const bellows = makeProp('bellows', [-1.18, 0, 1.58]);
 bellows.position.y += FLOOR_Y;
 bellowsRig = bellows.userData.bellowsRig;
@@ -1076,6 +1093,117 @@ function makeProp(type, npcPos) {
 
     g.position.set(npcPos[0], 0, npcPos[2]);
     g.rotation.y = 0.18;
+  } else if (type === 'toolrack') {
+    // 掌钳工具架：把调试协作所需的工具挂到访客第一眼能扫到的位置
+    const rackMat = new THREE.MeshStandardMaterial({ color: 0x3a2314, roughness: 0.92 });
+    const beamMat = new THREE.MeshStandardMaterial({ color: 0x1f1510, roughness: 0.95 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x252a30, metalness: 0.62, roughness: 0.42 });
+    const edgeMat = new THREE.MeshStandardMaterial({ color: 0x5c6970, metalness: 0.45, roughness: 0.5 });
+    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffa04a, emissive: 0xff6618, emissiveIntensity: 0.46, roughness: 0.48 });
+    const proofMat = new THREE.MeshStandardMaterial({ color: 0x6db9ff, emissive: 0x1d66b4, emissiveIntensity: 0.34, roughness: 0.52 });
+    const chalkMat = new THREE.MeshStandardMaterial({ color: 0xd0b070, emissive: 0x5a3408, emissiveIntensity: 0.12, roughness: 0.72 });
+
+    const board = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.05, 0.08), rackMat);
+    board.position.set(0, 0.98, 0);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.32, 0.08, 0.11), beamMat);
+    top.position.set(0, 1.54, 0.02);
+    const bottom = top.clone();
+    bottom.position.y = 0.42;
+    const pegRail = new THREE.Mesh(new THREE.BoxGeometry(1.08, 0.045, 0.065), ironMat);
+    pegRail.position.set(0, 1.28, 0.075);
+    const lowerRail = pegRail.clone();
+    lowerRail.position.y = 0.74;
+    g.add(board, top, bottom, pegRail, lowerRail);
+
+    const toolGroup = new THREE.Group();
+    toolGroup.name = 'toolRackTools';
+    const toolData = [
+      { x: -0.42, y: 1.05, phase: 0.2, mat: proofMat, type: 'tongs' },
+      { x: -0.14, y: 1.02, phase: 0.9, mat: emberMat, type: 'hammer' },
+      { x: 0.16, y: 1.03, phase: 1.5, mat: edgeMat, type: 'ruler' },
+      { x: 0.44, y: 1.02, phase: 2.1, mat: chalkMat, type: 'proof' },
+    ];
+    toolData.forEach(({ x, y, phase, mat, type }, i) => {
+      const peg = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.2, 10), ironMat);
+      peg.position.set(x, y + 0.26, 0.09);
+      peg.rotation.x = Math.PI / 2;
+      toolGroup.add(peg);
+
+      const tool = new THREE.Group();
+      tool.userData.base = { x, y, z: 0.13, phase, order: i };
+      tool.name = `toolRackTool${i}`;
+      if (type === 'tongs') {
+        [-0.032, 0.032].forEach(side => {
+          const arm = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.48, 0.028), mat);
+          arm.position.x = side;
+          arm.rotation.z = side < 0 ? -0.12 : 0.12;
+          tool.add(arm);
+        });
+        const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.025, 16), ironMat);
+        hinge.rotation.x = Math.PI / 2;
+        hinge.position.y = 0.12;
+        tool.add(hinge);
+      } else if (type === 'hammer') {
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.52, 0.035), beamMat);
+        handle.position.y = -0.05;
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.09, 0.08), mat);
+        head.position.y = 0.22;
+        head.rotation.z = -0.08;
+        tool.add(handle, head);
+      } else if (type === 'ruler') {
+        const ruler = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.56, 0.026), mat);
+        tool.add(ruler);
+        for (let tick = 0; tick < 5; tick++) {
+          const mark = new THREE.Mesh(new THREE.BoxGeometry(0.06 + (tick % 2) * 0.035, 0.012, 0.012), proofMat);
+          mark.position.set(0.04, -0.22 + tick * 0.1, 0.022);
+          tool.add(mark);
+        }
+      } else {
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.32, 0.028), mat);
+        plate.position.y = -0.02;
+        const clip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.035, 0.035), ironMat);
+        clip.position.y = 0.17;
+        const check = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.009, 8, 20), proofMat);
+        check.position.set(0, -0.02, 0.026);
+        check.rotation.x = Math.PI / 2;
+        tool.add(plate, clip, check);
+      }
+      tool.position.set(x, y, 0.13);
+      toolGroup.add(tool);
+    });
+    g.add(toolGroup);
+
+    const labels = new THREE.Group();
+    labels.name = 'toolRackLabels';
+    [-0.42, -0.14, 0.16, 0.44].forEach((x, i) => {
+      const tag = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.052, 0.025), i % 2 ? emberMat : proofMat);
+      tag.position.set(x, 0.52, 0.105);
+      labels.add(tag);
+      const notch = new THREE.Mesh(new THREE.BoxGeometry(0.05 + i * 0.01, 0.012, 0.012), ironMat);
+      notch.position.set(x, 0.523, 0.128);
+      labels.add(notch);
+    });
+    g.add(labels);
+
+    const glowDots = new THREE.Group();
+    glowDots.name = 'toolRackGlowDots';
+    for (let i = 0; i < 12; i++) {
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.012 + (i % 3) * 0.003, 8, 6), i % 2 ? emberMat : proofMat);
+      dot.userData.base = {
+        x: -0.52 + i * 0.095,
+        y: 0.55 + (i % 4) * 0.22,
+        z: 0.13,
+        phase: i * 0.61,
+      };
+      dot.position.set(dot.userData.base.x, dot.userData.base.y, dot.userData.base.z);
+      glowDots.add(dot);
+    }
+    g.add(glowDots);
+
+    g.userData.toolRackRig = { tools: toolGroup, labels, glowDots, pegRail, lowerRail };
+    g.position.set(npcPos[0], 0, npcPos[2]);
+    g.rotation.y = 0.48;
+    g.scale.setScalar(0.88);
   } else if (type === 'intake') {
     // 委托托盘：把“目标、截图、日志”做成访客进门就能放下的三件材料
     const trayMat = new THREE.MeshStandardMaterial({ color: 0x4b2d18, roughness: 0.9 });
@@ -2106,6 +2234,11 @@ function selectObject(key) {
     forgePulseUntil = performance.now() + 1600;
     trophyWallBoostUntil = performance.now() + 2600;
   }
+  if (key === 'toolrack') {
+    applySceneMode('forge');
+    forgePulseUntil = performance.now() + 1700;
+    toolRackBoostUntil = performance.now() + 2400;
+  }
 
   renderDialog({
     name: cfg.name,
@@ -2547,6 +2680,63 @@ function animate() {
     if (trophyWallRig.titlePlate?.material && 'emissiveIntensity' in trophyWallRig.titlePlate.material) {
       trophyWallRig.titlePlate.material.emissiveIntensity = 0.12 + Math.sin(t * 2.1) * 0.04 + boost * 0.44;
     }
+  }
+
+  // 掌钳工具架：工具轻晃，点击后从左到右点亮，表达“调试器在手边”
+  if (toolRackRig) {
+    const boostLeft = Math.max(0, toolRackBoostUntil - performance.now());
+    const boost = boostLeft ? Math.sin((1 - boostLeft / 2400) * Math.PI) : 0;
+    if (toolRackRig.tools) {
+      toolRackRig.tools.children.forEach(part => {
+        const base = part.userData.base;
+        if (!base) {
+          if (part.material && 'emissiveIntensity' in part.material) {
+            part.material.emissiveIntensity = Math.max(part.material.emissiveIntensity || 0, 0.12 + boost * 0.24);
+          }
+          return;
+        }
+        const wave = Math.sin(t * 1.45 + base.phase);
+        const sequence = boostLeft ? Math.max(0, 1 - boostLeft / 2400 - base.order * 0.12) : 0;
+        const ping = Math.sin(Math.min(1, sequence) * Math.PI);
+        part.position.set(
+          base.x + Math.sin(t * 1.2 + base.phase) * 0.01,
+          base.y + wave * 0.015 - ping * 0.02,
+          base.z + ping * 0.04
+        );
+        part.rotation.z = wave * 0.025 + ping * 0.08;
+        part.traverse(piece => {
+          if (!piece.material || !('emissiveIntensity' in piece.material)) return;
+          piece.material.emissiveIntensity = 0.22 + (wave + 1) * 0.08 + ping * 0.75;
+        });
+      });
+    }
+    if (toolRackRig.labels) {
+      toolRackRig.labels.children.forEach((label, i) => {
+        if (!label.material || !('emissiveIntensity' in label.material)) return;
+        label.material.emissiveIntensity = 0.14 + Math.sin(t * 2.0 + i) * 0.04 + boost * 0.38;
+      });
+    }
+    if (toolRackRig.glowDots) {
+      toolRackRig.glowDots.children.forEach((dot, i) => {
+        const base = dot.userData.base;
+        if (!base) return;
+        const pulse = Math.sin(t * 2.9 + base.phase);
+        dot.position.set(
+          base.x + Math.sin(t * 1.8 + base.phase) * (0.01 + boost * 0.02),
+          base.y + pulse * (0.012 + boost * 0.032),
+          base.z + Math.cos(t * 2.2 + base.phase) * 0.012
+        );
+        dot.scale.setScalar(0.72 + (pulse + 1) * 0.13 + boost * 0.42);
+        if (dot.material && 'emissiveIntensity' in dot.material) {
+          dot.material.emissiveIntensity = 0.34 + (pulse + 1) * 0.18 + boost * 0.62 + (i % 2) * 0.05;
+        }
+      });
+    }
+    [toolRackRig.pegRail, toolRackRig.lowerRail].forEach((rail, i) => {
+      if (rail?.material && 'emissiveIntensity' in rail.material) {
+        rail.material.emissiveIntensity = 0.05 + Math.sin(t * 1.7 + i) * 0.02 + boost * 0.2;
+      }
+    });
   }
 
   // NPC 呼吸起伏（基于初始高度做绝对偏移，避免累计上浮）
