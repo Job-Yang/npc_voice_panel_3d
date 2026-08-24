@@ -500,6 +500,15 @@ const OBJECT_CONFIG = {
       { label: '看 iLoop', type: 'iloop' },
     ],
   },
+  qualitygate: {
+    name: '验收闸门 · 截图构建回滚',
+    meta: '点击物件',
+    line: '铁坯出炉前先过三道关：截图要看得见，构建要跑得通，回滚点要留得住。老杨不会把 AI 敲出来的东西直接端上墙，先让它从验收闸门走一遍。',
+    actions: [
+      { label: '看 iLoop', type: 'iloop' },
+      { label: '找我协作', type: 'contact' },
+    ],
+  },
   forge: {
     name: '火炉 · 欢迎语锻造机',
     meta: '点击物件',
@@ -540,6 +549,8 @@ let trophyWallRig = null;
 let trophyWallBoostUntil = 0;
 let toolRackRig = null;
 let toolRackBoostUntil = 0;
+let qualityGateRig = null;
+let qualityGateBoostUntil = 0;
 let dialogActions = [];
 let selectedObjectKey = null;
 let yqClickCount = 0;
@@ -776,6 +787,12 @@ toolRackRig = toolRack.userData.toolRackRig;
 registerInteractive(toolRack, 'toolrack');
 scene.add(toolRack);
 createHotspot('toolrack', [-2.85, FLOOR_Y + 1.02, 2.98], [1.28, 1.45, 0.48]);
+const qualityGate = makeProp('qualitygate', [1.9, 0, 2.06]);
+qualityGate.position.y += FLOOR_Y;
+qualityGateRig = qualityGate.userData.qualityGateRig;
+registerInteractive(qualityGate, 'qualitygate');
+scene.add(qualityGate);
+createHotspot('qualitygate', [1.9, FLOOR_Y + 0.86, 2.06], [1.28, 1.36, 0.88]);
 const bellows = makeProp('bellows', [-1.18, 0, 1.58]);
 bellows.position.y += FLOOR_Y;
 bellowsRig = bellows.userData.bellowsRig;
@@ -1204,6 +1221,104 @@ function makeProp(type, npcPos) {
     g.position.set(npcPos[0], 0, npcPos[2]);
     g.rotation.y = 0.48;
     g.scale.setScalar(0.88);
+  } else if (type === 'qualitygate') {
+    // 验收闸门：把截图、构建、回滚三道交付检查做成出炉前的可见关口
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x3a2213, roughness: 0.92 });
+    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x21140d, roughness: 0.95 });
+    const ironMat = new THREE.MeshStandardMaterial({ color: 0x22272d, metalness: 0.58, roughness: 0.44 });
+    const coolMat = new THREE.MeshStandardMaterial({ color: 0x64b7ff, emissive: 0x1d64b0, emissiveIntensity: 0.34, roughness: 0.5 });
+    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffa14a, emissive: 0xff6618, emissiveIntensity: 0.5, roughness: 0.45 });
+    const passMat = new THREE.MeshStandardMaterial({ color: 0x9ee56a, emissive: 0x3f8b20, emissiveIntensity: 0.28, roughness: 0.52 });
+    const hotIronMat = new THREE.MeshStandardMaterial({ color: 0x8c2f1b, emissive: 0xff4914, emissiveIntensity: 0.62, metalness: 0.32, roughness: 0.48 });
+    const slateMat = new THREE.MeshStandardMaterial({ color: 0x59636a, emissive: 0x1b2a32, emissiveIntensity: 0.14, roughness: 0.65 });
+
+    const base = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.08, 0.58), baseMat);
+    base.position.y = 0.26;
+    const track = new THREE.Mesh(new THREE.BoxGeometry(1.32, 0.045, 0.1), ironMat);
+    track.position.set(0, 0.36, 0);
+    g.add(base, track);
+
+    [-0.52, 0.52].forEach(x => {
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 0.5), darkWoodMat);
+      foot.position.set(x, 0.31, 0);
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.12, 0.1), darkWoodMat);
+      post.position.set(x, 0.9, 0);
+      const ironCap = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.14), ironMat);
+      ironCap.position.set(x, 1.48, 0);
+      g.add(foot, post, ironCap);
+    });
+
+    const header = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.1, 0.12), darkWoodMat);
+    header.position.set(0, 1.5, 0);
+    const titlePlate = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.08, 0.035), slateMat);
+    titlePlate.position.set(0, 1.36, 0.075);
+    g.add(header, titlePlate);
+
+    const checks = new THREE.Group();
+    checks.name = 'qualityGateChecks';
+    [
+      { x: -0.34, y: 1.12, mat: coolMat, width: 0.3 },
+      { x: 0, y: 0.93, mat: emberMat, width: 0.36 },
+      { x: 0.34, y: 0.74, mat: passMat, width: 0.3 },
+    ].forEach(({ x, y, mat, width }, i) => {
+      const arm = new THREE.Group();
+      arm.userData.base = { x, y, z: 0.08, phase: i * 0.75, order: i };
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(width, 0.045, 0.04), mat);
+      beam.position.x = i === 0 ? 0.08 : i === 2 ? -0.08 : 0;
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 8), mat);
+      lamp.position.set(i === 1 ? 0.22 : -0.22, 0, 0.035);
+      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.018, 0.018), ironMat);
+      tick.position.set(i === 1 ? -0.2 : 0.2, 0.003, 0.055);
+      tick.rotation.z = i === 2 ? -0.5 : 0.5;
+      arm.add(beam, lamp, tick);
+      arm.position.set(x, y, 0.08);
+      checks.add(arm);
+    });
+    g.add(checks);
+
+    const billet = new THREE.Group();
+    billet.name = 'qualityGateBillet';
+    billet.userData.base = { x: -0.36, y: 0.45, z: 0.08 };
+    const hotBar = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.07, 0.18), hotIronMat);
+    hotBar.rotation.z = -0.06;
+    const proofBand = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.19), coolMat);
+    proofBand.position.x = -0.08;
+    const passBand = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.19), passMat);
+    passBand.position.x = 0.11;
+    billet.add(hotBar, proofBand, passBand);
+    billet.position.set(billet.userData.base.x, billet.userData.base.y, billet.userData.base.z);
+    g.add(billet);
+
+    const stamp = new THREE.Group();
+    stamp.name = 'qualityGateStamp';
+    const stampHead = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.12, 18), ironMat);
+    stampHead.rotation.x = Math.PI / 2;
+    const stampMark = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.012, 8, 26), passMat);
+    stampMark.position.z = 0.075;
+    stampMark.rotation.x = Math.PI / 2;
+    stamp.add(stampHead, stampMark);
+    stamp.position.set(0.4, 0.52, 0.14);
+    g.add(stamp);
+
+    const embers = new THREE.Group();
+    embers.name = 'qualityGateEmbers';
+    for (let i = 0; i < 12; i++) {
+      const spark = new THREE.Mesh(new THREE.SphereGeometry(0.012 + (i % 3) * 0.004, 8, 6), i % 3 === 0 ? passMat : emberMat);
+      spark.userData.base = {
+        x: -0.48 + i * 0.088,
+        y: 0.42 + (i % 4) * 0.19,
+        z: 0.14,
+        phase: i * 0.58,
+      };
+      spark.position.set(spark.userData.base.x, spark.userData.base.y, spark.userData.base.z);
+      embers.add(spark);
+    }
+    g.add(embers);
+
+    g.userData.qualityGateRig = { checks, billet, stamp, embers, titlePlate };
+    g.position.set(npcPos[0], 0, npcPos[2]);
+    g.rotation.y = -0.34;
+    g.scale.setScalar(0.78);
   } else if (type === 'intake') {
     // 委托托盘：把“目标、截图、日志”做成访客进门就能放下的三件材料
     const trayMat = new THREE.MeshStandardMaterial({ color: 0x4b2d18, roughness: 0.9 });
@@ -2239,6 +2354,11 @@ function selectObject(key) {
     forgePulseUntil = performance.now() + 1700;
     toolRackBoostUntil = performance.now() + 2400;
   }
+  if (key === 'qualitygate') {
+    applySceneMode('forge');
+    forgePulseUntil = performance.now() + 1800;
+    qualityGateBoostUntil = performance.now() + 2600;
+  }
 
   renderDialog({
     name: cfg.name,
@@ -2737,6 +2857,75 @@ function animate() {
         rail.material.emissiveIntensity = 0.05 + Math.sin(t * 1.7 + i) * 0.02 + boost * 0.2;
       }
     });
+  }
+
+  // 验收闸门：三道检查灯依次亮起，铁坯点击后走过闸门并盖上合格印
+  if (qualityGateRig) {
+    const boostLeft = Math.max(0, qualityGateBoostUntil - performance.now());
+    const progress = boostLeft ? 1 - boostLeft / 2600 : 0;
+    const boost = boostLeft ? Math.sin(progress * Math.PI) : 0;
+    if (qualityGateRig.checks) {
+      qualityGateRig.checks.children.forEach((check, i) => {
+        const base = check.userData.base;
+        if (!base) return;
+        const wave = Math.sin(t * 1.6 + base.phase);
+        const gateHit = boostLeft ? Math.max(0, Math.min(1, (progress - i * 0.18) / 0.22)) : 0;
+        const ping = Math.sin(gateHit * Math.PI);
+        check.position.set(
+          base.x,
+          base.y + wave * 0.012 - ping * 0.025,
+          base.z + ping * 0.035
+        );
+        check.rotation.z = wave * 0.025 + ping * 0.06;
+        check.traverse(part => {
+          if (!part.material || !('emissiveIntensity' in part.material)) return;
+          part.material.emissiveIntensity = 0.28 + (wave + 1) * 0.1 + ping * 0.95 + boost * 0.22;
+        });
+      });
+    }
+    if (qualityGateRig.billet) {
+      const base = qualityGateRig.billet.userData.base;
+      const travel = boostLeft ? Math.min(1, progress * 1.25) : 0;
+      const idle = Math.sin(t * 1.7) * 0.014;
+      qualityGateRig.billet.position.set(
+        base.x + travel * 0.76,
+        base.y + idle + boost * 0.018,
+        base.z + Math.sin(t * 2.2) * 0.008
+      );
+      qualityGateRig.billet.rotation.z = -0.05 + Math.sin(t * 1.4) * 0.025 + boost * 0.06;
+      qualityGateRig.billet.traverse(part => {
+        if (!part.material || !('emissiveIntensity' in part.material)) return;
+        part.material.emissiveIntensity = Math.max(part.material.emissiveIntensity || 0, 0.36 + boost * 0.72);
+      });
+    }
+    if (qualityGateRig.stamp) {
+      const stampPress = boostLeft ? Math.sin(Math.max(0, Math.min(1, (progress - 0.58) / 0.34)) * Math.PI) : 0;
+      qualityGateRig.stamp.position.y = 0.52 - stampPress * 0.1;
+      qualityGateRig.stamp.scale.setScalar(1 + stampPress * 0.08);
+      qualityGateRig.stamp.traverse(part => {
+        if (!part.material || !('emissiveIntensity' in part.material)) return;
+        part.material.emissiveIntensity = 0.24 + stampPress * 0.88 + boost * 0.18;
+      });
+    }
+    if (qualityGateRig.embers) {
+      qualityGateRig.embers.children.forEach((spark, i) => {
+        const base = spark.userData.base;
+        if (!base) return;
+        const pulse = Math.sin(t * 3.0 + base.phase);
+        spark.position.set(
+          base.x + Math.sin(t * 1.9 + base.phase) * (0.012 + boost * 0.024),
+          base.y + pulse * (0.014 + boost * 0.038),
+          base.z + Math.cos(t * 2.3 + base.phase) * 0.014
+        );
+        spark.scale.setScalar(0.72 + (pulse + 1) * 0.14 + boost * 0.5);
+        if (spark.material && 'emissiveIntensity' in spark.material) {
+          spark.material.emissiveIntensity = 0.34 + (pulse + 1) * 0.18 + boost * 0.7 + (i % 3) * 0.04;
+        }
+      });
+    }
+    if (qualityGateRig.titlePlate?.material && 'emissiveIntensity' in qualityGateRig.titlePlate.material) {
+      qualityGateRig.titlePlate.material.emissiveIntensity = 0.14 + Math.sin(t * 2.0) * 0.04 + boost * 0.42;
+    }
   }
 
   // NPC 呼吸起伏（基于初始高度做绝对偏移，避免累计上浮）
