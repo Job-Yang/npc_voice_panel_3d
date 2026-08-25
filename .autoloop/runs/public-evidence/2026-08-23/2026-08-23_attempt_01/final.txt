@@ -1,0 +1,16 @@
+本轮已按宪法完成并推到 `main`。
+
+今天做的是“成品样品墙 · 已锻成果”：在欢迎页右后方新增一面铁木展示墙，挂上三件可见样品：`iLoop` 闭环环扣、`LinkMap` 链路刀胚、包体积守门秤锤。默认视角里普通访客能直接看到右侧多了成果陈列；点击样品墙会进入火炉模式，三件样品依次亮起，并弹出解释老杨锻过的工具方向。
+
+已完成记录与验证：
+
+- 作品改动提交：`7388a0e55ea7994efa536b0c39d76fae42db3d3c`
+- 记录回填提交：`a4d1ce249ab5f4f50e68589039631ef751dd5700`
+- 最终线上验证记录提交：`76b0f0d6ce0284e3773e886655e48c74324c488f`
+- 远端 `main` 已确认指向：`76b0f0d6ce0284e3773e886655e48c74324c488f`
+- 本地验证截图：[2026-08-23-local.png](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-23/.autoloop/journal/assets/2026-08-23-local.png)
+- 线上验证截图：[2026-08-23-online.png](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-23/.autoloop/journal/assets/2026-08-23-online.png)
+- 创意门禁通过：`.autoloop/runs/2026-08-23_attempt_01/creative_validation_final.json`
+- 线上无痕验证通过：线上 `index.html` 与本地 SHA-256 一致，loader 隐藏，canvas 存在，无 console error，无请求失败。
+
+有一个环境说明：`.git` 目录是只读的，所以本地 `git status` 仍会按旧 `HEAD` 显示今天文件未提交；我用临时 index/object directory 完成了提交和 push，远端已经确认更新成功。

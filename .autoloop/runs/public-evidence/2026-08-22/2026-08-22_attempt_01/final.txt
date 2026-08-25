@@ -1,0 +1,27 @@
+本轮已完成并推送到 `main`。
+
+今天推进的主题是“排烟罩 · 混乱出炉”：在炉火上方新增了暗铁排烟罩、烟道、上升烟流、抽力刻度和过滤火星。默认视角 5 秒内能看出炉火上方多了一个正在运转的环境层；点击后会进入火炉模式，烟流和刻度增强，并用文案解释 iLoop 如何把混乱问题排成可验证证据。
+
+已写入并更新：
+
+- [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-22/index.html)
+- [.autoloop/inputs/2026-08-22.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-22/.autoloop/inputs/2026-08-22.md)
+- [.autoloop/journal/2026-08-22.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-22/.autoloop/journal/2026-08-22.md)
+- [.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-22/.autoloop/CHANGELOG.md)
+- 本地截图：`.autoloop/journal/assets/2026-08-22-local.png`
+- 线上截图：`.autoloop/journal/assets/2026-08-22-online.png`
+
+验证结果：
+
+- 创意门禁：通过，`.autoloop/runs/2026-08-22_attempt_01/creative_validation.json`
+- 本地 Chromium 验证：通过，无 console error、无请求失败
+- 线上无痕验证：通过，`online_html_match: true`，线上 `index.html` SHA 与本地当前版本一致
+- 线上验证 JSON：`.autoloop/runs/2026-08-22_attempt_01/visual_verification.json`
+
+推送结果：
+
+- 作品提交：`fd2845f31e445ba932425f7fdcf19d691ed0b56f`
+- 记录补交：`98f438847e5effb40ea492c88b5396bd4f2c2019`
+- 已确认远端 `main` 指向 `98f438847e5effb40ea492c88b5396bd4f2c2019`
+
+注意：本地 `.git` 引用仍受只读文件系统影响，所以 `git status` 会继续显示这些文件像是未提交；这是本地 HEAD/remote ref 无法更新导致的假象。远端 `main` 已用 `git ls-remote` 确认更新成功。

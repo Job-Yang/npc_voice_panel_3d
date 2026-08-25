@@ -1,0 +1,21 @@
+本轮已完成并发布。
+
+今天的主题是“验收闸门 · 截图构建回滚”：在右前方新增一座可点击的铁木验收闸门，默认能看到三道检查亮尺、红热铁坯和合格印；点击后进入火炉模式，三道检查依次亮起，表达 AI 产物出炉前要过截图、构建、回滚三道关。
+
+已写入并推送：
+
+- 作品改动 commit：`babd8d45fee6ffe78a5b86279ef973ea723afaff`
+- 最终记录 commit：`52f339b91ba0d7044217409c7d99175fe629cee2`
+- 输入卡：[2026-08-25.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-25/.autoloop/inputs/2026-08-25.md)
+- 手记：[2026-08-25.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-25/.autoloop/journal/2026-08-25.md)
+- CHANGELOG 已更新：[CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-25/.autoloop/CHANGELOG.md)
+
+验证结果：
+
+- 本地验证通过，截图：`.autoloop/journal/assets/2026-08-25-local.png`
+- 创意门禁通过：`status: passed`
+- 线上无痕验证通过，截图：`.autoloop/journal/assets/2026-08-25-online.png`
+- 线上 `index.html` SHA 与本地一致，canvas 存在，loader 正常隐藏，无 console error，无请求失败
+- 仅有既有的 Web Audio 自动播放限制和 SwiftShader `ReadPixels` warning，不影响画面
+
+过程中当前工作区的 `.git` 目录被环境只读挂载，不能直接 `git add/commit`；我用 `/tmp` 下的裸仓库 git-dir 加独立 work-tree 完成了正常 commit 和 push，没有把 `.autoloop/runs/` 提前纳入提交。本地预览服务也已停止。

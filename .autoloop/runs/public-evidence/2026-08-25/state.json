@@ -1,0 +1,41 @@
+{
+  "status": "succeeded",
+  "schema": "AutoLoopSupervisor:v1",
+  "user_outcome": "success",
+  "report_rc": 0,
+  "prewarm": {
+    "status": "passed",
+    "preflight_rc": 0,
+    "version_gate_rc": 0,
+    "duration_seconds": 4.973,
+    "checked_at": "2026-08-24T18:45:32.831333+00:00",
+    "details": {
+      "status": "passed",
+      "stage": "model_smoke",
+      "static_rc": 0,
+      "smoke": "AUTOLOOP_MODEL_OK",
+      "smoke_rc": 0,
+      "fingerprint": "b14df95bad314df941c664edbd980466666f1a108748e648033711c89978bdbf",
+      "versions": {
+        "trae_cli": "traecli 0.200.19(internal edition)",
+        "lark_cli": "lark-cli version 1.0.79"
+      }
+    }
+  },
+  "core_outcome": "success",
+  "attempts": [
+    {
+      "number": 1,
+      "run_dir": ".autoloop/runs/2026-08-25_attempt_01",
+      "returncode": 0,
+      "classification": "success",
+      "reason": "all_gates_passed",
+      "duration_seconds": 943.478,
+      "finished_at": "2026-08-24T19:15:58.286602+00:00"
+    }
+  ],
+  "archive_rc": 0,
+  "terminal_status": "succeeded",
+  "finalize_attempts": 1,
+  "date": "2026-08-25"
+}

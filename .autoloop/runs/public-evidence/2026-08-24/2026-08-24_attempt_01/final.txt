@@ -1,0 +1,21 @@
+本轮已完成并推送到 `main`。
+
+做的主题是“掌钳工具架 · 调试器在手边”：在默认视角左后方新增一面可点击工具架，挂上日志钳、构建锤、截图量尺和回滚证据牌。点击后进入火炉模式，四件工具依次发亮，强化“老杨用 AI 做工程协作时，工具和证据都在手边”的个人主页叙事。
+
+主要产物：
+- 作品改动：[index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-24/index.html)
+- 输入卡：[2026-08-24.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-24/.autoloop/inputs/2026-08-24.md)
+- 手记：[2026-08-24.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-24/.autoloop/journal/2026-08-24.md)
+- 本地截图：`.autoloop/journal/assets/2026-08-24-local.png`
+- 线上验证截图：`.autoloop/journal/assets/2026-08-24-online.png`
+- CHANGELOG 已更新
+
+提交记录：
+- `1ac5c6eb19917e61583e33c16bb100a1728216b1`：作品主题改动
+- `a1466dae067947be0d5d0e3e189d6d9e8ea93bc3`：回填 commit 记录
+- `25cc73e`：记录线上验证结果，当前已 push 到 `origin/main`
+
+验证结果：
+- 本地固定脚本验证通过：loader 隐藏、canvas 存在、无 console error、无请求失败。
+- 创意门禁通过：3 个方案、五项评分、视觉对照声明都齐全。
+- 线上无痕验证运行了两次，但都失败在 `online_html_match: false`，即 GitHub Pages 当时仍返回旧版 `index.html`。浏览器渲染同一份本地代码阶段正常，没有画面崩坏或 JS error。这个发布延迟已如实写入手记。
