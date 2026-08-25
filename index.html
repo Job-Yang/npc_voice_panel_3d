@@ -20,6 +20,14 @@
     font-size: 14px; pointer-events: none;
   }
   .topbar .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff7733; box-shadow: 0 0 10px #ff7733; }
+  .topbar a {
+    color: #ffcf8a;
+    pointer-events: auto;
+    text-decoration: none;
+    border-left: 1px solid rgba(255,170,100,.2);
+    padding-left: 12px;
+  }
+  .topbar a:hover { color: #fff1d8; }
 
   /* 左侧控制面板 */
   .panel-toggle {
@@ -183,6 +191,34 @@
   }
   .loader .text { font-size: 13px; color: #ffaa66; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    .topbar {
+      top: 10px;
+      width: calc(100vw - 24px);
+      justify-content: center;
+      padding: 8px 12px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .panel-toggle { top: 58px; left: 12px; }
+    .mode-toggle { top: 58px; right: 86px; }
+    .bgm-toggle { top: 58px; right: 12px; }
+    .panel { top: 106px; left: 12px; max-width: calc(100vw - 24px); }
+    .dialog {
+      right: 12px;
+      bottom: 38px;
+      left: 12px;
+      max-width: none;
+      padding: 14px 16px;
+    }
+    .hint {
+      bottom: 10px;
+      width: calc(100vw - 24px);
+      text-align: center;
+      font-size: 10px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -193,7 +229,11 @@
   <div class="text">正在生火 · 加载铁匠铺...</div>
 </div>
 
-<div class="topbar"><span class="dot"></span><span>老杨的铁匠铺 · 主页欢迎页</span></div>
+<div class="topbar">
+  <span class="dot"></span>
+  <span>老杨的铁匠铺</span>
+  <a href="https://jobyang.cn/" target="_blank" rel="noreferrer">主站 ↗</a>
+</div>
 
 <button class="panel-toggle" id="panelToggle">⚙️ 控制面板</button>
 <button class="mode-toggle" id="modeToggle" title="场景模式">🕯️ 舒缓</button>
@@ -219,7 +259,7 @@
 
 <div class="dialog" id="dialog">
   <div class="name" id="dlgName">老杨的铁匠铺</div>
-  <div class="meta" id="dlgMeta">点击 NPC 或场景物件逛逛</div>
+  <div class="meta" id="dlgMeta">点击人物认识 Job Yang.</div>
   <div class="line" id="dlgLine">欢迎来到老杨的铁匠铺，也可以叫我老羊。要打把什么家伙？</div>
   <div class="actions">
     <button id="btnPrimary">老杨是谁</button>
@@ -231,7 +271,7 @@
 
 <div class="hover-label" id="hoverLabel"></div>
 <div class="npc-bubble" id="npcBubble"></div>
-<div class="hint">左键拖拽 · 滚轮缩放 · 点击 NPC / 物件逛逛 · 输入 iLoop 有彩蛋</div>
+<div class="hint">左键拖拽 · 滚轮缩放 · 点击人物或火炉 · 输入 iLoop 有彩蛋</div>
 
 <script type="importmap">
 {
@@ -259,6 +299,9 @@ const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 1.3, 0.95);
 const DEFAULT_CAMERA_DISTANCE = 8.2;
 const CAMERA_YAW = 0;
 const CAMERA_PITCH = 0.22;
+const PROFILE_SITE_URL = 'https://jobyang.cn';
+const PROFILE_FEED_URL = new URLSearchParams(location.search).get('profileFeed')
+  || `${PROFILE_SITE_URL}/showcase.js`;
 // War3 语音文件列表（随机播放）
 const voiceFiles = {
   // 兽族苦工：用 War3 苦工语音，声音更粗
@@ -323,29 +366,38 @@ const yqLines = [
 const GUIDE_CARDS = {
   profile: {
     name: '老杨是谁',
-    meta: '个人主页入口',
-    line: '我主要折腾 iOS 工程化、大规模项目维护和 Agentic 工作流。这个铁匠铺放的不是正式简历，是我更真实的工作方式：把混乱问题锻造成能跑的工具。',
+    meta: '来自 Job Yang. 个人主页',
+    line: '资深 iOS 工程师，正在全面转向 AI。一边学习 AI，一边用它重做自己的工具链。',
     actions: [
-      { label: '看最近项目', type: 'projects' },
-      { label: '看 iLoop', type: 'iloop' },
+      { label: '完整介绍 ↗', url: `${PROFILE_SITE_URL}/about/` },
+      { label: '最近项目', type: 'projects' },
     ],
   },
   projects: {
     name: '最近在锻造',
-    meta: '项目集',
-    line: '主线是 iLoop：让 iOS Agent 从“会写代码”变成“能在本机工程持续交付”。旁边还放着包体积治理、无用代码收窄、LinkMap 分析和自动化验证这些铁块。',
+    meta: '与个人主页同步',
+    line: '主线是 iLoop：把 Agent 从“会写代码”，推进到“能在真实工程里持续交付”。',
     actions: [
-      { label: '锻造欢迎语', type: 'forge' },
-      { label: '找我协作', type: 'contact' },
+      { label: '全部项目 ↗', url: `${PROFILE_SITE_URL}/projects/` },
+      { label: '最近文章', type: 'latest' },
     ],
   },
   iloop: {
     name: 'iLoop',
     meta: 'i + 反馈闭环 Loop',
-    line: 'iLoop 的核心很简单：先定目标，再用编译、日志、截图、UI 层级这些证据闭环推进。结论必须有证据，做完必须能验。',
+    line: '把 Agent 从“会写代码”，推进到“能在真实工程里持续交付”。',
     actions: [
       { label: '启动闭环彩蛋', type: 'iloop_easter' },
-      { label: '看最近项目', type: 'projects' },
+      { label: '了解 iLoop ↗', url: `${PROFILE_SITE_URL}/projects/iloop/` },
+    ],
+  },
+  latest: {
+    name: '个人页最近更新',
+    meta: '文章与手记',
+    line: '个人页的新文章和手记会同步到这里。现在先去主站看看。',
+    actions: [
+      { label: '最近文章 ↗', url: `${PROFILE_SITE_URL}/writing/` },
+      { label: '最近手记 ↗', url: `${PROFILE_SITE_URL}/notes/` },
     ],
   },
   contact: {
@@ -360,7 +412,7 @@ const GUIDE_CARDS = {
   wander: {
     name: '随便逛逛',
     meta: '随机吐槽',
-    line: '水桶里没有水，只有上次排查问题时留下的冷汗。点点 NPC、铁砧、火炉和桌子，会冒出不一样的入口。',
+    line: '这间铺子不再靠堆满物件证明勤奋。点三个人物认识老杨、看最近更新，或者到火炉边锻一句。',
     actions: [
       { label: '再来一句', type: 'wander' },
       { label: '锻造欢迎语', type: 'forge' },
@@ -383,99 +435,9 @@ const YQ_EASTER_LINES = [
 ];
 
 const OBJECT_CONFIG = {
-  anvil: {
-    name: '铁砧 · 项目集',
-    meta: '点击物件',
-    line: '铁砧上敲过的东西：iLoop、自闭环流水线、包体积治理、无用代码收窄、LinkMap 分析。硬问题先上砧，别上嘴。',
-    actions: [
-      { label: '看最近项目', type: 'projects' },
-      { label: '锻造欢迎语', type: 'forge' },
-    ],
-  },
-  bucket: {
-    name: '水桶 · 随便逛逛',
-    meta: '点击物件',
-    line: '水桶负责冷却过热的脑子，也负责装一些没地方放的吐槽。你可以把它当成随机入口。',
-    actions: [
-      { label: '随机吐槽', type: 'wander' },
-      { label: '老杨是谁', type: 'profile' },
-    ],
-  },
-  desk: {
-    name: '工作台 · 文档入口',
-    meta: '点击物件',
-    line: '这张桌子是飞书主页的影子：正式文档放外面，入口和上下文放这里。想了解合作方式，从这里开始。',
-    actions: [
-      { label: '找我协作', type: 'contact' },
-      { label: '看 iLoop', type: 'iloop' },
-    ],
-  },
-  loopboard: {
-    name: '闭环卷轴 · iLoop 证据链',
-    meta: '点击物件',
-    line: '这张卷轴记的是 iLoop 的基本手艺：先写计划，再抓日志、截图和构建结果，最后用真实验证收口。AI 可以很快，证据链不能省。',
-    actions: [
-      { label: '看 iLoop', type: 'iloop' },
-      { label: '启动闭环彩蛋', type: 'iloop_easter' },
-    ],
-  },
-  guidepost: {
-    name: '铺子导览牌 · 你在这里',
-    meta: '点击物件',
-    line: '这块牌子不讲大道理，只给第一次进门的人指路：左边认识老杨，右边看项目，火炉旁试一句欢迎语，卷轴上看 iLoop 怎么闭环。',
-    actions: [
-      { label: '老杨是谁', type: 'profile' },
-      { label: '看最近项目', type: 'projects' },
-    ],
-  },
-  processforge: {
-    name: '闭环锻造台 · 计划取证验收',
-    meta: '点击物件',
-    line: '这张小台子把 iLoop 摆成一条能看见的工序：先夹住问题定计划，再把证据烧红，最后盖上可验收的印。AI 可以出手很快，但每一步都得留下火星和锤痕。',
-    actions: [
-      { label: '看 iLoop', type: 'iloop' },
-      { label: '启动闭环彩蛋', type: 'iloop_easter' },
-    ],
-  },
-  intake: {
-    name: '门口委托托盘 · 目标截图日志',
-    meta: '点击物件',
-    line: '进铺子不用先写完美需求，先把目标、截图和日志放到托盘里。老杨最喜欢这种开局：问题可以粗糙，证据要具体，剩下的再上砧慢慢敲。',
-    actions: [
-      { label: '找我协作', type: 'contact' },
-      { label: '看 iLoop', type: 'iloop' },
-    ],
-  },
-  bellows: {
-    name: '风箱 · 给问题送氧',
-    meta: '点击物件',
-    line: '风箱不是摆设，它负责把空气送进炉心。老杨做 AI 协作也一样：目标、日志和截图越具体，火候越稳，问题越容易被烧到能锻的状态。',
-    actions: [
-      { label: '锻造一句', type: 'forge' },
-      { label: '找我协作', type: 'contact' },
-    ],
-  },
-  touchmark: {
-    name: '匠印 · YQ/iLoop 火印',
-    meta: '点击物件',
-    line: '这枚火印不是 logo 摆件，是老杨给交付物留下的锤痕：目标说清楚，证据留完整，验证跑通过，最后才把 YQ 和 iLoop 的印记压上去。',
-    actions: [
-      { label: '看 iLoop', type: 'iloop' },
-      { label: '老杨是谁', type: 'profile' },
-    ],
-  },
-  archsign: {
-    name: '炉门铺招 · 老杨开炉迎客',
-    meta: '点击物件',
-    line: '先看门楣再进铺子：这里是老杨的铁匠铺，也是 YQ / iLoop 的欢迎口。带着问题进门，火会亮、牌会响，里面有人接活。',
-    actions: [
-      { label: '老杨是谁', type: 'profile' },
-      { label: '找我协作', type: 'contact' },
-    ],
-  },
   forge: {
     name: '火炉 · 欢迎语锻造机',
-    meta: '点击物件',
+    meta: '点击火炉',
     line: '火炉不讲道理，只负责把一句普通欢迎语烧得更像老杨。',
     actions: [
       { label: '锻造一句', type: 'forge' },
@@ -488,7 +450,6 @@ function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 let currentAudio = null;
 let currentAudioKey = null;
-let autoTalkTimer = null;
 let bubbleTimer = null;
 let bubbleKey = null;
 let bubbleRoot = null;
@@ -499,14 +460,6 @@ let furnaceFireMesh = null;
 let fireVtxFrame = 0;   // 火焰顶点动画隔帧计数器（性能）
 let furnaceFireBasePositions = null;
 let forgePulseUntil = 0;
-let processForgeRig = null;
-let intakeTrayRig = null;
-let bellowsRig = null;
-let bellowsBoostUntil = 0;
-let touchmarkRig = null;
-let touchmarkBoostUntil = 0;
-let archSignRig = null;
-let archSignBoostUntil = 0;
 let dialogActions = [];
 let selectedObjectKey = null;
 let yqClickCount = 0;
@@ -514,33 +467,119 @@ let typedSecret = '';
 
 const NPC_CONFIG = {
   master:     { name: '老杨是谁', url: './assets/npc_master.glb',     position: [-3.15, 0, 2.95], scale: 1.0, color: 0x884422,
-                line: '欢迎来到老杨的铁匠铺，也可以叫我老羊。这里不写长篇介绍，直接看我怎么打铁。',
-                meta: '个人主页入口',
+                line: GUIDE_CARDS.profile.line,
+                meta: 'Job Yang. · 个人主页',
                 actions: [
-                  { label: '老杨是谁', type: 'profile' },
-                  { label: '看项目集', type: 'projects' },
+                  { label: '完整介绍 ↗', url: `${PROFILE_SITE_URL}/about/` },
+                  { label: '最近项目', type: 'projects' },
                 ],
-                rotY: 0.05,                // 往前挪并更朝向镜头，避免被铁砧和底座挡住
-                prop: 'anvil' },
+                rotY: 0.05,
+                prop: null },
   apprentice: { name: '最近在做什么',   url: './assets/npc_apprentice.glb', position: [2.2, 0, 1.0],   scale: 0.9, color: 0xaa6633,
-                line: '最近主要在搬 iLoop、iOS Agent、自闭环验证和工程治理这些砖。火候不一定优雅，但都得能跑。',
-                meta: '当前项目',
+                line: GUIDE_CARDS.latest.line,
+                meta: '个人页最近更新',
                 actions: [
-                  { label: '看最近项目', type: 'projects' },
-                  { label: '找我协作', type: 'contact' },
+                  { label: '最近文章', type: 'latest' },
+                  { label: '最近项目', type: 'projects' },
                 ],
                 rotY: -0.6,                // 侧身朝炉火
-                prop: 'bucket' },
+                prop: null },
   yq:         { name: 'iLoop / YQ',         url: './assets/npc_yq.glb',         position: [0.3, 0, 3.2],   scale: 1.0, color: 0x2266aa,
-                line: '我负责把“AI 帮我看看”升级成“AI 自己跑证据闭环”。连点我几下可能会出事。',
+                line: GUIDE_CARDS.iloop.line,
                 meta: 'Agent 工作流',
                 actions: [
                   { label: '看 iLoop', type: 'iloop' },
                   { label: '触发彩蛋', type: 'yq_easter' },
                 ],
                 rotY: -0.2,                // 微微侧身
-                prop: 'desk' }             // 工作台承载主页/文档入口
+                prop: null }
 };
+
+function compactList(items, field, limit = 3) {
+  return (items || [])
+    .slice(0, limit)
+    .map(item => item?.[field])
+    .filter(Boolean)
+    .join('、');
+}
+
+function applyProfileFeed(feed) {
+  if (feed?.schema !== 'JobYangShowcase:v1') return false;
+
+  const profile = feed.profile || {};
+  const projects = feed.projects || [];
+  const posts = feed.latestPosts || [];
+  const notes = feed.latestNotes || [];
+  const iLoop = projects.find(project => project.title === 'iLoop');
+  const projectNames = compactList(projects, 'title');
+  const latestTitles = [
+    ...posts.slice(0, 2).map(item => item.title),
+    ...notes.slice(0, 1).map(item => item.title),
+  ].filter(Boolean);
+
+  if (profile.summary) {
+    GUIDE_CARDS.profile.line = `${profile.role || ''}${profile.role ? ' ' : ''}${profile.summary}`.trim();
+    NPC_CONFIG.master.line = GUIDE_CARDS.profile.line;
+  }
+  if (projectNames) {
+    GUIDE_CARDS.projects.line = `个人页当前公开的重点是：${projectNames}。这里不再为每个项目造一个物件，项目更新直接跟着主站走。`;
+  }
+  if (iLoop?.statement) {
+    GUIDE_CARDS.iloop.line = iLoop.statement;
+    NPC_CONFIG.yq.line = iLoop.statement;
+  }
+  if (latestTitles.length) {
+    GUIDE_CARDS.latest.line = `个人页最近更新：${latestTitles.join('；')}。`;
+    NPC_CONFIG.apprentice.line = GUIDE_CARDS.latest.line;
+    const firstPost = posts[0];
+    const firstNote = notes[0];
+    GUIDE_CARDS.latest.actions = [
+      {
+        label: firstPost ? '读最新文章 ↗' : '全部文章 ↗',
+        url: firstPost?.url || `${PROFILE_SITE_URL}/writing/`,
+      },
+      {
+        label: firstNote ? '看最新手记 ↗' : '全部手记 ↗',
+        url: firstNote?.url || `${PROFILE_SITE_URL}/notes/`,
+      },
+    ];
+  }
+  window.__PROFILE_FEED__ = {
+    loaded: true,
+    generatedAt: feed.generatedAt,
+    source: feed.source,
+    projectCount: projects.length,
+    postCount: posts.length,
+    noteCount: notes.length,
+  };
+  return true;
+}
+
+function loadProfileFeed() {
+  const script = document.createElement('script');
+  script.src = PROFILE_FEED_URL;
+  script.async = true;
+  script.onload = () => {
+    if (!applyProfileFeed(window.__JOB_YANG_SHOWCASE__)) {
+      window.__PROFILE_FEED__ = {
+        loaded: false,
+        source: PROFILE_FEED_URL,
+        reason: 'unsupported schema',
+      };
+    }
+  };
+  script.onerror = () => {
+    window.__PROFILE_FEED__ = {
+      loaded: false,
+      source: PROFILE_FEED_URL,
+      reason: 'script load failed',
+    };
+    console.warn('[profile] 使用内置内容，个人页摘要暂不可用');
+  };
+  document.head.appendChild(script);
+}
+
+loadProfileFeed();
 const BG_URL = './assets/bg_smithy.glb'; // 铁匠铺背景
 
 // ============== 基础场景 ==============
@@ -710,45 +749,10 @@ const interactiveObjects = {}; // { key: { root, config } }
 let loadCount = 0;
 const TOTAL = Object.keys(NPC_CONFIG).length + 1; // +1 for bg
 createHotspot('forge', [0, FLOOR_Y + 0.7, 1.05], [1.8, 1.5, 1.3]);
-const archSign = makeProp('archsign', [0, 0, 3.78]);
-archSign.position.y += FLOOR_Y;
-archSignRig = archSign.userData.archSignRig;
-registerInteractive(archSign, 'archsign');
-scene.add(archSign);
-createHotspot('archsign', [0, FLOOR_Y + 1.78, 3.78], [2.45, 0.9, 0.52]);
-const loopBoard = makeProp('loopboard', [1.35, 0, 2.65]);
-loopBoard.position.y += FLOOR_Y;
-registerInteractive(loopBoard, 'loopboard');
-scene.add(loopBoard);
-const guidePost = makeProp('guidepost', [-2.05, 0, 2.55]);
-guidePost.position.y += FLOOR_Y;
-registerInteractive(guidePost, 'guidepost');
-scene.add(guidePost);
-createHotspot('guidepost', [-2.05, FLOOR_Y + 0.8, 2.55], [1.05, 1.45, 0.75]);
-const processForge = makeProp('processforge', [-0.95, 0, 2.18]);
-processForge.position.y += FLOOR_Y;
-processForgeRig = processForge.userData.processForgeSparks;
-registerInteractive(processForge, 'processforge');
-scene.add(processForge);
-createHotspot('processforge', [-0.95, FLOOR_Y + 0.72, 2.18], [1.7, 0.9, 0.85]);
-const bellows = makeProp('bellows', [-1.18, 0, 1.58]);
-bellows.position.y += FLOOR_Y;
-bellowsRig = bellows.userData.bellowsRig;
-registerInteractive(bellows, 'bellows');
-scene.add(bellows);
-createHotspot('bellows', [-1.18, FLOOR_Y + 0.5, 1.58], [0.9, 0.72, 0.76]);
-const touchmark = makeProp('touchmark', [2.28, 0, 2.36]);
-touchmark.position.y += FLOOR_Y;
-touchmarkRig = touchmark.userData.touchmarkRig;
-registerInteractive(touchmark, 'touchmark');
-scene.add(touchmark);
-createHotspot('touchmark', [2.28, FLOOR_Y + 0.58, 2.36], [0.88, 0.9, 0.76]);
-const intakeTray = makeProp('intake', [1.05, 0, 3.42]);
-intakeTray.position.y += FLOOR_Y;
-intakeTrayRig = intakeTray.userData.intakeCards;
-registerInteractive(intakeTray, 'intake');
-scene.add(intakeTray);
-createHotspot('intake', [1.05, FLOOR_Y + 0.62, 3.42], [1.32, 0.88, 0.92]);
+window.__SCENE_DEBUG__ = {
+  interactiveKeys: () => Object.keys(interactiveObjects),
+  npcKeys: () => Object.keys(npcs),
+};
 
 function tickLoad() {
   loadCount++;
@@ -826,567 +830,7 @@ function fixTPose(root) {
   return found > 0;
 }
 
-// ============== 道具：用基础几何体盖住手部 ==============
-function makeProp(type, npcPos) {
-  const g = new THREE.Group();
-  if (type === 'anvil') {
-    // 铁砧：黑铁色梯形 + 木墩
-    const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.32, 0.4, 0.7, 12),
-      new THREE.MeshStandardMaterial({ color: 0x3a2818, roughness: 0.95 })
-    );
-    base.position.y = 0.35;
-    const anvil = new THREE.Mesh(
-      new THREE.BoxGeometry(0.9, 0.25, 0.35),
-      new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.5, metalness: 0.7 })
-    );
-    anvil.position.y = 0.82;
-    g.add(base, anvil);
-    // 放在 NPC 前方挡住手
-    g.position.set(npcPos[0] + 0.6, 0, npcPos[2] + 0.5);
-    g.rotation.y = -Math.PI / 6;
-  } else if (type === 'bucket') {
-    // 水桶 + 抹布
-    const bucket = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.22, 0.18, 0.4, 16),
-      new THREE.MeshStandardMaterial({ color: 0x5a3a1e, roughness: 0.9 })
-    );
-    bucket.position.y = 0.2;
-    const rag = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12, 8, 6),
-      new THREE.MeshStandardMaterial({ color: 0x885533, roughness: 1.0 })
-    );
-    rag.position.set(0.1, 0.42, 0);
-    rag.scale.set(1.2, 0.4, 1.2);
-    g.add(bucket, rag);
-    g.position.set(npcPos[0] - 0.5, 0, npcPos[2] + 0.4);
-  } else if (type === 'desk') {
-    // 工作台 + 笔记本电脑
-    const desk = new THREE.Mesh(
-      new THREE.BoxGeometry(1.4, 0.08, 0.7),
-      new THREE.MeshStandardMaterial({ color: 0x4a2e1a, roughness: 0.85 })
-    );
-    desk.position.y = 0.9;
-    const leg = new THREE.MeshStandardMaterial({ color: 0x2e1a0e, roughness: 0.9 });
-    [[-0.6,-0.3],[0.6,-0.3],[-0.6,0.3],[0.6,0.3]].forEach(([x,z])=>{
-      const l = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.9,0.08), leg);
-      l.position.set(x, 0.45, z);
-      g.add(l);
-    });
-    const laptopBase = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, 0.03, 0.35),
-      new THREE.MeshStandardMaterial({ color: 0x1a1a1e, roughness: 0.4, metalness: 0.6 })
-    );
-    laptopBase.position.set(0, 0.96, 0);
-    const laptopScreen = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, 0.32, 0.02),
-      new THREE.MeshStandardMaterial({ color: 0x222226, emissive: 0x4488ff, emissiveIntensity: 0.4, roughness: 0.3 })
-    );
-    laptopScreen.position.set(0, 1.13, -0.16);
-    laptopScreen.rotation.x = -0.15;
-    g.add(desk, laptopBase, laptopScreen);
-    g.position.set(npcPos[0], 0, npcPos[2] + 0.5);
-    g.rotation.y = Math.PI; // 桌子面朝相机
-  } else if (type === 'loopboard') {
-    // 闭环卷轴：把 iLoop 的“计划-取证-验证”做成可点击的场景线索
-    const boardMat = new THREE.MeshStandardMaterial({ color: 0x6b4727, roughness: 0.82 });
-    const paperMat = new THREE.MeshStandardMaterial({ color: 0xc59b62, roughness: 0.9 });
-    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffb05a, emissive: 0xff7a22, emissiveIntensity: 0.45, roughness: 0.55 });
-    const ironMat = new THREE.MeshStandardMaterial({ color: 0x20242a, metalness: 0.45, roughness: 0.5 });
-
-    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.08, 0.08), boardMat);
-    stand.position.y = 0.52;
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.78, 0.08), boardMat);
-    post.position.y = 0.91;
-    const board = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.58, 0.06), paperMat);
-    board.position.y = 1.25;
-    board.position.z = -0.02;
-    g.add(stand, post, board);
-
-    [[-0.28, 1.33], [0, 1.18], [0.28, 1.33]].forEach(([x, y], i) => {
-      const node = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.028, 18), emberMat);
-      node.rotation.x = Math.PI / 2;
-      node.position.set(x, y, 0.035);
-      g.add(node);
-      if (i > 0) {
-        const link = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.025, 0.025), ironMat);
-        link.position.set(x - 0.14, y + (i === 1 ? 0.075 : -0.075), 0.03);
-        link.rotation.z = i === 1 ? -0.44 : 0.44;
-        g.add(link);
-      }
-    });
-
-    const pin = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 8), emberMat);
-    pin.position.set(0, 1.52, 0.04);
-    g.add(pin);
-    g.position.set(npcPos[0], 0, npcPos[2]);
-    g.rotation.y = -0.28;
-  } else if (type === 'guidepost') {
-    // 导览牌：用铁匠铺地标给首次访客一个场景内路线图
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x6a3d1f, roughness: 0.88 });
-    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x3a2112, roughness: 0.92 });
-    const ironMat = new THREE.MeshStandardMaterial({ color: 0x24272c, metalness: 0.48, roughness: 0.48 });
-    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffa34a, emissive: 0xff6a18, emissiveIntensity: 0.35, roughness: 0.55 });
-    const coolMat = new THREE.MeshStandardMaterial({ color: 0x5aa3ff, emissive: 0x1c63aa, emissiveIntensity: 0.22, roughness: 0.62 });
-
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.02, 0.09), darkWoodMat);
-    post.position.y = 0.58;
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.12, 12), darkWoodMat);
-    base.position.y = 0.06;
-    g.add(post, base);
-
-    [
-      { y: 1.06, x: -0.16, rot: 0.12, mat: woodMat, bead: emberMat },
-      { y: 0.84, x: 0.14, rot: -0.1, mat: woodMat, bead: coolMat },
-      { y: 0.62, x: -0.1, rot: 0.08, mat: woodMat, bead: ironMat },
-    ].forEach(({ y, x, rot, mat, bead }, i) => {
-      const plank = new THREE.Mesh(new THREE.BoxGeometry(0.72 - i * 0.08, 0.11, 0.055), mat);
-      plank.position.set(x, y, 0.02);
-      plank.rotation.z = rot;
-      const point = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.15, 3), mat);
-      point.position.set(x + (i === 1 ? 0.42 : -0.42), y, 0.02);
-      point.rotation.z = i === 1 ? -Math.PI / 2 + rot : Math.PI / 2 + rot;
-      const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.033, 10, 8), bead);
-      rivet.position.set(x, y, 0.065);
-      g.add(plank, point, rivet);
-    });
-
-    const here = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 8, 24), emberMat);
-    here.position.set(0, 1.26, 0.055);
-    here.rotation.x = Math.PI / 2;
-    g.add(here);
-    g.position.set(npcPos[0], 0, npcPos[2]);
-    g.rotation.y = -0.12;
-  } else if (type === 'processforge') {
-    // 闭环锻造台：用三段工序把 iLoop 的计划、取证、验收变成可见流程
-    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x342012, roughness: 0.94 });
-    const warmWoodMat = new THREE.MeshStandardMaterial({ color: 0x5a351c, roughness: 0.88 });
-    const ironMat = new THREE.MeshStandardMaterial({ color: 0x20242a, metalness: 0.55, roughness: 0.42 });
-    const coolIronMat = new THREE.MeshStandardMaterial({ color: 0x2f4655, metalness: 0.38, roughness: 0.46 });
-    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffaa45, emissive: 0xff6a18, emissiveIntensity: 0.7, roughness: 0.45 });
-    const proofMat = new THREE.MeshStandardMaterial({ color: 0x66b7ff, emissive: 0x2068b5, emissiveIntensity: 0.32, roughness: 0.55 });
-    const waxMat = new THREE.MeshStandardMaterial({ color: 0xc23a2c, emissive: 0x78150e, emissiveIntensity: 0.18, roughness: 0.58 });
-
-    const bench = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.1, 0.54), warmWoodMat);
-    bench.position.y = 0.45;
-    g.add(bench);
-    [-0.64, 0.64].forEach(x => {
-      [-0.18, 0.18].forEach(z => {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.44, 0.08), darkWoodMat);
-        leg.position.set(x, 0.22, z);
-        g.add(leg);
-      });
-    });
-
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(1.32, 0.035, 0.035), ironMat);
-    rail.position.set(0, 0.61, -0.22);
-    g.add(rail);
-    [-0.48, 0, 0.48].forEach(x => {
-      const marker = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.03, 18), emberMat);
-      marker.rotation.x = Math.PI / 2;
-      marker.position.set(x, 0.61, -0.22);
-      g.add(marker);
-    });
-
-    const planClamp = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.1, 0.34), coolIronMat);
-    planClamp.position.set(-0.48, 0.56, 0.05);
-    const planHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.44, 10), ironMat);
-    planHandle.rotation.z = Math.PI / 2;
-    planHandle.position.set(-0.48, 0.67, 0.05);
-    g.add(planClamp, planHandle);
-
-    const ingot = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.2), emberMat);
-    ingot.position.set(0, 0.58, 0.04);
-    ingot.rotation.z = -0.08;
-    g.add(ingot);
-
-    const stamp = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.16, 18), ironMat);
-    stamp.position.set(0.48, 0.66, 0.05);
-    const stampMark = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.013, 8, 24), waxMat);
-    stampMark.position.set(0.48, 0.56, 0.05);
-    stampMark.rotation.x = Math.PI / 2;
-    g.add(stamp, stampMark);
-
-    const labels = [
-      { x: -0.48, mat: proofMat },
-      { x: 0, mat: emberMat },
-      { x: 0.48, mat: waxMat },
-    ];
-    labels.forEach(({ x, mat }, i) => {
-      const plate = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.045, 0.055), mat);
-      plate.position.set(x, 0.5, 0.3);
-      plate.rotation.x = -0.35;
-      g.add(plate);
-      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.08 + i * 0.03, 0.018, 0.018), ironMat);
-      tick.position.set(x, 0.535, 0.34);
-      tick.rotation.z = i === 1 ? 0.35 : -0.35;
-      g.add(tick);
-    });
-
-    const sparkGroup = new THREE.Group();
-    sparkGroup.name = 'processForgeSparks';
-    for (let i = 0; i < 14; i++) {
-      const spark = new THREE.Mesh(new THREE.SphereGeometry(0.018 + (i % 3) * 0.004, 8, 6), emberMat);
-      const angle = (i / 14) * Math.PI * 2;
-      spark.userData.base = {
-        x: Math.cos(angle) * (0.2 + (i % 4) * 0.055),
-        y: 0.8 + (i % 5) * 0.055,
-        z: Math.sin(angle) * 0.14,
-        phase: i * 0.57,
-      };
-      spark.position.set(spark.userData.base.x, spark.userData.base.y, spark.userData.base.z);
-      sparkGroup.add(spark);
-    }
-    g.add(sparkGroup);
-    g.userData.processForgeSparks = sparkGroup;
-
-    g.position.set(npcPos[0], 0, npcPos[2]);
-    g.rotation.y = 0.18;
-  } else if (type === 'intake') {
-    // 委托托盘：把“目标、截图、日志”做成访客进门就能放下的三件材料
-    const trayMat = new THREE.MeshStandardMaterial({ color: 0x4b2d18, roughness: 0.9 });
-    const rimMat = new THREE.MeshStandardMaterial({ color: 0x2a1810, roughness: 0.92 });
-    const ironMat = new THREE.MeshStandardMaterial({ color: 0x24272c, metalness: 0.45, roughness: 0.5 });
-    const targetMat = new THREE.MeshStandardMaterial({ color: 0xd8aa5c, emissive: 0x5a2f06, emissiveIntensity: 0.12, roughness: 0.72 });
-    const screenMat = new THREE.MeshStandardMaterial({ color: 0x2f6fb2, emissive: 0x124b8e, emissiveIntensity: 0.36, roughness: 0.48 });
-    const logMat = new THREE.MeshStandardMaterial({ color: 0x6f7d85, emissive: 0x24333a, emissiveIntensity: 0.18, roughness: 0.6 });
-    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffa34a, emissive: 0xff6a18, emissiveIntensity: 0.4, roughness: 0.5 });
-
-    const tray = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.08, 0.62), trayMat);
-    tray.position.y = 0.28;
-    g.add(tray);
-    [
-      [0, 0.35, -0.34, 1.18, 0.08, 0.08],
-      [0, 0.35, 0.34, 1.18, 0.08, 0.08],
-      [-0.6, 0.35, 0, 0.08, 0.08, 0.62],
-      [0.6, 0.35, 0, 0.08, 0.08, 0.62],
-    ].forEach(([x, y, z, w, h, d]) => {
-      const rim = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), rimMat);
-      rim.position.set(x, y, z);
-      g.add(rim);
-    });
-    [-0.38, 0.38].forEach(x => {
-      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.014, 8, 24), ironMat);
-      handle.position.set(x, 0.42, -0.37);
-      handle.rotation.x = Math.PI / 2;
-      g.add(handle);
-    });
-
-    const cards = new THREE.Group();
-    cards.name = 'intakeCards';
-    [
-      { x: -0.34, z: 0.02, rot: 0.08, mat: targetMat, accent: emberMat },
-      { x: 0, z: -0.02, rot: -0.05, mat: screenMat, accent: ironMat },
-      { x: 0.34, z: 0.03, rot: 0.06, mat: logMat, accent: emberMat },
-    ].forEach(({ x, z, rot, mat, accent }, i) => {
-      const card = new THREE.Group();
-      card.userData.base = { x, y: 0.44 + i * 0.018, z, rot, phase: i * 0.7 };
-      const paper = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.025, 0.36), mat);
-      paper.position.y = 0;
-      card.add(paper);
-      for (let line = 0; line < 3; line++) {
-        const strip = new THREE.Mesh(new THREE.BoxGeometry(0.16 + line * 0.035, 0.012, 0.012), accent);
-        strip.position.set(-0.02, 0.026, -0.09 + line * 0.07);
-        card.add(strip);
-      }
-      if (i === 1) {
-        const glare = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.014, 0.3), emberMat);
-        glare.position.set(0.075, 0.03, 0);
-        glare.rotation.y = -0.28;
-        card.add(glare);
-      }
-      card.position.set(x, card.userData.base.y, z);
-      card.rotation.y = rot;
-      card.rotation.x = -0.22;
-      cards.add(card);
-    });
-    g.add(cards);
-    g.userData.intakeCards = cards;
-
-    const notice = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.08, 0.055), targetMat);
-    notice.position.set(0, 0.62, -0.38);
-    notice.rotation.x = -0.2;
-    const nail = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), emberMat);
-    nail.position.set(0, 0.65, -0.42);
-    g.add(notice, nail);
-    g.position.set(npcPos[0], 0, npcPos[2]);
-    g.rotation.y = -0.2;
-  } else if (type === 'bellows') {
-    // 风箱：给炉火送氧，补上铁匠铺“控火”的可见动作
-    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x2f1a0e, roughness: 0.92 });
-    const leatherMat = new THREE.MeshStandardMaterial({ color: 0x5a321d, roughness: 0.86 });
-    const warmWoodMat = new THREE.MeshStandardMaterial({ color: 0x7a4928, roughness: 0.82 });
-    const brassMat = new THREE.MeshStandardMaterial({ color: 0xb57a35, metalness: 0.45, roughness: 0.38 });
-    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffa84a, emissive: 0xff6a18, emissiveIntensity: 0.58, roughness: 0.45 });
-    const hotMat = new THREE.MeshStandardMaterial({ color: 0xffcf6a, emissive: 0xff7a18, emissiveIntensity: 0.7, roughness: 0.42 });
-    const coolMat = new THREE.MeshStandardMaterial({ color: 0x5aa3ff, emissive: 0x1f5d9b, emissiveIntensity: 0.2, roughness: 0.58 });
-
-    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.08, 0.46), darkWoodMat);
-    stand.position.y = 0.22;
-    g.add(stand);
-    [-0.38, 0.38].forEach(x => {
-      [-0.16, 0.16].forEach(z => {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.44, 0.07), darkWoodMat);
-        leg.position.set(x, 0.22, z);
-        g.add(leg);
-      });
-    });
-
-    const body = new THREE.Group();
-    body.name = 'bellowsBody';
-    const lower = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.08, 0.42), warmWoodMat);
-    lower.position.y = 0.42;
-    const leather = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.2, 0.36), leatherMat);
-    leather.name = 'bellowsLeather';
-    leather.position.y = 0.54;
-    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.07, 0.42), warmWoodMat);
-    upper.name = 'bellowsUpper';
-    upper.position.y = 0.68;
-    const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.48, 14), brassMat);
-    hinge.rotation.x = Math.PI / 2;
-    hinge.position.set(-0.44, 0.56, 0);
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.055, 0.08), warmWoodMat);
-    handle.name = 'bellowsHandle';
-    handle.position.set(-0.58, 0.72, 0);
-    const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.085, 0.42, 18), brassMat);
-    nozzle.rotation.z = Math.PI / 2;
-    nozzle.position.set(0.58, 0.55, 0);
-    body.add(lower, leather, upper, hinge, handle, nozzle);
-    g.add(body);
-
-    const airflow = new THREE.Group();
-    airflow.name = 'bellowsAirflow';
-    for (let i = 0; i < 8; i++) {
-      const mote = new THREE.Mesh(new THREE.SphereGeometry(0.026 + (i % 2) * 0.006, 8, 6), i % 3 === 0 ? hotMat : emberMat);
-      mote.userData.base = {
-        x: 0.76 + i * 0.11,
-        y: 0.55 + (i % 3) * 0.028,
-        z: (i % 2 ? 0.04 : -0.04),
-        phase: i * 0.63,
-      };
-      mote.position.set(mote.userData.base.x, mote.userData.base.y, mote.userData.base.z);
-      airflow.add(mote);
-    }
-    g.add(airflow);
-
-    const gauge = new THREE.Group();
-    gauge.name = 'bellowsGauge';
-    const gaugePost = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.46, 0.045), darkWoodMat);
-    gaugePost.position.set(0.16, 0.53, 0.36);
-    gauge.add(gaugePost);
-    [-0.12, 0.02, 0.16].forEach((y, i) => {
-      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.22 - i * 0.035, 0.035, 0.035), i === 2 ? hotMat : coolMat);
-      tick.name = `bellowsGaugeTick${i}`;
-      tick.position.set(0.16, 0.55 + y, 0.39);
-      gauge.add(tick);
-    });
-    g.add(gauge);
-
-    g.userData.bellowsRig = { upper, handle, leather, airflow, gauge };
-    g.position.set(npcPos[0], 0, npcPos[2]);
-    g.rotation.y = 0.15;
-    g.scale.setScalar(0.72);
-  } else if (type === 'touchmark') {
-    // 匠印台：把个人身份和可追溯交付做成红热金属上的压痕
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x3a2112, roughness: 0.92 });
-    const ironMat = new THREE.MeshStandardMaterial({ color: 0x25282e, metalness: 0.55, roughness: 0.42 });
-    const hotIronMat = new THREE.MeshStandardMaterial({ color: 0x7a2d1a, emissive: 0xff4a14, emissiveIntensity: 0.52, metalness: 0.35, roughness: 0.5 });
-    const stampMat = new THREE.MeshStandardMaterial({ color: 0x30343a, metalness: 0.72, roughness: 0.35 });
-    const brassMat = new THREE.MeshStandardMaterial({ color: 0xb57a35, metalness: 0.45, roughness: 0.4 });
-    const markMat = new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0xff7a18, emissiveIntensity: 0.85, roughness: 0.38 });
-    const coolMarkMat = new THREE.MeshStandardMaterial({ color: 0x66b7ff, emissive: 0x2068b5, emissiveIntensity: 0.35, roughness: 0.55 });
-
-    const base = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.1, 0.64), baseMat);
-    base.position.y = 0.32;
-    g.add(base);
-    [-0.36, 0.36].forEach(x => {
-      [-0.22, 0.22].forEach(z => {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.42, 0.07), baseMat);
-        leg.position.set(x, 0.18, z);
-        g.add(leg);
-      });
-    });
-
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.055, 0.38), hotIronMat);
-    plate.name = 'touchmarkPlate';
-    plate.position.set(0, 0.43, 0);
-    plate.rotation.z = -0.04;
-    g.add(plate);
-
-    const markGroup = new THREE.Group();
-    markGroup.name = 'touchmarkMark';
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.014, 8, 32), coolMarkMat);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.set(0.11, 0.472, 0);
-    markGroup.add(ring);
-    [
-      [-0.24, 0.47, 0.16, 0.02],
-      [-0.18, 0.47, 0.16, 0.02],
-      [-0.21, 0.47, 0.12, 0.02],
-      [-0.13, 0.47, 0.11, 0.02],
-      [-0.08, 0.47, 0.17, 0.02],
-      [-0.03, 0.47, 0.11, 0.02],
-    ].forEach(([x, y, h, w], i) => {
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.018, h), markMat);
-      bar.position.set(x, y, i < 3 ? 0.01 : 0);
-      if (i === 2) bar.rotation.y = Math.PI / 2;
-      if (i === 3) bar.rotation.y = 0.52;
-      if (i === 5) bar.rotation.y = -0.52;
-      markGroup.add(bar);
-    });
-    const loopDot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), markMat);
-    loopDot.position.set(0.23, 0.475, -0.08);
-    markGroup.add(loopDot);
-    g.add(markGroup);
-
-    const stampHead = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.16, 20), stampMat);
-    stampHead.name = 'touchmarkStampHead';
-    stampHead.position.set(0.04, 0.78, 0);
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.62, 16), stampMat);
-    shaft.name = 'touchmarkShaft';
-    shaft.position.set(0.04, 1.12, 0);
-    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.07, 0.08), brassMat);
-    handle.name = 'touchmarkHandle';
-    handle.position.set(0.04, 1.46, 0);
-    g.add(stampHead, shaft, handle);
-
-    const guide = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.82, 0.06), ironMat);
-    guide.position.set(-0.36, 0.88, -0.25);
-    const cross = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.045, 0.045), ironMat);
-    cross.position.set(0, 1.34, -0.25);
-    g.add(guide, cross);
-
-    const sparks = new THREE.Group();
-    sparks.name = 'touchmarkSparks';
-    for (let i = 0; i < 12; i++) {
-      const spark = new THREE.Mesh(new THREE.SphereGeometry(0.014 + (i % 3) * 0.004, 8, 6), markMat);
-      const angle = (i / 12) * Math.PI * 2;
-      spark.userData.base = {
-        x: Math.cos(angle) * (0.18 + (i % 4) * 0.035),
-        y: 0.54 + (i % 3) * 0.03,
-        z: Math.sin(angle) * 0.13,
-        phase: i * 0.61,
-      };
-      spark.position.set(spark.userData.base.x, spark.userData.base.y, spark.userData.base.z);
-      sparks.add(spark);
-    }
-    g.add(sparks);
-
-    g.userData.touchmarkRig = { plate, markGroup, stampHead, shaft, handle, sparks };
-    g.position.set(npcPos[0], 0, npcPos[2]);
-    g.rotation.y = -0.22;
-    g.scale.setScalar(0.68);
-  } else if (type === 'archsign') {
-    // 炉门铺招：把“欢迎页”的第一眼识别做成铁匠铺门楣
-    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x2c180d, roughness: 0.94 });
-    const warmWoodMat = new THREE.MeshStandardMaterial({ color: 0x6f3f20, roughness: 0.86 });
-    const ironMat = new THREE.MeshStandardMaterial({ color: 0x20242a, metalness: 0.62, roughness: 0.42 });
-    const signMat = new THREE.MeshStandardMaterial({ color: 0x3b2416, roughness: 0.82 });
-    const emberMat = new THREE.MeshStandardMaterial({ color: 0xffa44a, emissive: 0xff6918, emissiveIntensity: 0.5, roughness: 0.48 });
-    const hotMat = new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0xff8a1c, emissiveIntensity: 0.82, roughness: 0.42 });
-    const coolMat = new THREE.MeshStandardMaterial({ color: 0x66b7ff, emissive: 0x2068b5, emissiveIntensity: 0.36, roughness: 0.55 });
-
-    const leftPost = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.55, 0.12), darkWoodMat);
-    leftPost.position.set(-1.08, 0.78, 0);
-    const rightPost = leftPost.clone();
-    rightPost.position.x = 1.08;
-    const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.46, 0.16, 0.16), warmWoodMat);
-    lintel.position.set(0, 1.54, 0);
-    const sill = new THREE.Mesh(new THREE.BoxGeometry(2.18, 0.055, 0.16), darkWoodMat);
-    sill.position.set(0, 0.08, 0.02);
-    g.add(leftPost, rightPost, lintel, sill);
-
-    [-0.82, 0.82].forEach(x => {
-      const strap = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.18), ironMat);
-      strap.position.set(x, 1.55, 0.035);
-      const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), emberMat);
-      rivet.position.set(x, 1.55, 0.13);
-      g.add(strap, rivet);
-    });
-
-    const signGroup = new THREE.Group();
-    signGroup.name = 'archSignBoard';
-    const sign = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.44, 0.07), signMat);
-    sign.position.y = 1.18;
-    signGroup.add(sign);
-    [-0.52, 0.52].forEach(x => {
-      const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.34, 8), ironMat);
-      chain.position.set(x, 1.42, 0.02);
-      chain.rotation.z = x < 0 ? -0.1 : 0.1;
-      signGroup.add(chain);
-    });
-
-    const anvilIcon = new THREE.Group();
-    const anvilTop = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.045, 0.05), ironMat);
-    anvilTop.position.set(-0.42, 1.18, 0.06);
-    const anvilBase = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.09, 0.05), ironMat);
-    anvilBase.position.set(-0.42, 1.11, 0.06);
-    const anvilHorn = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.16, 14), ironMat);
-    anvilHorn.rotation.z = -Math.PI / 2;
-    anvilHorn.position.set(-0.2, 1.18, 0.06);
-    anvilIcon.add(anvilTop, anvilBase, anvilHorn);
-    signGroup.add(anvilIcon);
-
-    [
-      [-0.02, 1.1, 0.18, 0.022],
-      [0.05, 1.1, 0.18, 0.022],
-      [0.015, 1.1, 0.14, 0.022],
-      [0.17, 1.1, 0.13, 0.022],
-      [0.23, 1.1, 0.19, 0.022],
-      [0.29, 1.1, 0.13, 0.022],
-    ].forEach(([x, y, h, w], i) => {
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.032), hotMat);
-      bar.position.set(x, y, 0.08);
-      if (i === 2) bar.rotation.z = Math.PI / 2;
-      if (i === 3) bar.rotation.z = -0.5;
-      if (i === 5) bar.rotation.z = 0.5;
-      signGroup.add(bar);
-    });
-    const loopRing = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.012, 8, 28), coolMat);
-    loopRing.position.set(0.52, 1.18, 0.08);
-    loopRing.rotation.x = Math.PI / 2;
-    signGroup.add(loopRing);
-    const loopSpark = new THREE.Mesh(new THREE.SphereGeometry(0.026, 10, 8), hotMat);
-    loopSpark.position.set(0.62, 1.22, 0.08);
-    signGroup.add(loopSpark);
-    g.add(signGroup);
-
-    const lamps = new THREE.Group();
-    lamps.name = 'archSignLamps';
-    [-1.0, 1.0].forEach(x => {
-      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), hotMat);
-      lamp.position.set(x, 1.26, 0.12);
-      const cage = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.008, 8, 18), ironMat);
-      cage.position.copy(lamp.position);
-      cage.rotation.x = Math.PI / 2;
-      lamps.add(lamp, cage);
-    });
-    g.add(lamps);
-
-    const thresholdSparks = new THREE.Group();
-    thresholdSparks.name = 'archSignSparks';
-    for (let i = 0; i < 10; i++) {
-      const spark = new THREE.Mesh(new THREE.SphereGeometry(0.014 + (i % 3) * 0.004, 8, 6), i % 2 ? emberMat : hotMat);
-      spark.userData.base = {
-        x: -0.72 + i * 0.16,
-        y: 0.14 + (i % 3) * 0.03,
-        z: 0.1 + (i % 2) * 0.03,
-        phase: i * 0.66,
-      };
-      spark.position.set(spark.userData.base.x, spark.userData.base.y, spark.userData.base.z);
-      thresholdSparks.add(spark);
-    }
-    g.add(thresholdSparks);
-
-    g.userData.archSignRig = { signGroup, lamps, thresholdSparks };
-    g.position.set(npcPos[0], 0, npcPos[2]);
-    g.rotation.y = 0;
-    g.scale.setScalar(0.82);
-  }
-  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }});
-  return g;
-}
-
+// 场景只保留已有 GLB 资产；内容入口由人物与火炉承担。
 function registerInteractive(root, key, config = OBJECT_CONFIG[key]) {
   if (!root || !config) return root;
   root.userData.interactiveKey = key;
@@ -1441,14 +885,6 @@ function loadNPC(key, cfg) {
     });
     scene.add(root);
 
-    // 5. 加道具遮挡手部（只有 cfg.prop 非 null 时）
-    if (cfg.prop) {
-      const prop = makeProp(cfg.prop, cfg.position);
-      prop.position.y += FLOOR_Y; // 道具也抬到地板上
-      registerInteractive(prop, cfg.prop);
-      scene.add(prop);
-    }
-
     npcs[key] = { root, config: cfg, baseY: root.position.y };
     tickLoad();
   }, undefined, () => {
@@ -1461,12 +897,6 @@ function loadNPC(key, cfg) {
     mesh.castShadow = true;
     mesh.userData.npcKey = key;
     scene.add(mesh);
-    if (cfg.prop) {
-      const prop = makeProp(cfg.prop, cfg.position);
-      prop.position.y += FLOOR_Y;
-      registerInteractive(prop, cfg.prop);
-      scene.add(prop);
-    }
     npcs[key] = { root: mesh, config: cfg, baseY: mesh.position.y };
     tickLoad();
   });
@@ -1788,24 +1218,10 @@ function triggerRandomAmbientTalk(force = false) {
   }, 3600);
 }
 
-function scheduleAutoTalk() {
-  clearTimeout(autoTalkTimer);
-  autoTalkTimer = setTimeout(() => {
-    triggerRandomAmbientTalk();
-    scheduleAutoTalk();
-  }, getRandomTalkDelay());
-}
-
-function kickOffAutoTalk() {
-  setTimeout(() => {
-    triggerRandomAmbientTalk(true);
-    scheduleAutoTalk();
-  }, 1200);
-}
-
 function selectNPC(key) {
   activeKey = key;
   selectedObjectKey = null;
+  togglePanel(false);
   setActiveNpcButton(key);
 
   if (key === 'yq') {
@@ -1848,26 +1264,6 @@ function selectObject(key) {
     forgeWelcome();
     return;
   }
-  if (key === 'processforge') {
-    applySceneMode('forge');
-    forgePulseUntil = performance.now() + 1600;
-  }
-  if (key === 'bellows') {
-    applySceneMode('forge');
-    forgePulseUntil = performance.now() + 1800;
-    bellowsBoostUntil = performance.now() + 1800;
-  }
-  if (key === 'touchmark') {
-    applySceneMode('forge');
-    forgePulseUntil = performance.now() + 1700;
-    touchmarkBoostUntil = performance.now() + 2100;
-  }
-  if (key === 'archsign') {
-    applySceneMode('forge');
-    forgePulseUntil = performance.now() + 1900;
-    archSignBoostUntil = performance.now() + 2200;
-  }
-
   renderDialog({
     name: cfg.name,
     meta: cfg.meta,
@@ -2056,157 +1452,6 @@ function animate() {
     }
   }
 
-  // 闭环锻造台火星：少量小物件呼吸，强调“工序正在进行”
-  if (processForgeRig) {
-    processForgeRig.children.forEach((spark, i) => {
-      const base = spark.userData.base;
-      if (!base) return;
-      const pulse = Math.sin(t * 3.2 + base.phase);
-      spark.position.set(
-        base.x + Math.sin(t * 2.4 + base.phase) * 0.025,
-        base.y + pulse * 0.035,
-        base.z + Math.cos(t * 2.1 + base.phase) * 0.018
-      );
-      const scale = 0.82 + (pulse + 1) * 0.18;
-      spark.scale.setScalar(scale);
-      if (spark.material && 'emissiveIntensity' in spark.material) {
-        spark.material.emissiveIntensity = 0.55 + (pulse + 1) * 0.22 + (i % 3) * 0.04;
-      }
-    });
-  }
-
-  // 门口委托托盘：三张材料轻微起伏，暗示“带着证据进门”
-  if (intakeTrayRig) {
-    intakeTrayRig.children.forEach((card, i) => {
-      const base = card.userData.base;
-      if (!base) return;
-      const pulse = Math.sin(t * 1.8 + base.phase);
-      card.position.set(base.x, base.y + pulse * 0.014, base.z);
-      card.rotation.y = base.rot + Math.sin(t * 1.4 + base.phase) * 0.025;
-      card.rotation.x = -0.22 + Math.cos(t * 1.6 + base.phase) * 0.018;
-    });
-  }
-
-  // 风箱送风：开合、气流和火候刻度同步，点击后短暂加强炉火“送氧”感
-  if (bellowsRig) {
-    const boostLeft = Math.max(0, bellowsBoostUntil - performance.now());
-    const boost = boostLeft ? Math.sin((1 - boostLeft / 1800) * Math.PI) : 0;
-    const breath = (Math.sin(t * 2.2) + 1) * 0.5;
-    if (bellowsRig.upper) {
-      bellowsRig.upper.position.y = 0.66 + breath * 0.07 + boost * 0.035;
-      bellowsRig.upper.rotation.z = -0.03 + breath * 0.08;
-    }
-    if (bellowsRig.handle) {
-      bellowsRig.handle.position.y = 0.7 + breath * 0.08 + boost * 0.04;
-      bellowsRig.handle.rotation.z = -0.05 + breath * 0.12;
-    }
-    if (bellowsRig.leather) {
-      bellowsRig.leather.scale.y = 0.86 + breath * 0.28 + boost * 0.08;
-    }
-    if (bellowsRig.airflow) {
-      bellowsRig.airflow.children.forEach((mote, i) => {
-        const base = mote.userData.base;
-        if (!base) return;
-        const travel = (t * (0.55 + boost * 0.45) + i * 0.13) % 1;
-        mote.position.set(
-          base.x + travel * 0.76,
-          base.y + Math.sin(t * 4.2 + base.phase) * 0.035 + boost * 0.02,
-          base.z + Math.cos(t * 3.4 + base.phase) * 0.04
-        );
-        const scale = 0.65 + breath * 0.35 + boost * 0.55;
-        mote.scale.setScalar(scale);
-        if (mote.material && 'emissiveIntensity' in mote.material) {
-          mote.material.emissiveIntensity = 0.45 + breath * 0.35 + boost * 0.55 + (i % 2) * 0.06;
-        }
-      });
-    }
-    if (bellowsRig.gauge) {
-      bellowsRig.gauge.children.forEach((part, i) => {
-        if (!part.material || !('emissiveIntensity' in part.material)) return;
-        part.material.emissiveIntensity = 0.18 + Math.max(0, breath - i * 0.18) * 0.55 + boost * 0.42;
-      });
-    }
-  }
-
-  // 匠印台：钢印轻压，火印与火星在点击后短暂增强
-  if (touchmarkRig) {
-    const boostLeft = Math.max(0, touchmarkBoostUntil - performance.now());
-    const boost = boostLeft ? Math.sin((1 - boostLeft / 2100) * Math.PI) : 0;
-    const press = (Math.sin(t * 1.7) + 1) * 0.5;
-    const pressDepth = press * 0.08 + boost * 0.1;
-    ['stampHead', 'shaft', 'handle'].forEach(name => {
-      const part = touchmarkRig[name];
-      if (!part) return;
-      const baseY = name === 'stampHead' ? 0.78 : name === 'shaft' ? 1.12 : 1.46;
-      part.position.y = baseY - pressDepth;
-    });
-    if (touchmarkRig.plate?.material && 'emissiveIntensity' in touchmarkRig.plate.material) {
-      touchmarkRig.plate.material.emissiveIntensity = 0.45 + press * 0.22 + boost * 0.55;
-    }
-    if (touchmarkRig.markGroup) {
-      const markScale = 1 + press * 0.04 + boost * 0.08;
-      touchmarkRig.markGroup.scale.set(markScale, 1, markScale);
-      touchmarkRig.markGroup.children.forEach((part, i) => {
-        if (!part.material || !('emissiveIntensity' in part.material)) return;
-        part.material.emissiveIntensity = 0.42 + press * 0.45 + boost * 0.9 + (i % 2) * 0.05;
-      });
-    }
-    if (touchmarkRig.sparks) {
-      touchmarkRig.sparks.children.forEach((spark, i) => {
-        const base = spark.userData.base;
-        if (!base) return;
-        const pulse = Math.sin(t * 3.5 + base.phase);
-        spark.position.set(
-          base.x + Math.cos(t * 2.1 + base.phase) * (0.015 + boost * 0.035),
-          base.y + pulse * (0.018 + boost * 0.05),
-          base.z + Math.sin(t * 2.6 + base.phase) * (0.014 + boost * 0.03)
-        );
-        spark.scale.setScalar(0.72 + (pulse + 1) * 0.14 + boost * 0.65);
-        if (spark.material && 'emissiveIntensity' in spark.material) {
-          spark.material.emissiveIntensity = 0.5 + (pulse + 1) * 0.22 + boost * 0.9;
-        }
-      });
-    }
-  }
-
-  // 炉门铺招：门牌轻摆、暖灯呼吸，点击后像开炉迎客一样短暂亮起
-  if (archSignRig) {
-    const boostLeft = Math.max(0, archSignBoostUntil - performance.now());
-    const boost = boostLeft ? Math.sin((1 - boostLeft / 2200) * Math.PI) : 0;
-    const swing = Math.sin(t * 1.15) * (0.035 + boost * 0.035);
-    if (archSignRig.signGroup) {
-      archSignRig.signGroup.rotation.z = swing;
-      archSignRig.signGroup.position.y = Math.sin(t * 1.6) * 0.018 - boost * 0.02;
-      archSignRig.signGroup.traverse(part => {
-        if (!part.material || !('emissiveIntensity' in part.material)) return;
-        part.material.emissiveIntensity = Math.max(part.material.emissiveIntensity || 0, 0.28 + boost * 0.45);
-      });
-    }
-    if (archSignRig.lamps) {
-      archSignRig.lamps.children.forEach((part, i) => {
-        if (!part.material || !('emissiveIntensity' in part.material)) return;
-        const glow = 0.44 + Math.sin(t * 2.6 + i) * 0.14 + boost * 0.72;
-        part.material.emissiveIntensity = Math.max(0.12, glow);
-      });
-    }
-    if (archSignRig.thresholdSparks) {
-      archSignRig.thresholdSparks.children.forEach((spark, i) => {
-        const base = spark.userData.base;
-        if (!base) return;
-        const pulse = Math.sin(t * 3.0 + base.phase);
-        spark.position.set(
-          base.x + Math.sin(t * 1.8 + base.phase) * (0.012 + boost * 0.018),
-          base.y + pulse * (0.018 + boost * 0.04),
-          base.z + Math.cos(t * 2.2 + base.phase) * 0.012
-        );
-        spark.scale.setScalar(0.75 + (pulse + 1) * 0.16 + boost * 0.55);
-        if (spark.material && 'emissiveIntensity' in spark.material) {
-          spark.material.emissiveIntensity = 0.45 + (pulse + 1) * 0.2 + boost * 0.75 + (i % 2) * 0.06;
-        }
-      });
-    }
-  }
-
   // NPC 呼吸起伏（基于初始高度做绝对偏移，避免累计上浮）
   Object.entries(npcs).forEach(([key, n], i) => {
     if (n.root) {
@@ -2227,355 +1472,99 @@ function animate() {
 animate();
 
 /* ============================================================
-   背景音乐 · 双曲目程序化合成(纯 Web Audio,无音频文件)
-   - calm   : 舒缓氛围 —— 竖琴琶音 + 弦乐 pad + 大厅混响
-   - tavern : 炉石酒馆风 —— 走动低音 + 拨弦旋律 + 轻手鼓,欢快热闹
+   背景音乐 · 专业双曲目
+   - calm   : Hearth And Hammer
+   - tavern : Hearthside Ales
+   音频文件已烘焙 5 秒尾部渐出；切换场景时再做 0.8 秒交叉淡化。
    ============================================================ */
 const BGM = (() => {
-  let ctx = null, master = null, busDry = null, busWet = null, reverb = null, busWetGain = null;
-  let started = false, playing = false, style = 'calm';
-  let schedulerTimer = null, nextNoteTime = 0, step = 0;
-
-  // 音名转频率,A4=440(支持 b 降号)
-  const N = name => {
-    const m = name.match(/^([A-G])(#?|b?)(\d)$/);
-    let semi = {C:-9,D:-7,E:-5,F:-4,G:-2,A:0,B:2}[m[1]];
-    if (m[2] === '#') semi += 1;
-    if (m[2] === 'b') semi -= 1;
-    const oct = +m[3] - 4;
-    return 440 * Math.pow(2, (semi + oct * 12) / 12);
-  };
-
-  // ---------- 曲目配置 ----------
   const TRACKS = {
-    // 舒缓:C - Am - F - G,慢,纯氛围
     calm: {
-      bpm: 64,
-      reverbWet: 0.85,
-      chords: [
-        { bass: 'C2', notes: ['C4','E4','G4','C5'] },
-        { bass: 'A2', notes: ['A3','C4','E4','A4'] },
-        { bass: 'F2', notes: ['F3','A3','C4','F4'] },
-        { bass: 'G2', notes: ['G3','B3','D4','G4'] },
-      ],
+      title: 'Hearth And Hammer',
+      url: './assets/music/hearth-and-hammer.mp3',
+      volume: 0.46,
     },
-    // 酒馆:Peter McConnell《Pull Up A Chair》风 —— F 大调/D 小调 bluesy swing,
-    // 走动低音 + 慵懒蓝调吉他主奏 + brush 鼓刷。和声走 turnaround:Dm7 - G7 - C7 - F6
     tavern: {
-      bpm: 108,            // 中速摇摆,慵懒但带律动
-      swing: 0.62,         // 三连音摇摆比例(后半拍延后)
-      reverbWet: 0.32,     // 干一点,破酒馆不是大厅
-      chords: [
-        // 每和弦一小节(4 拍)。walk = 每拍 walking bass 音(含半音趋近),
-        // notes = 和弦内音(吉他切音),mel = 蓝调主奏乐句(含 bF/bA blues 音)
-        { walk: ['D2','F2','A2','C3'], notes: ['F3','A3','C4'],  mel: ['A4','C5','D5','F5','D5','C5','A4','G4'] },   // Dm7
-        { walk: ['G2','B2','D3','F3'], notes: ['G3','B3','D4','F4'], mel: ['G4','Bb4','B4','D5','B4','G4','F4','D4'] }, // G7
-        { walk: ['C3','E3','G3','Bb3'], notes: ['E3','G3','Bb3','C4'], mel: ['C5','E5','G5','E5','D5','C5','Bb4','G4'] }, // C7
-        { walk: ['F2','A2','C3','D3'], notes: ['F3','A3','C4','D4'], mel: ['F4','A4','C5','A4','G4','F4','D4','C4'] },   // F6
-      ],
+      title: 'Hearthside Ales',
+      url: './assets/music/hearthside-ales.mp3',
+      volume: 0.42,
     },
   };
+  const players = Object.fromEntries(
+    Object.entries(TRACKS).map(([key, track]) => {
+      const audio = new Audio(track.url);
+      audio.preload = 'auto';
+      audio.loop = true;
+      audio.volume = 0;
+      audio.load();
+      return [key, audio];
+    }),
+  );
+  let style = 'calm';
+  let playing = false;
 
-  // 算法混响(大厅空间感)
-  function makeReverb(audioCtx, seconds = 3.0, decay = 2.6) {
-    const rate = audioCtx.sampleRate;
-    const len = rate * seconds;
-    const buf = audioCtx.createBuffer(2, len, rate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = buf.getChannelData(ch);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
-    }
-    const conv = audioCtx.createConvolver();
-    conv.buffer = buf;
-    return conv;
-  }
-
-  // 拨弦音(竖琴/钢片琴感):正弦+三角,快起慢落
-  function pluck(freq, time, dur, gain, dest, bright = false) {
-    const o1 = ctx.createOscillator();
-    const o2 = ctx.createOscillator();
-    o1.type = 'sine'; o2.type = bright ? 'sawtooth' : 'triangle';
-    o1.frequency.value = freq; o2.frequency.value = freq * 2;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, time);
-    g.gain.linearRampToValueAtTime(gain, time + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
-    const g2 = ctx.createGain(); g2.gain.value = bright ? 0.5 : 0.35;
-    if (bright) {
-      const lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass'; lp.frequency.value = 3200;
-      o2.connect(lp); lp.connect(g2);
-    } else {
-      o2.connect(g2);
-    }
-    g2.connect(g);
-    o1.connect(g); g.connect(dest);
-    o1.start(time); o2.start(time);
-    o1.stop(time + dur + 0.05); o2.stop(time + dur + 0.05);
-  }
-
-  // 弦乐 pad 长音
-  function pad(freq, time, dur, gain, dest) {
-    const o = ctx.createOscillator();
-    o.type = 'sawtooth'; o.frequency.value = freq;
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 1400; lp.Q.value = 0.5;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, time);
-    g.gain.linearRampToValueAtTime(gain, time + dur * 0.4);
-    g.gain.linearRampToValueAtTime(0.0001, time + dur);
-    o.connect(lp); lp.connect(g); g.connect(dest);
-    o.start(time); o.stop(time + dur + 0.05);
-  }
-
-  // 走动低音(酒馆 walking bass):圆润短音
-  function bassNote(freq, time, dur, gain, dest) {
-    const o = ctx.createOscillator();
-    o.type = 'triangle'; o.frequency.value = freq;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, time);
-    g.gain.linearRampToValueAtTime(gain, time + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
-    o.connect(g); g.connect(dest);
-    o.start(time); o.stop(time + dur + 0.05);
-  }
-
-  // 手鼓(噪声脉冲 + 带通,模拟轻拍)
-  function drum(time, gain, dest, hi = false) {
-    const len = ctx.sampleRate * 0.12;
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, hi ? 6 : 3);
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass'; bp.frequency.value = hi ? 2600 : 320; bp.Q.value = 0.9;
-    const g = ctx.createGain(); g.gain.value = gain;
-    src.connect(bp); bp.connect(g); g.connect(dest);
-    src.start(time); src.stop(time + 0.14);
-  }
-
-  // 蓝调吉他主奏(空心吉他感):锯齿+低通,起音带轻微滑音(从低半音滑到目标),慵懒摇摆
-  function bluesGuitar(freq, time, dur, gain, dest, slide = false) {
-    const o = ctx.createOscillator();
-    o.type = 'sawtooth';
-    if (slide) {
-      o.frequency.setValueAtTime(freq * 0.945, time);          // 从下方半音多一点滑上来
-      o.frequency.exponentialRampToValueAtTime(freq, time + 0.07);
-    } else {
-      o.frequency.value = freq;
-    }
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.setValueAtTime(2600, time);
-    lp.frequency.exponentialRampToValueAtTime(900, time + dur); // 衰减时变暗,木吉他味
-    lp.Q.value = 1.1;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, time);
-    g.gain.linearRampToValueAtTime(gain, time + 0.012);          // 拨弦快起
-    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
-    o.connect(lp); lp.connect(g); g.connect(dest);
-    o.start(time); o.stop(time + dur + 0.05);
-  }
-
-  // 爵士走动贝斯(拨弦感):正弦主体 + 短促拨击瞬态
-  function walkingBass(freq, time, dur, gain, dest) {
-    const o = ctx.createOscillator();
-    o.type = 'sine'; o.frequency.value = freq;
-    // 二次谐波加一点拨弦颗粒感
-    const o2 = ctx.createOscillator();
-    o2.type = 'triangle'; o2.frequency.value = freq * 2;
-    const g2 = ctx.createGain(); g2.gain.value = 0.18;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, time);
-    g.gain.linearRampToValueAtTime(gain, time + 0.015);
-    g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
-    o2.connect(g2); g2.connect(g);
-    o.connect(g); g.connect(dest);
-    o.start(time); o2.start(time);
-    o.stop(time + dur + 0.05); o2.stop(time + dur + 0.05);
-  }
-
-  // brush 军鼓刷(柔噪声,模拟鼓刷扫过):比 drum 更绵长柔和
-  function brush(time, gain, dest) {
-    const len = ctx.sampleRate * 0.22;
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) {
-      const env = Math.sin(Math.PI * (i / len)); // 渐入渐出,像扫一下
-      d[i] = (Math.random() * 2 - 1) * env;
-    }
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const hp = ctx.createBiquadFilter();
-    hp.type = 'highpass'; hp.frequency.value = 4200; hp.Q.value = 0.5;
-    const g = ctx.createGain(); g.gain.value = gain;
-    src.connect(hp); hp.connect(g); g.connect(dest);
-    src.start(time); src.stop(time + 0.24);
-  }
-
-  function scheduleStepCalm(stepIndex, time, beat) {
-    const t = TRACKS.calm;
-    const chordIdx = Math.floor(stepIndex / 8) % t.chords.length;
-    const chord = t.chords[chordIdx];
-    const s = stepIndex % 8;
-    if (s === 0) {
-      pad(N(chord.bass), time, beat * 4, 0.05, busDry);
-      chord.notes.forEach(n => pad(N(n), time, beat * 4, 0.022, busDry));
-    }
-    const arp = [0, 1, 2, 3, 2, 1, 2, 3];
-    const ni = arp[s] % chord.notes.length;
-    const accent = s === 0 || s === 4;
-    pluck(N(chord.notes[ni]), time, accent ? 1.4 : 0.9, accent ? 0.13 : 0.08, busDry);
-    if (s === 6) pluck(N(chord.notes[chord.notes.length - 1]) * 2, time, 0.7, 0.05, busDry);
-  }
-
-  // 采样播放助手:把音名喂给真乐器采样;gain 通过临时增益节点控制
-  function playSample(inst, noteName, time, dur, gain) {
-    try {
-      inst.play(noteName, time, { duration: dur, gain });
-    } catch (e) { /* 个别音超范围时静默跳过 */ }
-  }
-
-  function scheduleStepTavern(stepIndex, time, beat) {
-    const t = TRACKS.tavern;
-    const chordIdx = Math.floor(stepIndex / 8) % t.chords.length; // 每和弦 8 个八分=1小节(4拍)
-    const chord = t.chords[chordIdx];
-    const s = stepIndex % 8;
-    const beatPos = Math.floor(s / 2);    // 0..3 当前第几拍
-    const onBeat = s % 2 === 0;           // 偶数 step = 正拍,奇数 = 摇摆后半拍
-
-    // ---- swing：后半拍延后到三连音的第三个位置 ----
-    const stepDur = beat / 2;
-    const swingShift = onBeat ? 0 : (t.swing - 0.5) * 2 * stepDur;
-    const T = time + swingShift;
-
-    const useSample = sf.ready;   // 真乐器就绪则用采样,否则合成器兜底
-
-    // ---- walking bass：每拍一个四分音 ----
-    if (onBeat) {
-      if (useSample) playSample(sf.bass, chord.walk[beatPos], time, beat * 0.92, 0.95);
-      else walkingBass(N(chord.walk[beatPos]), time, beat * 0.92, 0.17, busDry);
-    }
-
-    // ---- 吉他切音和弦(comping)：1、3 拍轻切,2、4 拍重切 ----
-    if (onBeat) {
-      const heavy = (beatPos === 1 || beatPos === 3);
-      if (useSample) {
-        const cg = heavy ? 0.42 : 0.28, cd = heavy ? 0.24 : 0.18;
-        chord.notes.forEach(n => playSample(sf.guitar, n, T, cd, cg));
-      } else {
-        const cg = heavy ? 0.05 : 0.032, cd = heavy ? 0.22 : 0.16;
-        chord.notes.forEach(n => bluesGuitar(N(n), T, cd, cg, busDry, false));
-      }
-    }
-
-    // ---- 蓝调主奏：八分音符走旋律,后半拍 swing ----
-    if (useSample) {
-      playSample(sf.guitar, chord.mel[s], T, onBeat ? 0.5 : 0.34, onBeat ? 0.85 : 0.6);
-    } else {
-      const melGain = onBeat ? 0.14 : 0.10;
-      const doSlide = (s === 0 || s === 4 || s === 3);
-      bluesGuitar(N(chord.mel[s]), T, onBeat ? 0.5 : 0.34, melGain, busDry, doSlide);
-    }
-
-    // ---- 鼓组:brush 摇摆律动(鼓本来就不是红白机味,继续用合成器)----
-    if (s === 0 || s === 4) drum(time, 0.20, busDry, false);     // kick:1、3拍
-    if (s === 2 || s === 6) brush(time, 0.13, busDry);           // brush backbeat:2、4拍
-    if (!onBeat) brush(T, 0.045, busDry);                        // 摇摆后半拍轻刷
-  }
-
-  function scheduler() {
-    const beat = 60 / TRACKS[style].bpm;
-    const stepDur = beat / 2;
-    while (nextNoteTime < ctx.currentTime + 0.2) {
-      if (style === 'tavern') scheduleStepTavern(step, nextNoteTime, beat);
-      else scheduleStepCalm(step, nextNoteTime, beat);
-      nextNoteTime += stepDur;
-      step++;
-    }
-    schedulerTimer = setTimeout(scheduler, 50);
-  }
-
-  function ensureStarted() {
-    if (started) return;
-    started = true;
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    master = ctx.createGain();
-    master.gain.value = 0.0;
-    master.connect(ctx.destination);
-
-    busDry = ctx.createGain(); busDry.gain.value = 1.0;
-    reverb = makeReverb(ctx);
-    busWetGain = ctx.createGain(); busWetGain.gain.value = TRACKS[style].reverbWet;
-    const dry = ctx.createGain(); dry.gain.value = 0.7;
-
-    busDry.connect(dry); dry.connect(master);                          // 干声直达
-    busDry.connect(reverb); reverb.connect(busWetGain); busWetGain.connect(master); // 湿声混响
-
-    loadSamples();   // 异步加载真乐器采样(尼龙吉他/原声贝斯),加载好之前用合成器兜底
-
-    nextNoteTime = ctx.currentTime + 0.1;
-    step = 0;
-    scheduler();
-  }
-
-  // ---------- 真乐器采样(方向 A:CC0/MIT 授权 soundfont,只换音色不抄旋律)----------
-  // 用 Benjamin Gleitzman 的预渲染 GM soundfont(MIT 授权,基于 FluidR3),
-  // 套现有 F 调 swing / walking bass / blues 和声结构去驱动,音色从"红白机"变真乐器。
-  let sf = { guitar: null, bass: null, loading: false, ready: false };
-  async function loadSamples() {
-    if (sf.loading || sf.ready) return;
-    sf.loading = true;
-    try {
-      const mod = await import('https://cdn.jsdelivr.net/npm/soundfont-player@0.12.0/+esm');
-      const Soundfont = mod.default || mod;
-      const opt = { soundfont: 'FluidR3_GM', format: 'mp3', destination: busDry };
-      const [guitar, bass] = await Promise.all([
-        Soundfont.instrument(ctx, 'acoustic_guitar_nylon', opt),
-        Soundfont.instrument(ctx, 'acoustic_bass', opt),
-      ]);
-      sf.guitar = guitar; sf.bass = bass; sf.ready = true;
-      console.log('[BGM] 真乐器采样就绪:尼龙吉他 + 原声贝斯');
-    } catch (e) {
-      console.warn('[BGM] 采样加载失败,回退合成器音色', e);
-      sf.ready = false;
-    } finally {
-      sf.loading = false;
-    }
+  function startCurrent() {
+    const audio = players[style];
+    audio.volume = TRACKS[style].volume;
+    const playPromise = audio.play();
+    playPromise?.catch(() => {});
   }
 
   function play() {
-    ensureStarted();
-    if (ctx.state === 'suspended') ctx.resume();
-    master.gain.cancelScheduledValues(ctx.currentTime);
-    master.gain.linearRampToValueAtTime(style === 'tavern' ? 0.22 : 0.5, ctx.currentTime + 1.2);
     playing = true;
+    startCurrent();
   }
+
   function pause() {
-    if (!started) return;
-    master.gain.cancelScheduledValues(ctx.currentTime);
-    master.gain.linearRampToValueAtTime(0.0, ctx.currentTime + 0.6);
     playing = false;
+    Object.values(players).forEach(audio => {
+      audio.pause();
+      audio.volume = 0;
+    });
   }
+
   function setStyle(name) {
     if (!TRACKS[name] || name === style) return;
+    const previous = players[style];
     style = name;
-    if (started) {
-      // 重置乐句起点,切混响湿度
-      step = 0;
-      nextNoteTime = ctx.currentTime + 0.05;
-      if (busWetGain) busWetGain.gain.setTargetAtTime(TRACKS[style].reverbWet, ctx.currentTime, 0.3);
-      if (playing) {
-        master.gain.cancelScheduledValues(ctx.currentTime);
-        master.gain.linearRampToValueAtTime(style === 'tavern' ? 0.22 : 0.5, ctx.currentTime + 0.8);
-      }
-    }
+    const next = players[style];
+    if (!playing) return;
+
+    previous.pause();
+    previous.volume = 0;
+    next.currentTime = 0;
+    startCurrent();
   }
-  return {
-    toggle() { playing ? pause() : play(); return playing; },
-    play, pause, setStyle,
+
+  const api = {
+    toggle() {
+      playing ? pause() : play();
+      return playing;
+    },
+    play,
+    pause,
+    setStyle,
     get playing() { return playing; },
     get style() { return style; },
+    get title() { return TRACKS[style].title; },
   };
+
+  window.__BGM_DEBUG__ = {
+    tracks: Object.fromEntries(
+      Object.entries(TRACKS).map(([key, track]) => [key, track.url]),
+    ),
+    state: () => ({
+      style,
+      playing,
+      title: TRACKS[style].title,
+      paused: players[style].paused,
+      volume: players[style].volume,
+      readyState: players[style].readyState,
+      networkState: players[style].networkState,
+      error: players[style].error?.message || null,
+    }),
+  };
+  return api;
 })();
 
 /* ============================================================
@@ -2631,6 +1620,7 @@ function applySceneMode(mode, { animateLight = true } = {}) {
 
   // BGM 曲目
   BGM.setStyle(p.bgmStyle);
+  refreshBgmBtn();
 
   // 火炉模式立刻让大家热闹起来:强制触发一次说话
   if (mode === 'forge') {
@@ -2649,6 +1639,7 @@ function applySceneMode(mode, { animateLight = true } = {}) {
 
 const bgmBtn = document.getElementById('bgmToggle');
 function refreshBgmBtn() {
+  bgmBtn.title = `背景音乐 · ${BGM.title}`;
   if (BGM.playing) {
     bgmBtn.textContent = '🔊 音乐';
     bgmBtn.classList.add('playing');
@@ -2665,9 +1656,7 @@ bgmBtn.addEventListener('click', (e) => {
 });
 
 // ============== BGM 默认开启(在浏览器自动播放策略允许范围内尽力而为)==============
-// 硬限制:Web Audio 在用户「有效手势」前无法发声。注意 mousemove/wheel 在多数浏览器
-// 不算有效手势,只有 click/pointerdown/keydown/touchstart 才能解锁 AudioContext。
-// 策略:进场先尝试 play()(被策略挡住也无妨),并在「第一次有效交互」时强制 resume 出声。
+// 浏览器通常要求 click/pointerdown/keydown/touchstart 后才允许音频真正出声。
 let bgmUserMuted = false;        // 用户是否主动静音过
 function startBgmDefault() {
   if (bgmUserMuted) return;
@@ -2677,7 +1666,7 @@ function startBgmDefault() {
 function unlockBgm() {
   detachUnlock();
   if (bgmUserMuted) return;
-  BGM.play();                    // 内部会 ensureStarted + ctx.resume(),此时有手势可出声
+  BGM.play();
   refreshBgmBtn();
 }
 const UNLOCK_EVENTS = ['pointerdown','click','keydown','touchstart'];
@@ -2701,10 +1690,8 @@ modeBtn.addEventListener('click', (e) => {
   if (SCENE_MODE === 'forge' && !BGM.playing) { BGM.play(); refreshBgmBtn(); }
 });
 
-kickOffAutoTalk();
-
-// ============== 进入时随机选一个模式(看脸)==============
-const initialMode = Math.random() < 0.5 ? 'calm' : 'forge';
+// 首屏保持安静、稳定；访客主动切到火炉模式时再进入更热烈的灯光与音乐。
+const initialMode = 'calm';
 applySceneMode(initialMode, { animateLight: false });
 
 // 初始模式与曲风确定后,进场即尝试开启 BGM(浏览器允许则直接响,否则等首次交互解锁)

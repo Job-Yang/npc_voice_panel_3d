@@ -11,14 +11,24 @@ npc_voice_panel_3d/
     ├── bg_smithy.glb       铁匠铺背景（可选，缺失会用兜底地面）
     ├── npc_master.glb      铁匠老师傅
     ├── npc_apprentice.glb  学徒
-    └── npc_yq.glb          YQ
+    ├── npc_yq.glb          YQ
+    └── music/              两种场景模式对应的专业背景音乐
 ```
 
-## 资源补充
+## 内容联动
 
-从 https://seed3d.bytedance.net 下载 GLB → 重命名 → 丢进 `assets/` 即可。
+个人主页 `https://jobyang.cn/` 是公开内容事实源。页面加载
+`https://jobyang.cn/showcase.js`，把最新项目、文章和手记映射到三个已有 NPC 的对话与链接；加载失败时
+使用内置文案，不影响 3D 场景。
 
-资源没补齐前用**彩色胶囊体占位**，不阻塞开发。
+场景只保留现有铁匠铺和人物 GLB，不再用基础几何体堆叠新家具或陈列装置。新增内容优先进入人物对话。
+
+## 音乐
+
+- 舒缓模式：`assets/music/hearth-and-hammer.mp3`
+- 火炉模式：`assets/music/hearthside-ales.mp3`
+
+两份音频末尾均已烘焙 5 秒渐出；切换场景模式时页面再做短交叉淡化。
 
 ## 接你的语音逻辑
 
