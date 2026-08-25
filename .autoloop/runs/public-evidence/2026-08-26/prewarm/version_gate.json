@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "stage": "model_smoke",
+  "static_rc": 0,
+  "smoke": "AUTOLOOP_MODEL_OK",
+  "smoke_rc": 0,
+  "fingerprint": "25bc5ef2af89216e25fca044f65c4dca02e72808ecf66bd6bbe991e4f76c000b",
+  "versions": {
+    "trae_cli": "traecli 0.200.19(internal edition)",
+    "lark_cli": "lark-cli version 1.0.79"
+  }
+}

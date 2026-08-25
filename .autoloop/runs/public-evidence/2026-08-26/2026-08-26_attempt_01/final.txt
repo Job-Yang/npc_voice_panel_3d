@@ -1,0 +1,33 @@
+本轮已完成到“本地验证通过”，但发布被环境阻塞，未能 commit/push/线上验证。
+
+做了什么：
+- 在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-26/index.html) 做了“键盘可达的铺子导览”：
+  - 画布可聚焦，并增加 `aria-label`/隐藏键盘说明。
+  - loader、气泡、对话框、控制面板补了 `role`、`aria-live`、`aria-hidden`、`aria-expanded` 等状态。
+  - 控制面板增加“锻造欢迎语”入口，让火炉热区有键盘等价路径。
+  - 增加快捷键：`1/2/3/F/R/Escape`。
+  - 增加焦点可见样式，保证键盘操作能看见当前位置。
+- 新增输入卡：[2026-08-26.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-26/.autoloop/inputs/2026-08-26.md)
+- 新增手记：[2026-08-26.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-26/.autoloop/journal/2026-08-26.md)
+- 更新 CHANGELOG：[CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-26/.autoloop/CHANGELOG.md)
+
+验证结果：
+- 创意门禁通过：`.autoloop/runs/2026-08-26_attempt_01/creative_validation.json`
+- 本地渲染通过，截图已生成：`.autoloop/journal/assets/2026-08-26-local.png`
+- 键盘断言通过：`1` 打开“老杨是谁”，`Escape` 关闭并同步 `aria-hidden=true`，`F` 打开“火炉 · 新欢迎语”，无 console error。
+
+阻塞点：
+- `git add` 失败：`.git/index.lock` 无法创建，错误为 `Read-only file system`。
+- 普通作品目录可写，但 `.git` 目录不可写；`touch .git/write-test.tmp` 也失败。
+- 因此本轮无法生成 commit hash、无法 push，也无法执行线上无痕验证来证明 GitHub Pages 已发布这版。
+
+当前工作区保留了未提交改动：
+```text
+ M .autoloop/CHANGELOG.md
+ M index.html
+?? .autoloop/inputs/2026-08-26.md
+?? .autoloop/journal/2026-08-26.md
+?? .autoloop/journal/assets/2026-08-26-local.png
+```
+
+本地服务已停止。

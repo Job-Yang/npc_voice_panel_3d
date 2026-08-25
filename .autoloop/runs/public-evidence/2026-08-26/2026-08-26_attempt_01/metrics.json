@@ -1,0 +1,13 @@
+{
+  "date": "2026-08-26", "stamp": "2026-08-26", "agent_rc": 0,
+  "preflight_rc": 0,
+  "input_validation_rc": 0,
+  "creative_validation_rc": 0,
+  "input_mode": "public_external",
+  "input_source_count": 3,
+  "visual_verification_rc": 2,
+  "committed": false,
+  "head_before": "eea58bb4b9065559273862dca9180341b6839ed5", "head_after": "eea58bb4b9065559273862dca9180341b6839ed5",
+  "commit_oneline": "eea58bb feat(autoloop): add human-assisted 3d asset workflow",
+  "diff_shortstat": "0 0 0"
+}
