@@ -1,12 +1,18 @@
 const fs = require("fs");
 
-const [inputPath, journalPath, outputPath, metaPath] = process.argv.slice(2);
+const [inputPath, journalPath, outputPath, metaPath, askHumanPath] = process.argv.slice(2);
 if (!journalPath || !outputPath || !metaPath) {
-  throw new Error("usage: render_feishu_round.js <input> <journal> <output> <meta-json>");
+  throw new Error(
+    "usage: render_feishu_round.js <input> <journal> <output> <meta-json> [ask-human]",
+  );
 }
 
 const input = fs.existsSync(inputPath) ? fs.readFileSync(inputPath, "utf8") : "";
 const journal = fs.readFileSync(journalPath, "utf8");
+const askHuman =
+  askHumanPath && fs.existsSync(askHumanPath)
+    ? fs.readFileSync(askHumanPath, "utf8")
+    : "";
 const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
 const schema = meta.report_schema || "AutoLoopReportSchema:v1";
 
@@ -23,6 +29,19 @@ function section(markdown, title) {
   const start = lines.findIndex((line) => line.trim() === `## ${title}`);
   if (start < 0) return "";
   const body = [];
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^##\s+/.test(lines[index])) break;
+    body.push(lines[index]);
+  }
+  return body.join("\n").trim();
+}
+
+function assetRequest(markdown, date) {
+  const lines = markdown.split(/\r?\n/);
+  const prefix = `## ${date} · 3D 资产需求：`;
+  const start = lines.findIndex((line) => line.trim().startsWith(prefix));
+  if (start < 0) return "";
+  const body = [lines[start].trim().slice(3)];
   for (let index = start + 1; index < lines.length; index += 1) {
     if (/^##\s+/.test(lines[index])) break;
     body.push(lines[index]);
@@ -123,6 +142,7 @@ const idea = section(journal, "今天的想法");
 const rationale = section(journal, "为什么这么做");
 const changes = section(journal, "做了哪些事");
 const result = section(journal, "最终效果");
+const currentAssetRequest = assetRequest(askHuman, meta.date);
 const requiredSections = {
   "输入卡/消化与选择": digestion,
   "现状分析": currentState,
@@ -142,6 +162,22 @@ if (missingSections.length) {
   throw new Error(`missing required report sections: ${missingSections.join(", ")}`);
 }
 
+const rows = [
+  `<tr><td>外部输入</td><td>${sourceLinks(sources)}<br/><b>消化：</b>${escapeXml(clip(digestion, 240))}</td></tr>`,
+  `<tr><td>现状与判断</td><td>${escapeXml(clip(currentState, 280))}</td></tr>`,
+  `<tr><td>本轮方案</td><td><b>候选：</b>${escapeXml(clip(creativeCompetition, 260))}<br/><b>选择：</b>${escapeXml(clip(idea, 200))}<br/><b>原因：</b>${escapeXml(clip(rationale, 220))}</td></tr>`,
+];
+if (currentAssetRequest) {
+  rows.push(
+    `<tr><td>需要主人协作</td><td>${escapeXml(clip(currentAssetRequest, 420))}<br/><a href="${escapeXml(meta.ask_human_url || "#")}">查看完整 3D 资产需求</a></td></tr>`,
+  );
+}
+rows.push(
+  `<tr><td>改动</td><td>${escapeXml(clip(changes, 300))}<br/><b>作品 commit：</b><a href="${escapeXml(meta.commit_url)}"><code>${escapeXml(meta.commit)}</code></a></td></tr>`,
+  `<tr><td>验证与效果</td><td>${escapeXml(clip(result, 320))}</td></tr>`,
+  `<tr><td>原始证据</td><td><a href="${escapeXml(meta.input_url)}">输入卡</a> · <a href="${escapeXml(meta.journal_url)}">Agent 手记</a> · <a href="${escapeXml(meta.run_url)}">运行记录</a></td></tr>`,
+);
+
 const xml = [
   "<hr/>",
   `<h2>第 ${escapeXml(meta.round)} 轮｜${escapeXml(meta.date)}｜${escapeXml(meta.subject)}</h2>`,
@@ -149,12 +185,7 @@ const xml = [
   "<colgroup><col width=\"130\"/><col width=\"600\"/></colgroup>",
   "<thead><tr><th>项目</th><th>本轮记录</th></tr></thead>",
   "<tbody>",
-  `<tr><td>外部输入</td><td>${sourceLinks(sources)}<br/><b>消化：</b>${escapeXml(clip(digestion, 240))}</td></tr>`,
-  `<tr><td>现状与判断</td><td>${escapeXml(clip(currentState, 280))}</td></tr>`,
-  `<tr><td>本轮方案</td><td><b>候选：</b>${escapeXml(clip(creativeCompetition, 260))}<br/><b>选择：</b>${escapeXml(clip(idea, 200))}<br/><b>原因：</b>${escapeXml(clip(rationale, 220))}</td></tr>`,
-  `<tr><td>改动</td><td>${escapeXml(clip(changes, 300))}<br/><b>作品 commit：</b><a href="${escapeXml(meta.commit_url)}"><code>${escapeXml(meta.commit)}</code></a></td></tr>`,
-  `<tr><td>验证与效果</td><td>${escapeXml(clip(result, 320))}</td></tr>`,
-  `<tr><td>原始证据</td><td><a href="${escapeXml(meta.input_url)}">输入卡</a> · <a href="${escapeXml(meta.journal_url)}">Agent 手记</a> · <a href="${escapeXml(meta.run_url)}">运行记录</a></td></tr>`,
+  ...rows,
   "</tbody>",
   "</table>",
   `<p><code>${escapeXml(schema)}</code> · <code>${escapeXml(meta.marker)}</code></p>`,

@@ -29,15 +29,17 @@ def journal():
     )
 
 
-def render(input_text):
+def render(input_text, ask_human_text=""):
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         input_path = root / "input.md"
         journal_path = root / "journal.md"
         output_path = root / "report.xml"
         meta_path = root / "meta.json"
+        ask_human_path = root / "ASK_HUMAN.md"
         input_path.write_text(input_text, encoding="utf-8")
         journal_path.write_text(journal(), encoding="utf-8")
+        ask_human_path.write_text(ask_human_text, encoding="utf-8")
         meta_path.write_text(
             json.dumps(
                 {
@@ -48,6 +50,7 @@ def render(input_text):
                     "commit_url": "https://example.com/commit",
                     "input_url": "https://example.com/input",
                     "journal_url": "https://example.com/journal",
+                    "ask_human_url": "https://example.com/ask-human",
                     "run_url": "https://example.com/run",
                     "marker": "AutoLoopRun:2099-01-01",
                 }
@@ -62,6 +65,7 @@ def render(input_text):
                 str(journal_path),
                 str(output_path),
                 str(meta_path),
+                str(ask_human_path),
             ],
             check=False,
             capture_output=True,
@@ -104,6 +108,34 @@ class RenderFeishuRoundTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("来源甲", output)
         self.assertIn("来源乙", output)
+
+    def test_renders_current_asset_request_for_human(self):
+        result, output = render(
+            "\n".join(
+                [
+                    "## 候选 1：来源甲",
+                    "URL: https://example.com/a",
+                    "## 候选 2：来源乙",
+                    "URL: https://example.com/b",
+                    "## 消化与选择",
+                    "选择。",
+                ]
+            ),
+            "\n".join(
+                [
+                    "# ASK_HUMAN",
+                    "## 2099-01-01 · 3D 资产需求：铁匠铺信箱",
+                    "- 状态：`asset_requested`",
+                    "- 约定文件名：`assets/smithy_mailbox.glb`",
+                ]
+            ),
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("需要主人协作", output)
+        self.assertIn("铁匠铺信箱", output)
+        self.assertIn("assets/smithy_mailbox.glb", output)
+        self.assertIn("https://example.com/ask-human", output)
 
 
 if __name__ == "__main__":

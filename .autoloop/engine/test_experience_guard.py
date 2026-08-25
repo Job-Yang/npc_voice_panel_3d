@@ -16,17 +16,24 @@ class ExperienceGuardTests(unittest.TestCase):
         self.assertNotIn("const intakeTray =", source)
         self.assertIn("createHotspot('forge'", source)
 
-    def test_profile_requires_subtraction_and_personal_site_sync(self):
+    def test_profile_requires_asset_handoff_and_personal_site_sync(self):
         profile = (REPO_ROOT / ".autoloop/profile.md").read_text(encoding="utf-8")
         constitution = (REPO_ROOT / ".autoloop/constitution.md").read_text(
             encoding="utf-8"
         )
+        ask_human = (REPO_ROOT / ".autoloop/ASK_HUMAN.md").read_text(
+            encoding="utf-8"
+        )
 
-        self.assertIn("可见对象数量不得净增加", profile)
-        self.assertIn("不得再用 `BoxGeometry`", profile)
-        self.assertIn("https://jobyang.cn/showcase.json", profile)
+        self.assertIn("不得把 `BoxGeometry`", profile)
+        self.assertIn("完整 3D 资产需求单", profile)
+        self.assertIn("?debugAssets=1", profile)
+        self.assertIn("https://jobyang.cn/showcase.js", profile)
         self.assertIn("至少一个必须是**减法或整合方案**", constitution)
-        self.assertIn("删除、合并、重排", constitution)
+        self.assertIn("## 3D 资产半协作协议", constitution)
+        self.assertIn("asset_pending", constitution)
+        self.assertIn("## 3D 资产需求模板", ask_human)
+        self.assertIn("约定文件名", ask_human)
 
     def test_professional_music_and_profile_feed_are_wired(self):
         source = (REPO_ROOT / "index.html").read_text(encoding="utf-8")

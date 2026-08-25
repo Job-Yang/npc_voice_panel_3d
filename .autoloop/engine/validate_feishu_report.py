@@ -71,6 +71,15 @@ expected_rows = [
     "验证与效果",
     "原始证据",
 ]
+expected_rows_with_asset_request = [
+    "外部输入",
+    "现状与判断",
+    "本轮方案",
+    "需要主人协作",
+    "改动",
+    "验证与效果",
+    "原始证据",
+]
 actual_rows = []
 tbody = tables[0].find("tbody")
 if tbody is not None:
@@ -78,5 +87,8 @@ if tbody is not None:
         cells = row.findall("td")
         if cells:
             actual_rows.append(text(cells[0]))
-if actual_rows != expected_rows:
+if tuple(actual_rows) not in {
+    tuple(expected_rows),
+    tuple(expected_rows_with_asset_request),
+}:
     fail(f"round table rows mismatch: {actual_rows}")
