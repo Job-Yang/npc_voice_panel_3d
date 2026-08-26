@@ -90,6 +90,82 @@
   .panel button.npc-btn.active { background: rgba(255,119,51,.25); border-color: #ff7733; }
   .panel input[type=range] { width: 100%; }
 
+  .tour-rail {
+    position: fixed;
+    left: 50%;
+    bottom: 44px;
+    transform: translateX(-50%);
+    z-index: 18;
+    width: min(540px, calc(100vw - 32px));
+    padding: 8px 10px;
+    display: grid;
+    grid-template-columns: auto repeat(4, minmax(0, 1fr)) auto;
+    align-items: center;
+    gap: 7px;
+    background: rgba(20, 14, 10, .68);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,170,100,.16);
+    border-radius: 12px;
+    box-shadow: 0 8px 26px rgba(0,0,0,.32);
+  }
+  .tour-title {
+    margin: 0;
+    white-space: nowrap;
+    font-size: 12px;
+    color: rgba(255,207,138,.88);
+  }
+  .tour-stop {
+    width: 100%;
+    min-height: 34px;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,170,100,.08);
+    color: #e8d5b0;
+    border: 1px solid rgba(255,170,100,.16);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    text-align: left;
+  }
+  .tour-stop:hover { background: rgba(255,170,100,.16); border-color: rgba(255,170,100,.38); }
+  .tour-stop.active {
+    background: rgba(255,119,51,.22);
+    border-color: rgba(255,140,70,.72);
+    color: #fff1d8;
+  }
+  .tour-index {
+    display: inline-flex;
+    width: 20px;
+    height: 20px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,170,100,.14);
+    color: #ffcf8a;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tour-stop.active .tour-index { background: rgba(255,170,100,.28); }
+  .tour-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin: 0;
+  }
+  .tour-actions button {
+    min-height: 28px;
+    background: rgba(255,170,100,.08);
+    color: rgba(232,213,176,.88);
+    border: 1px solid rgba(255,170,100,.16);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .tour-actions button:hover { background: rgba(255,170,100,.16); }
+
   /* 右下角对话气泡 */
   .dialog {
     position: fixed; right: 24px; bottom: 24px;
@@ -205,9 +281,35 @@
     .mode-toggle { top: 58px; right: 86px; }
     .bgm-toggle { top: 58px; right: 12px; }
     .panel { top: 106px; left: 12px; max-width: calc(100vw - 24px); }
+    .tour-rail {
+      left: 12px;
+      right: 12px;
+      bottom: 58px;
+      transform: none;
+      width: auto;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      padding: 8px;
+    }
+    .tour-title { display: none; }
+    .tour-stop {
+      min-height: 32px;
+      margin: 0;
+      grid-template-columns: 18px 1fr;
+      gap: 4px;
+      padding: 5px 6px;
+      font-size: 11px;
+    }
+    .tour-index {
+      width: 18px;
+      height: 18px;
+      font-size: 10px;
+    }
+    .tour-actions { display: none; }
     .dialog {
       right: 12px;
-      bottom: 38px;
+      bottom: 122px;
       left: 12px;
       max-width: none;
       padding: 14px 16px;
@@ -238,6 +340,26 @@
 <button class="panel-toggle" id="panelToggle">⚙️ 控制面板</button>
 <button class="mode-toggle" id="modeToggle" title="场景模式">🕯️ 舒缓</button>
 <button class="bgm-toggle" id="bgmToggle" title="背景音乐">🔇 音乐</button>
+
+<nav class="tour-rail" aria-label="巡铺路线">
+  <p class="tour-title">巡铺路线</p>
+  <button class="tour-stop active" data-tour="profile" aria-label="第一站 老杨">
+    <span class="tour-index">1</span><span>老杨</span>
+  </button>
+  <button class="tour-stop" data-tour="iloop" aria-label="第二站 iLoop">
+    <span class="tour-index">2</span><span>iLoop</span>
+  </button>
+  <button class="tour-stop" data-tour="latest" aria-label="第三站 近况">
+    <span class="tour-index">3</span><span>近况</span>
+  </button>
+  <button class="tour-stop" data-tour="forge" aria-label="第四站 火炉">
+    <span class="tour-index">4</span><span>火炉</span>
+  </button>
+  <div class="tour-actions" aria-label="巡铺切换">
+    <button id="tourPrev" type="button">上一站</button>
+    <button id="tourNext" type="button">下一站</button>
+  </div>
+</nav>
 
 <div class="panel" id="sidePanel">
   <h2>🔨 主页入口</h2>
@@ -434,6 +556,14 @@ const YQ_EASTER_LINES = [
   '别问我为什么知道你会连点，做工具的人都懂这种手痒。',
 ];
 
+const TOUR_STOPS = {
+  profile: { npc: 'master' },
+  iloop: { npc: 'yq' },
+  latest: { npc: 'apprentice' },
+  forge: { object: 'forge' },
+};
+const TOUR_ORDER = Object.keys(TOUR_STOPS);
+
 const OBJECT_CONFIG = {
   forge: {
     name: '火炉 · 欢迎语锻造机',
@@ -462,6 +592,7 @@ let furnaceFireBasePositions = null;
 let forgePulseUntil = 0;
 let dialogActions = [];
 let selectedObjectKey = null;
+let activeTourType = 'profile';
 let yqClickCount = 0;
 let typedSecret = '';
 
@@ -913,6 +1044,9 @@ const dialog = document.getElementById('dialog');
 const npcBubble = document.getElementById('npcBubble');
 const sidePanel = document.getElementById('sidePanel');
 const panelToggle = document.getElementById('panelToggle');
+const tourStops = document.querySelectorAll('.tour-stop');
+const tourPrev = document.getElementById('tourPrev');
+const tourNext = document.getElementById('tourNext');
 
 function pickTarget(event) {
   pointer.x = (event.clientX / innerWidth) * 2 - 1;
@@ -1061,6 +1195,26 @@ function setActiveNpcButton(key) {
   });
 }
 
+function setActiveTourStop(type) {
+  activeTourType = type || 'profile';
+  tourStops.forEach(stop => {
+    const active = stop.dataset.tour === activeTourType;
+    stop.classList.toggle('active', active);
+    stop.setAttribute('aria-current', active ? 'step' : 'false');
+  });
+}
+
+function tourTypeForNpc(key) {
+  if (key === 'master') return 'profile';
+  if (key === 'yq') return 'iloop';
+  if (key === 'apprentice') return 'latest';
+  return null;
+}
+
+function tourTypeForGuide(type) {
+  return ['profile', 'iloop', 'latest', 'forge'].includes(type) ? type : null;
+}
+
 function renderDialog({ name, meta = '', line, actions = [], allowVoice = false }) {
   document.getElementById('dlgName').textContent = name;
   const metaEl = document.getElementById('dlgMeta');
@@ -1111,6 +1265,8 @@ function openGuideCard(type) {
       '这里是主页，不是简历；简历负责证明过去，铁匠铺负责展示手感。',
     ]);
   }
+  const tourType = tourTypeForGuide(type);
+  if (tourType) setActiveTourStop(tourType);
   renderDialog({ ...card, allowVoice: false });
   showContextBubble(card.line);
 }
@@ -1130,6 +1286,7 @@ function forgeWelcome() {
   selectedObjectKey = 'forge';
   activeKey = null;
   setActiveNpcButton(null);
+  setActiveTourStop('forge');
   applySceneMode('forge');
   forgePulseUntil = performance.now() + 1400;
   renderDialog({
@@ -1151,6 +1308,7 @@ function triggerYQEasterEgg() {
   activeKey = 'yq';
   selectedObjectKey = null;
   setActiveNpcButton('yq');
+  setActiveTourStop('iloop');
   applySceneMode('forge');
   forgePulseUntil = performance.now() + 1600;
   renderDialog({
@@ -1173,6 +1331,7 @@ function triggerILoopEasterEgg() {
   activeKey = 'yq';
   selectedObjectKey = null;
   setActiveNpcButton('yq');
+  setActiveTourStop('iloop');
   forgePulseUntil = performance.now() + 1800;
   renderDialog({
     name: 'iLoop 闭环启动',
@@ -1223,6 +1382,7 @@ function selectNPC(key) {
   selectedObjectKey = null;
   togglePanel(false);
   setActiveNpcButton(key);
+  setActiveTourStop(tourTypeForNpc(key));
 
   if (key === 'yq') {
     yqClickCount++;
@@ -1258,6 +1418,7 @@ function selectObject(key) {
   selectedObjectKey = key;
   yqClickCount = 0;
   setActiveNpcButton(null);
+  setActiveTourStop(key === 'forge' ? 'forge' : null);
   stopCurrentAudio();
 
   if (key === 'forge') {
@@ -1273,6 +1434,24 @@ function selectObject(key) {
   });
   showObjectBubble(key, cfg.line, 4200);
   focusOn(entry.root);
+}
+
+function goTourStop(type) {
+  const stop = TOUR_STOPS[type];
+  if (!stop) return;
+  if (stop.npc) {
+    selectNPC(stop.npc);
+    return;
+  }
+  if (stop.object) {
+    selectObject(stop.object);
+  }
+}
+
+function goAdjacentTourStop(direction) {
+  const currentIndex = Math.max(0, TOUR_ORDER.indexOf(activeTourType));
+  const nextIndex = (currentIndex + direction + TOUR_ORDER.length) % TOUR_ORDER.length;
+  goTourStop(TOUR_ORDER[nextIndex]);
 }
 
 // 点击反馈：缩放 1.0 → 1.06 → 1.0
@@ -1365,6 +1544,11 @@ document.addEventListener('click', (e) => {
 document.querySelectorAll('.npc-btn[data-npc]').forEach(b => {
   b.addEventListener('click', () => selectNPC(b.dataset.npc));
 });
+tourStops.forEach(stop => {
+  stop.addEventListener('click', () => goTourStop(stop.dataset.tour));
+});
+tourPrev.addEventListener('click', () => goAdjacentTourStop(-1));
+tourNext.addEventListener('click', () => goAdjacentTourStop(1));
 document.getElementById('btnPrimary').addEventListener('click', () => runDialogAction(0));
 document.getElementById('btnSecondary').addEventListener('click', () => runDialogAction(1));
 document.getElementById('btnClose').addEventListener('click', () => {
@@ -1376,6 +1560,7 @@ document.getElementById('btnClose').addEventListener('click', () => {
   dialogActions = [];
   stopCurrentAudio();
   setActiveNpcButton(null);
+  setActiveTourStop('profile');
 });
 document.getElementById('btnPlay').addEventListener('click', () => {
   if (activeKey) {
