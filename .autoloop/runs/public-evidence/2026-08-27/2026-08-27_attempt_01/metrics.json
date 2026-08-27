@@ -1,0 +1,13 @@
+{
+  "date": "2026-08-27", "stamp": "2026-08-27", "agent_rc": 0,
+  "preflight_rc": 0,
+  "input_validation_rc": 0,
+  "creative_validation_rc": 0,
+  "input_mode": "public_external",
+  "input_source_count": 3,
+  "visual_verification_rc": 0,
+  "committed": false,
+  "head_before": "00f5e0a97a77f63be707c39f011d3ea4ac97bb44", "head_after": "00f5e0a97a77f63be707c39f011d3ea4ac97bb44",
+  "commit_oneline": "00f5e0a docs(autoloop): simplify 3d asset collaboration rule",
+  "diff_shortstat": "0 0 0"
+}
