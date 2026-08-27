@@ -1,0 +1,28 @@
+本轮已完成到“本地验证 + 记录”阶段，但发布阶段被环境阻塞，未能 `commit/push` 和线上无痕验证。
+
+完成的改动：
+
+- [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-28/index.html)：做了“独立炉牌 · 首屏身份短句”，顶栏从单标题改为“老杨的铁匠铺 + iOS 工程师 · AI 工具匠 · iLoop”；清掉页面里已停用的主站 feed 死代码和旧“同步主站”文案。
+- [README.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-28/README.md)：同步改成独立四站导览说明，并修正本地预览为 HTTP 静态服务。
+- [.autoloop/inputs/2026-08-28.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-28/.autoloop/inputs/2026-08-28.md)：已写完整外部输入卡、三案竞争和最终选择。
+- [.autoloop/journal/2026-08-28.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-28/.autoloop/journal/2026-08-28.md)：已写手记，并记录发布阻塞原因。
+- [.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-28/.autoloop/CHANGELOG.md)：已追加本轮记录，标明未生成 commit。
+
+验证结果：
+
+- 本地视觉验证通过：`.autoloop/runs/2026-08-28_attempt_01/local_visual_verification.json`
+  - `status: passed`
+  - `online_html_match: true`
+  - loader 隐藏、canvas 存在、无 console error、无请求失败
+- 本地截图已生成：`.autoloop/journal/assets/2026-08-28-local.png`
+- 创意门禁通过：`.autoloop/runs/2026-08-28_attempt_01/creative_validation.json`
+
+阻塞点：
+
+`git add` 两次失败，错误是：
+
+```text
+fatal: Unable to create '.git/index.lock': Read-only file system
+```
+
+随后用 `touch .git/autoloop-write-test` 验证，`.git/` 目录确实不可写，但普通工作区文件可写。因此当前环境无法写 Git 索引、无法生成 commit、无法 push，也就无法进行线上无痕验证。我没有 reset、没有强推、没有修改引擎或画像；本轮改动和证据都留在工作区，等待 `.git/` 可写后即可继续提交发布。

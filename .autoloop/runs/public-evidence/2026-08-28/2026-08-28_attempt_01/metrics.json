@@ -1,0 +1,13 @@
+{
+  "date": "2026-08-28", "stamp": "2026-08-28", "agent_rc": 0,
+  "preflight_rc": 0,
+  "input_validation_rc": 0,
+  "creative_validation_rc": 0,
+  "input_mode": "public_external",
+  "input_source_count": 3,
+  "visual_verification_rc": 2,
+  "committed": false,
+  "head_before": "65de6600437de73d86a98953f13d0695a2694094", "head_after": "65de6600437de73d86a98953f13d0695a2694094",
+  "commit_oneline": "65de660 chore: 铁匠铺解除与实名主站的关联",
+  "diff_shortstat": "0 0 0"
+}

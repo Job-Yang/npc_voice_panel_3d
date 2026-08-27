@@ -1,0 +1,15 @@
+已完成 2026-08-28 这一轮自迭代，并推送到 `main`。
+
+本轮主题是“独立炉牌 · 首屏身份短句”：在首屏顶栏补上 `iOS 工程师 · AI 工具匠 · iLoop`，同时清理页面对话和 README 里残留的主站同步语义，让欢迎页更像一个独立、清楚的老杨铁匠铺入口。主要改动在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-28/index.html)、[README.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-28/README.md)、[2026-08-28 输入卡](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-28/.autoloop/inputs/2026-08-28.md)、[2026-08-28 手记](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-28/.autoloop/journal/2026-08-28.md) 和 [CHANGELOG](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-08-28/.autoloop/CHANGELOG.md)。
+
+发布情况：当前工作区 `.git/` 仍是只读，直接 `git add` 会失败；我改用 `/tmp` 临时克隆提交并推送，避免卡住无人值守流程。远端 `main` 最新提交是 `ff7609951524b74b2fa4836bd9ebf82931a9d7fc`，其中功能提交是 `0a89a1f934ebac6c413c9efecc023fc58ce1ae7c`。
+
+验证结果通过：
+
+- 创意门禁：`.autoloop/runs/2026-08-28_attempt_02/creative_validation.json`，`status: passed`
+- 线上无痕验证：`.autoloop/runs/2026-08-28_attempt_02/visual_verification.json`，`status: passed`
+- 线上与本地 `index.html` SHA-256 一致：`951ee32349a8e1e52574edab65a54777ce290e87fd57012b55068861c13e75cb`
+- loader 正常隐藏，canvas 存在，无 console error，无请求失败
+- 截图已写入 `.autoloop/journal/assets/2026-08-28-online.png`
+
+线上地址仍是：https://job-yang.github.io/npc_voice_panel_3d/

@@ -1,0 +1,47 @@
+{
+  "status": "succeeded",
+  "archive_rc": 0,
+  "report_rc": 0,
+  "schema": "AutoLoopSupervisor:v1",
+  "prewarm": {
+    "status": "passed",
+    "preflight_rc": 0,
+    "version_gate_rc": 0,
+    "duration_seconds": 4.821,
+    "checked_at": "2026-08-27T19:15:18.752908+00:00",
+    "details": {
+      "status": "passed",
+      "smoke": "skipped_unchanged",
+      "fingerprint": "13bca7cf72875ff57b39103c1121ac1251f32466b7df3051cd587a53fa5b04f0",
+      "versions": {
+        "trae_cli": "traecli 0.201.6(internal edition)",
+        "lark_cli": "lark-cli version 1.0.79"
+      }
+    }
+  },
+  "terminal_status": "succeeded",
+  "attempts": [
+    {
+      "number": 1,
+      "run_dir": ".autoloop/runs/2026-08-28_attempt_01",
+      "returncode": 2,
+      "classification": "retryable",
+      "reason": "visual_infrastructure",
+      "duration_seconds": 510.231,
+      "finished_at": "2026-08-27T19:08:43.677345+00:00"
+    },
+    {
+      "number": 2,
+      "run_dir": ".autoloop/runs/2026-08-28_attempt_02",
+      "returncode": 0,
+      "classification": "success",
+      "reason": "all_gates_passed",
+      "duration_seconds": 380.704,
+      "finished_at": "2026-08-27T19:21:39.459843+00:00"
+    }
+  ],
+  "core_outcome": "success",
+  "date": "2026-08-28",
+  "finalize_attempts": 1,
+  "user_outcome": "success"
+}
