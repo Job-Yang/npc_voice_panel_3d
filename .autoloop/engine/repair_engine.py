@@ -28,6 +28,19 @@ def write_json(path, value):
     temporary.replace(path)
 
 
+def repair_runtime_env():
+    env = os.environ.copy()
+    current = env.get("PATH", "").split(os.pathsep)
+    required = [
+        str(Path.home() / ".local/bin"),
+        str(Path.home() / ".npm-global/bin"),
+    ]
+    env["PATH"] = os.pathsep.join(
+        required + [entry for entry in current if entry and entry not in required]
+    )
+    return env
+
+
 def sanitize_evidence(text):
     patterns = (
         (r"https?://\S+", "<REDACTED_URL>"),
@@ -122,7 +135,7 @@ def validation_commands(repo):
 
 
 def validate_engine(repo, log_path):
-    env = os.environ.copy()
+    env = repair_runtime_env()
     env["PYTHONPYCACHEPREFIX"] = str(
         Path.home() / ".cache/autoloop-supervisor/repair-pycache"
     )
@@ -248,7 +261,7 @@ Constraints:
             "-o",
             str(private_dir / "repair-final.txt"),
         ]
-    env = os.environ.copy()
+    env = repair_runtime_env()
     env.update(
         {
             "AUTOLOOP_REPAIR_REPO": str(repair_repo),

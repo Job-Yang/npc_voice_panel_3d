@@ -27,6 +27,31 @@ def base_state():
 
 
 class ClassificationTests(unittest.TestCase):
+    def test_zero_exit_does_not_override_failed_visual_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            (run_dir / "metrics.json").write_text(
+                json.dumps(
+                    {
+                        "agent_rc": 0,
+                        "preflight_rc": 0,
+                        "input_validation_rc": 0,
+                        "creative_validation_rc": 0,
+                        "visual_verification_rc": 0,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (run_dir / "visual_verification.json").write_text(
+                json.dumps({"status": "failed", "curl_rc": 28}),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                MODULE.classify_attempt(run_dir, 0),
+                ("retryable", "visual_infrastructure"),
+            )
+
     def test_git_sync_skip_is_retryable_even_with_zero_exit(self):
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory)

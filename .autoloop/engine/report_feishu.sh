@@ -105,11 +105,28 @@ fs.writeFileSync(path, `${JSON.stringify({
   run_url: `${base}/tree/main/.autoloop/runs/public-evidence/${date}`,
 }, null, 2)}\n`);
 NODE
-  node "${ENGINE_DIR}/render_feishu_round.js" \
-    "${INPUT_CARD}" "${JOURNAL}" "${APPEND_FILE}" "${META_FILE}" "${ASK_HUMAN}"
+  if ! node "${ENGINE_DIR}/render_feishu_round.js" \
+    "${INPUT_CARD}" "${JOURNAL}" "${APPEND_FILE}" "${META_FILE}" "${ASK_HUMAN}" \
+    > "${RUN_DIR}/feishu_render.log" 2>&1; then
+    cat "${RUN_DIR}/feishu_render.log" >&2
+    printf '{"status":"failed","reason":"report render failed","marker":"%s"}\n' \
+      "${MARKER}" > "${RUN_DIR}/feishu_report.json"
+    exit 1
+  fi
 else
-  python3 "${ENGINE_DIR}/render_feishu_failure.py" \
-    "${RUN_DIR}" "${DATE}" "${STAMP}" "${MARKER}" "${APPEND_FILE}"
+  if ! python3 "${ENGINE_DIR}/render_feishu_failure.py" \
+    "${RUN_DIR}" "${DATE}" "${STAMP}" "${MARKER}" "${APPEND_FILE}" \
+    > "${RUN_DIR}/feishu_render.log" 2>&1; then
+    cat "${RUN_DIR}/feishu_render.log" >&2
+    printf '{"status":"failed","reason":"failure report render failed","marker":"%s"}\n' \
+      "${MARKER}" > "${RUN_DIR}/feishu_report.json"
+    exit 1
+  fi
+fi
+if [ ! -s "${APPEND_FILE}" ]; then
+  printf '{"status":"failed","reason":"report render produced no content","marker":"%s"}\n' \
+    "${MARKER}" > "${RUN_DIR}/feishu_report.json"
+  exit 1
 fi
 
 cd "${REPO_DIR}" || exit 1

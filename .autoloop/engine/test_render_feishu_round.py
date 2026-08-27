@@ -79,6 +79,17 @@ def render(input_text, ask_human_text=""):
 
 
 class RenderFeishuRoundTests(unittest.TestCase):
+    def test_renders_candidate_source_subheadings(self):
+        real_input = (
+            REPO_ROOT / ".autoloop/inputs/2026-08-27.md"
+        ).read_text(encoding="utf-8")
+        result, output = render(real_input)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Best Three.js Websites", output)
+        self.assertIn("Digital Interactive Museum Displays", output)
+        self.assertIn("Job Yang", output)
+
     def test_renders_numbered_public_sources(self):
         real_input = (
             REPO_ROOT / ".autoloop/inputs/2026-08-21.md"

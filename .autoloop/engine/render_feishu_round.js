@@ -92,6 +92,37 @@ function candidates(markdown) {
     appendCandidate(match[1], index + 1, end);
   }
 
+  const candidateSourcesStart = lines.findIndex(
+    (line) => line.trim() === "## 候选来源",
+  );
+  if (candidateSourcesStart >= 0) {
+    let candidateSourcesEnd = candidateSourcesStart + 1;
+    while (
+      candidateSourcesEnd < lines.length &&
+      !/^##\s+/.test(lines[candidateSourcesEnd])
+    ) {
+      candidateSourcesEnd += 1;
+    }
+    for (
+      let index = candidateSourcesStart + 1;
+      index < candidateSourcesEnd;
+      index += 1
+    ) {
+      const match = lines[index].match(
+        /^###\s+来源\s*\d+[：:]\s*(.+)$/,
+      );
+      if (!match) continue;
+      let end = index + 1;
+      while (
+        end < candidateSourcesEnd &&
+        !/^###\s+/.test(lines[end])
+      ) {
+        end += 1;
+      }
+      appendCandidate(match[1], index + 1, end);
+    }
+  }
+
   const publicSourcesStart = lines.findIndex(
     (line) => line.trim() === "## 公开来源",
   );

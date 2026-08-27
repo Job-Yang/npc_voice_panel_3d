@@ -26,6 +26,14 @@ def git(cwd, *arguments):
 
 
 class RepairEngineTests(unittest.TestCase):
+    def test_repair_runtime_env_adds_user_tool_directories(self):
+        with mock.patch.dict(os.environ, {"PATH": "/usr/bin:/bin"}, clear=True):
+            path = MODULE.repair_runtime_env()["PATH"].split(os.pathsep)
+
+        self.assertEqual(path[0], str(Path.home() / ".local/bin"))
+        self.assertEqual(path[1], str(Path.home() / ".npm-global/bin"))
+        self.assertIn("/usr/bin", path)
+
     def test_sanitizes_failure_evidence(self):
         sanitized = MODULE.sanitize_evidence(
             "owner@bytedance.com /home/owner/project "
@@ -66,6 +74,7 @@ class RepairEngineTests(unittest.TestCase):
             execution = root / "execution"
             private = root / "private"
             fake_agent = root / "fake_agent.py"
+            path_record = root / "repair-path.txt"
 
             git(root, "init", "--bare", str(remote))
             git(root, "init", "-b", "main", str(seed))
@@ -102,6 +111,9 @@ class RepairEngineTests(unittest.TestCase):
                         "import os",
                         "from pathlib import Path",
                         "repo = Path(os.environ['AUTOLOOP_REPAIR_REPO'])",
+                        "Path(os.environ['AUTOLOOP_PATH_RECORD']).write_text(",
+                        "    os.environ['PATH'], encoding='utf-8'",
+                        ")",
                         "target = repo / '.autoloop/engine/placeholder.py'",
                         "target.write_text('VALUE = 2\\n', encoding='utf-8')",
                     ]
@@ -126,11 +138,23 @@ class RepairEngineTests(unittest.TestCase):
 
             with mock.patch.dict(
                 os.environ,
-                {"AUTOLOOP_REPAIR_COMMAND": str(fake_agent)},
+                {
+                    "AUTOLOOP_REPAIR_COMMAND": str(fake_agent),
+                    "AUTOLOOP_PATH_RECORD": str(path_record),
+                    "PATH": "/usr/bin:/bin",
+                },
+                clear=True,
             ):
                 rc = MODULE.repair(args)
 
             self.assertEqual(rc, 0)
+            repair_path = path_record.read_text(encoding="utf-8").split(
+                os.pathsep
+            )
+            self.assertEqual(
+                repair_path[0],
+                str(Path.home() / ".local/bin"),
+            )
             self.assertIn(
                 "VALUE = 2",
                 git(

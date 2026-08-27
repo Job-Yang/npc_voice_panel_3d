@@ -212,10 +212,25 @@ fi
 ONLINE_SCREENSHOT="${AUTOLOOP_DIR}/journal/assets/${TODAY}-online.png"
 VISUAL_RESULT="${RUN_DIR}/visual_verification.json"
 VISUAL_RC=0
-if [ ! -s "${ONLINE_SCREENSHOT}" ] || [ ! -s "${VISUAL_RESULT}" ]; then
+visual_result_passed() {
+  [ -s "${VISUAL_RESULT}" ] &&
+    node -e '
+const fs = require("fs");
+try {
+  const result = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  process.exit(result.status === "passed" ? 0 : 1);
+} catch {
+  process.exit(1);
+}
+' "${VISUAL_RESULT}"
+}
+if [ ! -s "${ONLINE_SCREENSHOT}" ] || ! visual_result_passed; then
   log "执行线上 3D 页面真实截图验证（60 秒硬超时）……"
   bash "${ENGINE_DIR}/verify_web.sh" "${ONLINE_URL}" "${ONLINE_SCREENSHOT}" "${VISUAL_RESULT}" \
     >> "${RUN_DIR}/visual_verification.log" 2>&1 || VISUAL_RC=$?
+fi
+if [ ! -s "${ONLINE_SCREENSHOT}" ] || ! visual_result_passed; then
+  [ "${VISUAL_RC}" -ne 0 ] || VISUAL_RC=2
 fi
 
 # TRAE workspace-write 可能用平行 GIT_DIR 完成 commit/push，默认 .git 仍停在旧 HEAD。
@@ -286,4 +301,6 @@ ROUND_RC="${AGENT_RC}"
 [ "${PREFLIGHT_RC}" -ne 0 ] && ROUND_RC="${PREFLIGHT_RC}"
 [ "${PREFLIGHT_RC}" -eq 0 ] && [ "${INPUT_RC}" -ne 0 ] && ROUND_RC="${INPUT_RC}"
 [ "${PREFLIGHT_RC}" -eq 0 ] && [ "${INPUT_RC}" -eq 0 ] && [ "${CREATIVE_RC}" -ne 0 ] && ROUND_RC="${CREATIVE_RC}"
+[ "${PREFLIGHT_RC}" -eq 0 ] && [ "${INPUT_RC}" -eq 0 ] && [ "${CREATIVE_RC}" -eq 0 ] &&
+  [ "${VISUAL_RC}" -ne 0 ] && ROUND_RC="${VISUAL_RC}"
 exit "${ROUND_RC}"

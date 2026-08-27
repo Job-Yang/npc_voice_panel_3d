@@ -199,13 +199,16 @@ def version_gate(output_dir):
         [sys.executable, "-m", "py_compile", *python_files],
         ["node", "--check", str(ENGINE_DIR / "render_feishu_round.js")],
         ["node", "--check", str(ENGINE_DIR / "verify_web.js")],
-        [sys.executable, str(ENGINE_DIR / "test_supervisor.py")],
-        [sys.executable, str(ENGINE_DIR / "test_find_feishu_report_blocks.py")],
-        [sys.executable, str(ENGINE_DIR / "test_render_feishu_failure.py")],
-        [sys.executable, str(ENGINE_DIR / "test_render_feishu_round.py")],
-        [sys.executable, str(ENGINE_DIR / "test_publish_evidence.py")],
-        [sys.executable, str(ENGINE_DIR / "test_repair_engine.py")],
-        [sys.executable, str(ENGINE_DIR / "test_workspace_runner.py")],
+        [
+            sys.executable,
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            str(ENGINE_DIR),
+            "-p",
+            "test_*.py",
+        ],
     ]
     static_rc = 0
     static_log = output_dir / "version_static.log"
@@ -320,6 +323,7 @@ def prewarm(date, root, state):
 def classify_attempt(run_dir, returncode):
     run_dir = Path(run_dir)
     metrics = read_json(run_dir / "metrics.json", {})
+    visual = read_json(run_dir / "visual_verification.json", {})
     sync_failure = read_json(run_dir / "sync_failure.json", {})
     trace = (
         read_text(run_dir / "trae.jsonl")
@@ -331,19 +335,21 @@ def classify_attempt(run_dir, returncode):
     if sync_failure or (run_dir / "SKIPPED").exists():
         reason = sync_failure.get("reason") or read_text(run_dir / "SKIPPED") or "unknown"
         return "retryable", f"git_sync_{reason}"
-    if returncode == 0:
-        return "success", "all_gates_passed"
     if metrics.get("preflight_rc", 0):
         return "retryable", "preflight_infrastructure"
     if metrics.get("agent_rc", 0):
         reason = "agent_transient" if any(p in trace for p in RETRYABLE_PATTERNS) else "agent_process"
         return "retryable", reason
-    if metrics.get("visual_verification_rc", 0):
+    if metrics.get("visual_verification_rc", 0) or (
+        visual and visual.get("status") != "passed"
+    ):
         return "retryable", "visual_infrastructure"
     if metrics.get("input_validation_rc", 0):
         return "nonretryable", "input_contract"
     if metrics.get("creative_validation_rc", 0):
         return "nonretryable", "creative_contract"
+    if returncode == 0:
+        return "success", "all_gates_passed"
     if any(pattern in trace for pattern in RETRYABLE_PATTERNS):
         return "retryable", "transient_runtime"
     return "nonretryable", "unknown_nonretryable"
