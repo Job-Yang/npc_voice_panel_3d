@@ -1,6 +1,6 @@
 # 铁匠铺 · NPC Voice Panel 3D
 
-真 3D · 360° 旋转 · 可点击交互的 NPC 语音对话面板。
+真 3D · 360° 旋转 · 可点击交互的老杨铁匠铺欢迎页。
 
 ## 目录结构
 
@@ -15,11 +15,9 @@ npc_voice_panel_3d/
     └── music/              两种场景模式对应的专业背景音乐
 ```
 
-## 内容联动
+## 内容
 
-个人主页 `https://jobyang.cn/` 是公开内容事实源。页面加载
-`https://jobyang.cn/showcase.js`，把最新项目、文章和手记映射到三个已有 NPC 的对话与链接；加载失败时
-使用内置文案，不影响 3D 场景。
+页面内置老杨、iLoop、近况和火炉四站导览，不再运行时拉取个人主站内容，也不在对话里外跳主站。
 
 场景只保留现有铁匠铺和人物 GLB，不再用基础几何体堆叠新家具或陈列装置。新增内容优先进入人物对话。
 
@@ -35,28 +33,27 @@ npc_voice_panel_3d/
 在 `index.html` 底部找到：
 
 ```js
-window.onNPCSelected = function(key, cfg) {
-  // TODO: 你的语音播放逻辑写这里
+window.onNPCSelected = function(key, options = {}) {
+  // 播放对应 NPC 的本地语音
 };
 ```
 
-`key` 是 `master / apprentice / yq`，`cfg.line` 是对话文本。
+`key` 是 `master / apprentice / yq`；`yq` 默认只显示台词，不播放语音。
 
 ## 操作
 
 - 左键拖拽：360° 旋转视角
 - 滚轮：缩放
-- 点击 NPC / 左侧按钮：选中 + 弹对话框
-- 自动旋转 / 炉火强度 / 重置视角：左侧面板
+- 点击 NPC / 火炉 / 巡铺路线：选中 + 弹对话框
+- 场景模式 / 音乐 / 炉火强度 / 重置视角：页面按钮与左侧面板
 
 ## 本地预览
 
-直接双击 `index.html` 即可（ES Module CDN 走的 unpkg.com，需联网）。
-若 CORS 报错，起个简单静态服务（任选其一）：
+GLB、音频和 ES Module 需要经 HTTP 打开，起一个简单静态服务：
 
 ```bash
 # Python
-python3 -m http.server 8080
+python3 -m http.server 8123
 # Node
 npx serve
 ```

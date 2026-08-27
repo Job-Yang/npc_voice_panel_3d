@@ -18,8 +18,17 @@
     padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(255,170,100,.15);
     display: flex; align-items: center; gap: 12px;
     font-size: 14px; pointer-events: none;
+    box-shadow: 0 8px 26px rgba(0,0,0,.25);
   }
   .topbar .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff7733; box-shadow: 0 0 10px #ff7733; }
+  .topbar .brand { color: #fff1d8; font-weight: 650; white-space: nowrap; }
+  .topbar .tagline {
+    padding-left: 12px;
+    border-left: 1px solid rgba(255,170,100,.2);
+    color: rgba(232,213,176,.78);
+    white-space: nowrap;
+    font-size: 12px;
+  }
   .topbar a {
     color: #ffcf8a;
     pointer-events: auto;
@@ -274,8 +283,16 @@
       width: calc(100vw - 24px);
       justify-content: center;
       padding: 8px 12px;
+      gap: 8px;
       font-size: 12px;
       white-space: nowrap;
+    }
+    .topbar .tagline {
+      max-width: 48vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-left: 8px;
+      font-size: 10px;
     }
     .panel-toggle { top: 58px; left: 12px; }
     .mode-toggle { top: 58px; right: 86px; }
@@ -333,7 +350,8 @@
 
 <div class="topbar">
   <span class="dot"></span>
-  <span>老杨的铁匠铺</span>
+  <span class="brand">老杨的铁匠铺</span>
+  <span class="tagline">iOS 工程师 · AI 工具匠 · iLoop</span>
 </div>
 
 <button class="panel-toggle" id="panelToggle">⚙️ 控制面板</button>
@@ -361,7 +379,7 @@
 </nav>
 
 <div class="panel" id="sidePanel">
-  <h2>🔨 主页入口</h2>
+  <h2>🔨 认识老杨</h2>
   <button class="npc-btn" data-npc="master">老杨是谁</button>
   <button class="npc-btn" data-npc="apprentice">最近在做什么</button>
   <button class="npc-btn" data-npc="yq">iLoop / YQ</button>
@@ -420,9 +438,6 @@ const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 1.3, 0.95);
 const DEFAULT_CAMERA_DISTANCE = 8.2;
 const CAMERA_YAW = 0;
 const CAMERA_PITCH = 0.22;
-// 已停用：铁匠铺不再关联实名主站。置空后即便残留的 feed 死代码被误触发，也不会指向 jobyang.cn。
-const PROFILE_SITE_URL = '';
-const PROFILE_FEED_URL = '';
 // War3 语音文件列表（随机播放）
 const voiceFiles = {
   // 兽族苦工：用 War3 苦工语音，声音更粗
@@ -487,32 +502,32 @@ const yqLines = [
 const GUIDE_CARDS = {
   profile: {
     name: '老杨是谁',
-    meta: '来自 Job Yang. 个人主页',
-    line: '资深 iOS 工程师，正在全面转向 AI。一边学习 AI，一边用它重做自己的工具链。',
+    meta: 'iOS 工程师 · AI 工具匠',
+    line: '老杨，也叫老羊。资深 iOS 工程师，正在把 AI 协作锻成能持续交付的工程方法。',
     actions: [
       { label: '最近项目', type: 'projects' },
     ],
   },
   projects: {
     name: '最近在锻造',
-    meta: '与个人主页同步',
-    line: '主线是 iLoop：把 Agent 从“会写代码”，推进到“能在真实工程里持续交付”。',
+    meta: '铺内主线',
+    line: '主线是 iLoop：让 Agent 不只会写代码，还能计划、取证、验证、收口，在真实工程里闭环交付。',
     actions: [
-      { label: '最近文章', type: 'latest' },
+      { label: '看近况', type: 'latest' },
     ],
   },
   iloop: {
     name: 'iLoop',
     meta: 'i + 反馈闭环 Loop',
-    line: '把 Agent 从“会写代码”，推进到“能在真实工程里持续交付”。',
+    line: 'iLoop 是这间铺子的主炉：把任务拆成计划、证据、改动、验证和复盘，让 AI 协作可持续。',
     actions: [
       { label: '启动闭环彩蛋', type: 'iloop_easter' },
     ],
   },
   latest: {
     name: '近况',
-    meta: '想法与手记',
-    line: '最近在琢磨的东西，会先在这间铺子里磨一磨。',
+    meta: '近期火候',
+    line: '最近这间铺子在做两件事：把 AI 开发流程打磨成闭环，也把欢迎页自己放进每日迭代里试火。',
     actions: [
       { label: '随便逛逛', type: 'wander' },
     ],
@@ -529,7 +544,7 @@ const GUIDE_CARDS = {
   wander: {
     name: '随便逛逛',
     meta: '随机吐槽',
-    line: '这间铺子不再靠堆满物件证明勤奋。点三个人物认识老杨、看最近更新，或者到火炉边锻一句。',
+    line: '这间铺子现在先说清主人，再展示手感。点三个人物认识老杨、看 iLoop 和近况，或者到火炉边锻一句。',
     actions: [
       { label: '再来一句', type: 'wander' },
       { label: '锻造欢迎语', type: 'forge' },
@@ -594,7 +609,7 @@ let typedSecret = '';
 const NPC_CONFIG = {
   master:     { name: '老杨是谁', url: './assets/npc_master.glb',     position: [-3.15, 0, 2.95], scale: 1.0, color: 0x884422,
                 line: GUIDE_CARDS.profile.line,
-                meta: 'Job Yang. · 个人主页',
+                meta: 'iOS 工程师 · AI 工具匠',
                 actions: [
                   { label: '最近项目', type: 'projects' },
                 ],
@@ -602,9 +617,9 @@ const NPC_CONFIG = {
                 prop: null },
   apprentice: { name: '最近在做什么',   url: './assets/npc_apprentice.glb', position: [2.2, 0, 1.0],   scale: 0.9, color: 0xaa6633,
                 line: GUIDE_CARDS.latest.line,
-                meta: '个人页最近更新',
+                meta: '近期火候',
                 actions: [
-                  { label: '最近文章', type: 'latest' },
+                  { label: '看近况', type: 'latest' },
                   { label: '最近项目', type: 'projects' },
                 ],
                 rotY: -0.6,                // 侧身朝炉火
@@ -620,92 +635,6 @@ const NPC_CONFIG = {
                 prop: null }
 };
 
-function compactList(items, field, limit = 3) {
-  return (items || [])
-    .slice(0, limit)
-    .map(item => item?.[field])
-    .filter(Boolean)
-    .join('、');
-}
-
-function applyProfileFeed(feed) {
-  if (feed?.schema !== 'JobYangShowcase:v1') return false;
-
-  const profile = feed.profile || {};
-  const projects = feed.projects || [];
-  const posts = feed.latestPosts || [];
-  const notes = feed.latestNotes || [];
-  const iLoop = projects.find(project => project.title === 'iLoop');
-  const projectNames = compactList(projects, 'title');
-  const latestTitles = [
-    ...posts.slice(0, 2).map(item => item.title),
-    ...notes.slice(0, 1).map(item => item.title),
-  ].filter(Boolean);
-
-  if (profile.summary) {
-    GUIDE_CARDS.profile.line = `${profile.role || ''}${profile.role ? ' ' : ''}${profile.summary}`.trim();
-    NPC_CONFIG.master.line = GUIDE_CARDS.profile.line;
-  }
-  if (projectNames) {
-    GUIDE_CARDS.projects.line = `个人页当前公开的重点是：${projectNames}。这里不再为每个项目造一个物件，项目更新直接跟着主站走。`;
-  }
-  if (iLoop?.statement) {
-    GUIDE_CARDS.iloop.line = iLoop.statement;
-    NPC_CONFIG.yq.line = iLoop.statement;
-  }
-  if (latestTitles.length) {
-    GUIDE_CARDS.latest.line = `个人页最近更新：${latestTitles.join('；')}。`;
-    NPC_CONFIG.apprentice.line = GUIDE_CARDS.latest.line;
-    const firstPost = posts[0];
-    const firstNote = notes[0];
-    GUIDE_CARDS.latest.actions = [
-      {
-        label: firstPost ? '读最新文章 ↗' : '全部文章 ↗',
-        url: firstPost?.url || `${PROFILE_SITE_URL}/writing/`,
-      },
-      {
-        label: firstNote ? '看最新手记 ↗' : '全部手记 ↗',
-        url: firstNote?.url || `${PROFILE_SITE_URL}/notes/`,
-      },
-    ];
-  }
-  window.__PROFILE_FEED__ = {
-    loaded: true,
-    generatedAt: feed.generatedAt,
-    source: feed.source,
-    projectCount: projects.length,
-    postCount: posts.length,
-    noteCount: notes.length,
-  };
-  return true;
-}
-
-function loadProfileFeed() {
-  const script = document.createElement('script');
-  script.src = PROFILE_FEED_URL;
-  script.async = true;
-  script.onload = () => {
-    if (!applyProfileFeed(window.__JOB_YANG_SHOWCASE__)) {
-      window.__PROFILE_FEED__ = {
-        loaded: false,
-        source: PROFILE_FEED_URL,
-        reason: 'unsupported schema',
-      };
-    }
-  };
-  script.onerror = () => {
-    window.__PROFILE_FEED__ = {
-      loaded: false,
-      source: PROFILE_FEED_URL,
-      reason: 'script load failed',
-    };
-    console.warn('[profile] 使用内置内容，个人页摘要暂不可用');
-  };
-  document.head.appendChild(script);
-}
-
-// 已停用：不再从主站拉取个人页摘要，也不外链实名主站。铁匠铺内嵌运行时保持独立。
-// loadProfileFeed();
 const BG_URL = './assets/bg_smithy.glb'; // 铁匠铺背景
 
 // ============== 基础场景 ==============
@@ -1270,7 +1199,6 @@ function runDialogAction(index) {
   const action = dialogActions[index];
   if (!action) return;
   if (action.url) {
-    // 已停用：不再跳转实名主站（about/projects/iloop/writing/notes）。仅保留铁匠铺内的对话导览。
     return;
   }
   openGuideCard(action.type);
