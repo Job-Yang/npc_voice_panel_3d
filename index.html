@@ -334,7 +334,6 @@
 <div class="topbar">
   <span class="dot"></span>
   <span>老杨的铁匠铺</span>
-  <a href="https://jobyang.cn/" target="_blank" rel="noreferrer">主站 ↗</a>
 </div>
 
 <button class="panel-toggle" id="panelToggle">⚙️ 控制面板</button>
@@ -421,9 +420,9 @@ const DEFAULT_CAMERA_TARGET = new THREE.Vector3(0, 1.3, 0.95);
 const DEFAULT_CAMERA_DISTANCE = 8.2;
 const CAMERA_YAW = 0;
 const CAMERA_PITCH = 0.22;
-const PROFILE_SITE_URL = 'https://jobyang.cn';
-const PROFILE_FEED_URL = new URLSearchParams(location.search).get('profileFeed')
-  || `${PROFILE_SITE_URL}/showcase.js`;
+// 已停用：铁匠铺不再关联实名主站。置空后即便残留的 feed 死代码被误触发，也不会指向 jobyang.cn。
+const PROFILE_SITE_URL = '';
+const PROFILE_FEED_URL = '';
 // War3 语音文件列表（随机播放）
 const voiceFiles = {
   // 兽族苦工：用 War3 苦工语音，声音更粗
@@ -491,7 +490,6 @@ const GUIDE_CARDS = {
     meta: '来自 Job Yang. 个人主页',
     line: '资深 iOS 工程师，正在全面转向 AI。一边学习 AI，一边用它重做自己的工具链。',
     actions: [
-      { label: '完整介绍 ↗', url: `${PROFILE_SITE_URL}/about/` },
       { label: '最近项目', type: 'projects' },
     ],
   },
@@ -500,7 +498,6 @@ const GUIDE_CARDS = {
     meta: '与个人主页同步',
     line: '主线是 iLoop：把 Agent 从“会写代码”，推进到“能在真实工程里持续交付”。',
     actions: [
-      { label: '全部项目 ↗', url: `${PROFILE_SITE_URL}/projects/` },
       { label: '最近文章', type: 'latest' },
     ],
   },
@@ -510,16 +507,14 @@ const GUIDE_CARDS = {
     line: '把 Agent 从“会写代码”，推进到“能在真实工程里持续交付”。',
     actions: [
       { label: '启动闭环彩蛋', type: 'iloop_easter' },
-      { label: '了解 iLoop ↗', url: `${PROFILE_SITE_URL}/projects/iloop/` },
     ],
   },
   latest: {
-    name: '个人页最近更新',
-    meta: '文章与手记',
-    line: '个人页的新文章和手记会同步到这里。现在先去主站看看。',
+    name: '近况',
+    meta: '想法与手记',
+    line: '最近在琢磨的东西，会先在这间铺子里磨一磨。',
     actions: [
-      { label: '最近文章 ↗', url: `${PROFILE_SITE_URL}/writing/` },
-      { label: '最近手记 ↗', url: `${PROFILE_SITE_URL}/notes/` },
+      { label: '随便逛逛', type: 'wander' },
     ],
   },
   contact: {
@@ -601,7 +596,6 @@ const NPC_CONFIG = {
                 line: GUIDE_CARDS.profile.line,
                 meta: 'Job Yang. · 个人主页',
                 actions: [
-                  { label: '完整介绍 ↗', url: `${PROFILE_SITE_URL}/about/` },
                   { label: '最近项目', type: 'projects' },
                 ],
                 rotY: 0.05,
@@ -710,7 +704,8 @@ function loadProfileFeed() {
   document.head.appendChild(script);
 }
 
-loadProfileFeed();
+// 已停用：不再从主站拉取个人页摘要，也不外链实名主站。铁匠铺内嵌运行时保持独立。
+// loadProfileFeed();
 const BG_URL = './assets/bg_smithy.glb'; // 铁匠铺背景
 
 // ============== 基础场景 ==============
@@ -1275,7 +1270,7 @@ function runDialogAction(index) {
   const action = dialogActions[index];
   if (!action) return;
   if (action.url) {
-    window.open(action.url, '_blank', 'noopener');
+    // 已停用：不再跳转实名主站（about/projects/iloop/writing/notes）。仅保留铁匠铺内的对话导览。
     return;
   }
   openGuideCard(action.type);
