@@ -1,0 +1,10 @@
+{
+  "status": "failed",
+  "stage": "static_gate",
+  "static_rc": 1,
+  "fingerprint": "13bca7cf72875ff57b39103c1121ac1251f32466b7df3051cd587a53fa5b04f0",
+  "versions": {
+    "trae_cli": "traecli 0.201.6(internal edition)",
+    "lark_cli": "lark-cli version 1.0.79"
+  }
+}
