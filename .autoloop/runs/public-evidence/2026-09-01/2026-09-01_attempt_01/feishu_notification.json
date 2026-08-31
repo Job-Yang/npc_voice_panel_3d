@@ -1,0 +1,8 @@
+{
+  "status": "delivered",
+  "delivery_verified": true,
+  "message_id_sha256": "35d7de7cf0ecd80f72d931950fb3996f4ea1e2db43fa6556304b5e1e9506ae05",
+  "recipient_id_sha256": "2059c0a1688c029e9eab3b63e3e7559d34158ee1499aecec5e6d1d4a8f27222c",
+  "reason": "",
+  "detail": ""
+}
