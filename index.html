@@ -193,6 +193,29 @@
   }
   .dialog .meta.show { display: block; }
   .dialog .line { font-size: 14px; line-height: 1.6; color: #f0e0c8; }
+  .dialog .process-steps {
+    display: none;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .dialog .process-steps.show { display: grid; }
+  .dialog .process-step {
+    min-height: 30px;
+    padding: 5px 6px;
+    background: rgba(255,170,100,.08);
+    color: rgba(232,213,176,.86);
+    border: 1px solid rgba(255,170,100,.18);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .dialog .process-step:hover { background: rgba(255,170,100,.16); }
+  .dialog .process-step.active {
+    color: #fff1d8;
+    background: rgba(255,119,51,.24);
+    border-color: rgba(255,140,70,.72);
+  }
   .dialog .actions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
   .dialog .actions button {
     flex: 1 1 42%; padding: 6px 10px; font-size: 12px;
@@ -331,6 +354,9 @@
       max-width: none;
       padding: 14px 16px;
     }
+    .dialog .process-steps {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
     .hint {
       bottom: 10px;
       width: calc(100vw - 24px);
@@ -400,6 +426,7 @@
   <div class="name" id="dlgName">老杨的铁匠铺</div>
   <div class="meta" id="dlgMeta">点击人物认识 Job Yang.</div>
   <div class="line" id="dlgLine">欢迎来到老杨的铁匠铺，也可以叫我老羊。要打把什么家伙？</div>
+  <div class="process-steps" id="processSteps" aria-label="iLoop 五锤工序"></div>
   <div class="actions">
     <button id="btnPrimary">老杨是谁</button>
     <button id="btnSecondary">锻造欢迎语</button>
@@ -499,6 +526,34 @@ const yqLines = [
   'AI时代我还是苦工,只是挖矿的方式不一样了',
 ];
 
+const ILOOP_STEPS = [
+  {
+    key: 'plan',
+    label: '计划',
+    line: '先把一句模糊需求压成可执行的炉前计划：目标、边界、风险和验收点都摆到台面上。',
+  },
+  {
+    key: 'evidence',
+    label: '取证',
+    line: '再去看日志、截图、diff 和运行结果。没有证据的判断，只能算炉边闲聊。',
+  },
+  {
+    key: 'change',
+    label: '改动',
+    line: '落锤时只打一块铁：围绕当前主题改最关键的地方，避免顺手把整间铺子拆掉重装。',
+  },
+  {
+    key: 'verify',
+    label: '验证',
+    line: '火候要现场看：本地跑通、截图对照、线上无痕确认，让“能跑”变成可复查的证据。',
+  },
+  {
+    key: 'close',
+    label: '收口',
+    line: '最后把为什么这么打、打成什么样、哪里没做到写进手记，下一轮才能接着同一块铁继续锻。',
+  },
+];
+
 const GUIDE_CARDS = {
   profile: {
     name: '老杨是谁',
@@ -511,17 +566,21 @@ const GUIDE_CARDS = {
   projects: {
     name: '最近在锻造',
     meta: '铺内主线',
-    line: '主线是 iLoop：让 Agent 不只会写代码，还能计划、取证、验证、收口，在真实工程里闭环交付。',
+    line: '主线是 iLoop：让 Agent 不只会写代码，还能按计划、取证、改动、验证、收口五锤闭环交付。',
     actions: [
+      { label: '看五锤工序', type: 'iloop' },
       { label: '看近况', type: 'latest' },
     ],
   },
   iloop: {
     name: 'iLoop',
     meta: 'i + 反馈闭环 Loop',
-    line: 'iLoop 是这间铺子的主炉：把任务拆成计划、证据、改动、验证和复盘，让 AI 协作可持续。',
+    line: 'iLoop 是这间铺子的主炉：把 AI 协作拆成五锤工序，每一步都留下能复查的火候。',
+    steps: ILOOP_STEPS,
+    activeStep: 'plan',
     actions: [
       { label: '启动闭环彩蛋', type: 'iloop_easter' },
+      { label: '锻造欢迎语', type: 'forge' },
     ],
   },
   latest: {
@@ -601,6 +660,7 @@ let fireVtxFrame = 0;   // 火焰顶点动画隔帧计数器（性能）
 let furnaceFireBasePositions = null;
 let forgePulseUntil = 0;
 let dialogActions = [];
+let currentProcessSteps = [];
 let selectedObjectKey = null;
 let activeTourType = 'profile';
 let yqClickCount = 0;
@@ -1139,7 +1199,32 @@ function tourTypeForGuide(type) {
   return ['profile', 'iloop', 'latest', 'forge'].includes(type) ? type : null;
 }
 
-function renderDialog({ name, meta = '', line, actions = [], allowVoice = false }) {
+function renderProcessSteps(activeKey) {
+  const holder = document.getElementById('processSteps');
+  holder.innerHTML = '';
+  holder.classList.toggle('show', currentProcessSteps.length > 0);
+  if (currentProcessSteps.length === 0) return;
+
+  currentProcessSteps.forEach(step => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `process-step${step.key === activeKey ? ' active' : ''}`;
+    btn.textContent = step.label;
+    btn.setAttribute('aria-pressed', step.key === activeKey ? 'true' : 'false');
+    btn.addEventListener('click', () => showProcessStep(step.key));
+    holder.appendChild(btn);
+  });
+}
+
+function showProcessStep(stepKey) {
+  const step = currentProcessSteps.find(item => item.key === stepKey);
+  if (!step) return;
+  document.getElementById('dlgLine').textContent = step.line;
+  renderProcessSteps(step.key);
+  showContextBubble(step.line, 4600);
+}
+
+function renderDialog({ name, meta = '', line, actions = [], steps = [], activeStep = '', allowVoice = false }) {
   document.getElementById('dlgName').textContent = name;
   const metaEl = document.getElementById('dlgMeta');
   metaEl.textContent = meta;
@@ -1147,6 +1232,8 @@ function renderDialog({ name, meta = '', line, actions = [], allowVoice = false 
   document.getElementById('dlgLine').textContent = line;
 
   dialogActions = actions;
+  currentProcessSteps = steps;
+  renderProcessSteps(activeStep);
   [document.getElementById('btnPrimary'), document.getElementById('btnSecondary')].forEach((btn, i) => {
     const action = actions[i];
     btn.textContent = action?.label || '';
@@ -1323,6 +1410,8 @@ function selectNPC(key) {
     meta: cfg.meta,
     line: cfg.line,
     actions: cfg.actions,
+    steps: key === 'yq' ? GUIDE_CARDS.iloop.steps : [],
+    activeStep: key === 'yq' ? GUIDE_CARDS.iloop.activeStep : '',
     allowVoice: !!voiceFiles[key],
   });
   showNPCBubble(key, cfg.line, 4200);
