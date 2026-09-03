@@ -10,6 +10,12 @@
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
   #viewer { display: block; width: 100vw; height: 100vh; cursor: grab; }
   #viewer:active { cursor: grabbing; }
+  button:focus-visible,
+  input:focus-visible {
+    outline: 2px solid rgba(255,207,138,.95);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(255,119,51,.18);
+  }
 
   /* 顶部标题 */
   .topbar {
@@ -116,6 +122,34 @@
     border: 1px solid rgba(255,170,100,.16);
     border-radius: 12px;
     box-shadow: 0 8px 26px rgba(0,0,0,.32);
+  }
+  .station-cue {
+    grid-column: 1 / -1;
+    min-height: 32px;
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,170,100,.13);
+    color: rgba(240,224,200,.82);
+    font-size: 12px;
+  }
+  .station-cue .station-step {
+    color: rgba(255,207,138,.82);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .station-cue .station-name {
+    color: #fff1d8;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .station-cue .station-line {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .tour-title {
     margin: 0;
@@ -333,6 +367,18 @@
       padding: 8px;
     }
     .tour-title { display: none; }
+    .station-cue {
+      min-height: 36px;
+      grid-template-columns: auto 1fr;
+      gap: 4px 8px;
+      padding: 5px 6px 7px;
+      font-size: 11px;
+    }
+    .station-cue .station-line {
+      grid-column: 1 / -1;
+      white-space: normal;
+      line-height: 1.35;
+    }
     .tour-stop {
       min-height: 32px;
       margin: 0;
@@ -349,7 +395,7 @@
     .tour-actions { display: none; }
     .dialog {
       right: 12px;
-      bottom: 122px;
+      bottom: 174px;
       left: 12px;
       max-width: none;
       padding: 14px 16px;
@@ -385,6 +431,11 @@
 <button class="bgm-toggle" id="bgmToggle" title="背景音乐">🔇 音乐</button>
 
 <nav class="tour-rail" aria-label="巡铺路线">
+  <div class="station-cue" id="stationCue" aria-live="polite">
+    <span class="station-step" id="stationStep">第 1 站</span>
+    <strong class="station-name" id="stationName">老杨</strong>
+    <span class="station-line" id="stationLine">先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。</span>
+  </div>
   <p class="tour-title">巡铺路线</p>
   <button class="tour-stop active" data-tour="profile" aria-label="第一站 老杨">
     <span class="tour-index">1</span><span>老杨</span>
@@ -626,10 +677,30 @@ const YQ_EASTER_LINES = [
 ];
 
 const TOUR_STOPS = {
-  profile: { npc: 'master' },
-  iloop: { npc: 'yq' },
-  latest: { npc: 'apprentice' },
-  forge: { object: 'forge' },
+  profile: {
+    npc: 'master',
+    step: '第 1 站',
+    title: '老杨',
+    cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
+  },
+  iloop: {
+    npc: 'yq',
+    step: '第 2 站',
+    title: 'iLoop',
+    cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
+  },
+  latest: {
+    npc: 'apprentice',
+    step: '第 3 站',
+    title: '近况',
+    cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
+  },
+  forge: {
+    object: 'forge',
+    step: '第 4 站',
+    title: '火炉',
+    cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
+  },
 };
 const TOUR_ORDER = Object.keys(TOUR_STOPS);
 
@@ -1028,9 +1099,13 @@ const dialog = document.getElementById('dialog');
 const npcBubble = document.getElementById('npcBubble');
 const sidePanel = document.getElementById('sidePanel');
 const panelToggle = document.getElementById('panelToggle');
+const tourRail = document.querySelector('.tour-rail');
 const tourStops = document.querySelectorAll('.tour-stop');
 const tourPrev = document.getElementById('tourPrev');
 const tourNext = document.getElementById('tourNext');
+const stationStep = document.getElementById('stationStep');
+const stationName = document.getElementById('stationName');
+const stationLine = document.getElementById('stationLine');
 
 function pickTarget(event) {
   pointer.x = (event.clientX / innerWidth) * 2 - 1;
@@ -1180,12 +1255,16 @@ function setActiveNpcButton(key) {
 }
 
 function setActiveTourStop(type) {
-  activeTourType = type || 'profile';
+  activeTourType = TOUR_STOPS[type] ? type : 'profile';
   tourStops.forEach(stop => {
     const active = stop.dataset.tour === activeTourType;
     stop.classList.toggle('active', active);
     stop.setAttribute('aria-current', active ? 'step' : 'false');
   });
+  const station = TOUR_STOPS[activeTourType];
+  stationStep.textContent = station.step;
+  stationName.textContent = station.title;
+  stationLine.textContent = station.cue;
 }
 
 function tourTypeForNpc(key) {
@@ -1561,6 +1640,12 @@ tourStops.forEach(stop => {
 });
 tourPrev.addEventListener('click', () => goAdjacentTourStop(-1));
 tourNext.addEventListener('click', () => goAdjacentTourStop(1));
+tourRail.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  goAdjacentTourStop(e.key === 'ArrowRight' ? 1 : -1);
+  document.querySelector(`.tour-stop[data-tour="${activeTourType}"]`)?.focus({ preventScroll: true });
+});
 document.getElementById('btnPrimary').addEventListener('click', () => runDialogAction(0));
 document.getElementById('btnSecondary').addEventListener('click', () => runDialogAction(1));
 document.getElementById('btnClose').addEventListener('click', () => {
