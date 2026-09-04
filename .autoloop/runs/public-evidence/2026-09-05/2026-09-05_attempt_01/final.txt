@@ -1,0 +1,23 @@
+本轮已完成并推送到 `main`。
+
+做了什么：
+- 在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-05/index.html) 的四站巡铺导览里新增“已看 X/4”进度条、下一站提示、已看按钮状态和 `aria-valuenow/aria-valuetext`。
+- 移动端对话框位置上移，避免新增进度行后和导览条重叠。
+- 写入本轮输入卡、手记、截图和 CHANGELOG：
+  - [.autoloop/inputs/2026-09-05.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-05/.autoloop/inputs/2026-09-05.md)
+  - [.autoloop/journal/2026-09-05.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-05/.autoloop/journal/2026-09-05.md)
+  - [.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-05/.autoloop/CHANGELOG.md)
+
+验证结果：
+- 创意门禁通过：`.autoloop/runs/2026-09-05_attempt_01/creative_validation.json`
+- 本地交互验证通过：默认 `已看 1/4`，依次到 iLoop、近况、火炉后变为 `2/4`、`3/4`、`4/4`，最后显示“巡铺完成”。
+- 移动端布局验证通过：对话框和底部导览间距 `10.65625px`，不重叠。
+- 本地截图已生成：
+  - `.autoloop/journal/assets/2026-09-05-local.png`
+  - `.autoloop/journal/assets/2026-09-05-mobile.png`
+
+提交与发布：
+- 作品提交：`e07a9427ebe530c9ece44829056dd06c309a6410`
+- 最终远端 `main`：`8befc967947895156cc048ffb46ca798a98e5d4f`
+
+线上无痕验证未通过：固定脚本 `.autoloop/engine/verify_web.sh` 在拉取线上 HTML 阶段失败，`curl_rc=28`，结果已记录到 `.autoloop/runs/2026-09-05_attempt_01/visual_verification.json` 和手记。额外 `HEAD` 检查显示 GitHub Pages 入口会 301 到 `https://jobyang.cn/npc_voice_panel_3d/`，但按宪法没有改验证脚本，也没有反复绕同一网络超时问题。

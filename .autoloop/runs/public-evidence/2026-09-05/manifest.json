@@ -1,0 +1,20 @@
+{
+  "schema": "AutoLoopPublicEvidence:v1",
+  "date": "2026-09-05",
+  "policy": "allowlist_and_redact",
+  "platform_raw_payloads_published": false,
+  "excluded_file_count": 45,
+  "published_files": [
+    "2026-09-05_attempt_01/creative_validation.json",
+    "2026-09-05_attempt_01/final.txt",
+    "2026-09-05_attempt_01/input_validation.json",
+    "2026-09-05_attempt_01/metrics.json",
+    "2026-09-05_attempt_01/preflight.json",
+    "2026-09-05_attempt_01/supervisor_attempt.log",
+    "2026-09-05_attempt_01/supervisor_report.log",
+    "prewarm/preflight.json",
+    "prewarm/version_gate.json",
+    "prewarm/version_static.log",
+    "state.json"
+  ]
+}

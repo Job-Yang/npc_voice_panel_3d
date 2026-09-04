@@ -1,0 +1,57 @@
+.....................Cloning into '/tmp/tmpxkay8pux/private/repo'...
+done.
+[main 3aa354d] fix(autoloop): repair test failure
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+To /tmp/tmpxkay8pux/remote.git
+   ec73dbd..3aa354d  HEAD -> main
+.........hint: Using 'master' as the name for the initial branch. This default branch name
+hint: is subject to change. To configure the initial branch name to use in all
+hint: of your new repositories, which will suppress this warning, call:
+hint: 
+hint: 	git config --global init.defaultBranch <name>
+hint: 
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint: 
+hint: 	git branch -m <name>
+Initialized empty Git repository in /tmp/tmp2pek008o/remote.git/
+Initialized empty Git repository in /tmp/tmp2pek008o/seed/.git/
+[main (root-commit) f0f8d66] base
+ 1 file changed, 1 insertion(+)
+ create mode 100644 base.txt
+To /tmp/tmp2pek008o/remote.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+Cloning into '/tmp/tmp2pek008o/execution'...
+done.
+[main 9c9088d] remote advance
+ 1 file changed, 1 insertion(+)
+ create mode 100644 remote.txt
+To /tmp/tmp2pek008o/remote.git
+   f0f8d66..9c9088d  main -> main
+[main b620e4d] local divergence
+ 1 file changed, 1 insertion(+)
+ create mode 100644 local.txt
+Cloning into '/tmp/autoloop-archive-2099-01-01-b4q4qfo0/repo'...
+done.
+[main a1b1705] chore(autoloop): Supervisor 留档 2099-01-01
+ 4 files changed, 23 insertions(+)
+ create mode 100644 .autoloop/runs/public-evidence/2099-01-01/2099-01-01_attempt_01/metrics.json
+ create mode 100644 .autoloop/runs/public-evidence/2099-01-01/manifest.json
+ create mode 100644 .autoloop/runs/public-evidence/2099-01-01/privacy-scan.json
+ create mode 100644 .autoloop/runs/public-evidence/2099-01-01/state.json
+To /tmp/tmp2pek008o/remote.git
+   9c9088d..a1b1705  HEAD -> main
+fatal: path '.autoloop/journal/assets/2099-01-01-online.png' does not exist in 'main'
+................Cloning into '/tmp/tmpflnazppb/workspaces/2099-01-01'...
+done.
+...{"status": "workspace_failed", "date": "2026-09-05", "control_repo": "<REMOTE_HOME>/npc_voice_panel_3d", "error": "workspace denied", "notification_rc": 0}
+....Cloning into '/tmp/tmpd_t5u_g6/workspaces/2099-01-01'...
+done.
+From /tmp/tmpd_t5u_g6/remote
+ * branch            main       -> FETCH_HEAD
+..
+----------------------------------------------------------------------
+Ran 55 tests in 0.624s
+
+OK
