@@ -125,7 +125,7 @@
   }
   .station-cue {
     grid-column: 1 / -1;
-    min-height: 32px;
+    min-height: 48px;
     display: grid;
     grid-template-columns: auto auto 1fr;
     align-items: center;
@@ -147,6 +147,36 @@
   }
   .station-cue .station-line {
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .station-progress {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(82px, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    color: rgba(232,213,176,.66);
+    font-size: 11px;
+  }
+  .tour-progress-track {
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255,170,100,.12);
+  }
+  .tour-progress-fill {
+    display: block;
+    width: 25%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ff7733, #ffcf8a);
+    transition: width .25s ease;
+  }
+  .tour-next-cue {
+    min-width: 0;
+    color: rgba(255,207,138,.78);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -179,6 +209,10 @@
     border-color: rgba(255,140,70,.72);
     color: #fff1d8;
   }
+  .tour-stop.visited:not(.active) {
+    border-color: rgba(255,207,138,.34);
+    color: rgba(240,224,200,.9);
+  }
   .tour-index {
     display: inline-flex;
     width: 20px;
@@ -192,6 +226,10 @@
     font-variant-numeric: tabular-nums;
   }
   .tour-stop.active .tour-index { background: rgba(255,170,100,.28); }
+  .tour-stop.visited:not(.active) .tour-index {
+    background: rgba(142, 190, 123, .18);
+    color: #d6f0bd;
+  }
   .tour-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -379,6 +417,16 @@
       white-space: normal;
       line-height: 1.35;
     }
+    .station-progress {
+      grid-template-columns: auto 1fr;
+      gap: 5px 8px;
+      font-size: 10px;
+    }
+    .tour-next-cue {
+      grid-column: 1 / -1;
+      white-space: normal;
+      line-height: 1.25;
+    }
     .tour-stop {
       min-height: 32px;
       margin: 0;
@@ -395,7 +443,7 @@
     .tour-actions { display: none; }
     .dialog {
       right: 12px;
-      bottom: 174px;
+      bottom: 202px;
       left: 12px;
       max-width: none;
       padding: 14px 16px;
@@ -435,9 +483,16 @@
     <span class="station-step" id="stationStep">第 1 站</span>
     <strong class="station-name" id="stationName">老杨</strong>
     <span class="station-line" id="stationLine">先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。</span>
+    <div class="station-progress">
+      <span id="tourProgressText">已看 1/4</span>
+      <span class="tour-progress-track" id="tourProgressBar" role="progressbar" aria-label="巡铺进度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" aria-valuetext="已看 1 站，共 4 站">
+        <span class="tour-progress-fill" id="tourProgressFill"></span>
+      </span>
+      <span class="tour-next-cue" id="tourNextCue">下一站：iLoop</span>
+    </div>
   </div>
   <p class="tour-title">巡铺路线</p>
-  <button class="tour-stop active" data-tour="profile" aria-label="第一站 老杨">
+  <button class="tour-stop active visited" data-tour="profile" aria-label="第 1 站 老杨，已看">
     <span class="tour-index">1</span><span>老杨</span>
   </button>
   <button class="tour-stop" data-tour="iloop" aria-label="第二站 iLoop">
@@ -1106,6 +1161,11 @@ const tourNext = document.getElementById('tourNext');
 const stationStep = document.getElementById('stationStep');
 const stationName = document.getElementById('stationName');
 const stationLine = document.getElementById('stationLine');
+const tourProgressText = document.getElementById('tourProgressText');
+const tourProgressBar = document.getElementById('tourProgressBar');
+const tourProgressFill = document.getElementById('tourProgressFill');
+const tourNextCue = document.getElementById('tourNextCue');
+const visitedTourStops = new Set(['profile']);
 
 function pickTarget(event) {
   pointer.x = (event.clientX / innerWidth) * 2 - 1;
@@ -1256,15 +1316,34 @@ function setActiveNpcButton(key) {
 
 function setActiveTourStop(type) {
   activeTourType = TOUR_STOPS[type] ? type : 'profile';
+  visitedTourStops.add(activeTourType);
   tourStops.forEach(stop => {
     const active = stop.dataset.tour === activeTourType;
+    const visited = visitedTourStops.has(stop.dataset.tour);
     stop.classList.toggle('active', active);
+    stop.classList.toggle('visited', visited);
     stop.setAttribute('aria-current', active ? 'step' : 'false');
+    stop.setAttribute('aria-label', `${TOUR_STOPS[stop.dataset.tour].step} ${TOUR_STOPS[stop.dataset.tour].title}${visited ? '，已看' : ''}`);
   });
   const station = TOUR_STOPS[activeTourType];
   stationStep.textContent = station.step;
   stationName.textContent = station.title;
   stationLine.textContent = station.cue;
+  const visitedCount = visitedTourStops.size;
+  const totalCount = TOUR_ORDER.length;
+  const currentIndex = TOUR_ORDER.indexOf(activeTourType);
+  const nextKey = TOUR_ORDER
+    .slice(currentIndex + 1)
+    .concat(TOUR_ORDER.slice(0, currentIndex))
+    .find(key => !visitedTourStops.has(key));
+  const nextText = visitedCount >= totalCount
+    ? '巡铺完成：可以回火炉再锻一句'
+    : `下一站：${TOUR_STOPS[nextKey].title}`;
+  tourProgressText.textContent = `已看 ${visitedCount}/${totalCount}`;
+  tourProgressBar.setAttribute('aria-valuenow', String(visitedCount));
+  tourProgressBar.setAttribute('aria-valuetext', `已看 ${visitedCount} 站，共 ${totalCount} 站`);
+  tourProgressFill.style.width = `${(visitedCount / totalCount) * 100}%`;
+  tourNextCue.textContent = nextText;
 }
 
 function tourTypeForNpc(key) {
