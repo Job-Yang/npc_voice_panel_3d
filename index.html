@@ -181,6 +181,39 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .station-artifact {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,170,100,.1);
+  }
+  .station-artifact .artifact-name {
+    color: #ffcf8a;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .station-artifact .artifact-line {
+    min-width: 0;
+    color: rgba(240,224,200,.74);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .artifact-next {
+    min-height: 26px;
+    padding: 4px 8px;
+    background: rgba(255,170,100,.08);
+    color: rgba(232,213,176,.86);
+    border: 1px solid rgba(255,170,100,.18);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .artifact-next:hover { background: rgba(255,170,100,.16); }
   .tour-title {
     margin: 0;
     white-space: nowrap;
@@ -427,6 +460,22 @@
       white-space: normal;
       line-height: 1.25;
     }
+    .station-artifact {
+      grid-template-columns: 1fr auto;
+      gap: 5px 8px;
+      padding-top: 5px;
+      font-size: 10px;
+    }
+    .station-artifact .artifact-line {
+      grid-column: 1 / -1;
+      white-space: normal;
+      line-height: 1.25;
+    }
+    .artifact-next {
+      min-height: 24px;
+      padding: 3px 7px;
+      font-size: 10px;
+    }
     .tour-stop {
       min-height: 32px;
       margin: 0;
@@ -443,7 +492,7 @@
     .tour-actions { display: none; }
     .dialog {
       right: 12px;
-      bottom: 202px;
+      bottom: 274px;
       left: 12px;
       max-width: none;
       padding: 14px 16px;
@@ -489,6 +538,11 @@
         <span class="tour-progress-fill" id="tourProgressFill"></span>
       </span>
       <span class="tour-next-cue" id="tourNextCue">下一站：iLoop</span>
+    </div>
+    <div class="station-artifact" aria-live="polite">
+      <strong class="artifact-name" id="artifactName">磨亮的锤柄</strong>
+      <span class="artifact-line" id="artifactLine">握痕说明主人长期亲自下场：把移动端经验和 AI 协作一起磨顺。</span>
+      <button class="artifact-next" id="artifactNext" type="button">换一枚</button>
     </div>
   </div>
   <p class="tour-title">巡铺路线</p>
@@ -737,24 +791,64 @@ const TOUR_STOPS = {
     step: '第 1 站',
     title: '老杨',
     cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
+    artifacts: [
+      {
+        name: '磨亮的锤柄',
+        line: '握痕说明主人长期亲自下场：把移动端经验和 AI 协作一起磨顺。',
+      },
+      {
+        name: '炉前便签',
+        line: '便签只留目标、证据和验收点，像老杨做工具时先把混乱压成可执行小块。',
+      },
+    ],
   },
   iloop: {
     npc: 'yq',
     step: '第 2 站',
     title: 'iLoop',
     cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
+    artifacts: [
+      {
+        name: '闭环铁环',
+        line: '五道刻线首尾相扣，提醒 Agent 每一锤都要回到证据和验收。',
+      },
+      {
+        name: '淬火夹钳',
+        line: '夹钳夹住的是风险边界：先控住范围，再让 AI 落锤。',
+      },
+    ],
   },
   latest: {
     npc: 'apprentice',
     step: '第 3 站',
     title: '近况',
     cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
+    artifacts: [
+      {
+        name: '今日试火单',
+        line: '单子上只记一轮主题，说明这间铺子每天小步试火，不靠一次性堆满。',
+      },
+      {
+        name: '复盘煤灰',
+        line: '灰里留着昨天的截图、日志和失败原因，下一锤从证据继续。',
+      },
+    ],
   },
   forge: {
     object: 'forge',
     step: '第 4 站',
     title: '火炉',
     cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
+    artifacts: [
+      {
+        name: '炉膛回声',
+        line: '每次锻出的短句都带一点老杨式吐槽，火候轻但能让铺子有声气。',
+      },
+      {
+        name: '余温刻度',
+        line: '火光强弱对应当前模式：舒缓时看铺，开炉时让人物和欢迎语更有反馈。',
+      },
+    ],
   },
 };
 const TOUR_ORDER = Object.keys(TOUR_STOPS);
@@ -789,6 +883,7 @@ let dialogActions = [];
 let currentProcessSteps = [];
 let selectedObjectKey = null;
 let activeTourType = 'profile';
+let activeArtifactIndex = 0;
 let yqClickCount = 0;
 let typedSecret = '';
 
@@ -1165,6 +1260,9 @@ const tourProgressText = document.getElementById('tourProgressText');
 const tourProgressBar = document.getElementById('tourProgressBar');
 const tourProgressFill = document.getElementById('tourProgressFill');
 const tourNextCue = document.getElementById('tourNextCue');
+const artifactName = document.getElementById('artifactName');
+const artifactLine = document.getElementById('artifactLine');
+const artifactNext = document.getElementById('artifactNext');
 const visitedTourStops = new Set(['profile']);
 
 function pickTarget(event) {
@@ -1314,8 +1412,22 @@ function setActiveNpcButton(key) {
   });
 }
 
-function setActiveTourStop(type) {
+function renderStationArtifact() {
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  const artifacts = station.artifacts || [];
+  const artifact = artifacts[activeArtifactIndex % Math.max(1, artifacts.length)];
+  artifactName.textContent = artifact?.name || '铺内物证';
+  artifactLine.textContent = artifact?.line || '这枚痕迹还在等下一轮补充。';
+  artifactNext.hidden = artifacts.length < 2;
+  artifactNext.setAttribute('aria-label', `切换${station.title}的铺内物证`);
+}
+
+function setActiveTourStop(type, options = {}) {
+  const previousType = activeTourType;
   activeTourType = TOUR_STOPS[type] ? type : 'profile';
+  if (activeTourType !== previousType || options.resetArtifact) {
+    activeArtifactIndex = 0;
+  }
   visitedTourStops.add(activeTourType);
   tourStops.forEach(stop => {
     const active = stop.dataset.tour === activeTourType;
@@ -1344,6 +1456,7 @@ function setActiveTourStop(type) {
   tourProgressBar.setAttribute('aria-valuetext', `已看 ${visitedCount} 站，共 ${totalCount} 站`);
   tourProgressFill.style.width = `${(visitedCount / totalCount) * 100}%`;
   tourNextCue.textContent = nextText;
+  renderStationArtifact();
 }
 
 function tourTypeForNpc(key) {
@@ -1719,6 +1832,12 @@ tourStops.forEach(stop => {
 });
 tourPrev.addEventListener('click', () => goAdjacentTourStop(-1));
 tourNext.addEventListener('click', () => goAdjacentTourStop(1));
+artifactNext.addEventListener('click', () => {
+  const artifacts = TOUR_STOPS[activeTourType]?.artifacts || [];
+  if (artifacts.length < 2) return;
+  activeArtifactIndex = (activeArtifactIndex + 1) % artifacts.length;
+  renderStationArtifact();
+});
 tourRail.addEventListener('keydown', e => {
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
   e.preventDefault();
