@@ -202,6 +202,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .artifact-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .artifact-inspect,
   .artifact-next {
     min-height: 26px;
     padding: 4px 8px;
@@ -213,6 +220,12 @@
     font-size: 11px;
     white-space: nowrap;
   }
+  .artifact-inspect {
+    color: #fff1d8;
+    border-color: rgba(255,207,138,.34);
+    background: rgba(255,119,51,.12);
+  }
+  .artifact-inspect:hover,
   .artifact-next:hover { background: rgba(255,170,100,.16); }
   .tour-title {
     margin: 0;
@@ -471,6 +484,12 @@
       white-space: normal;
       line-height: 1.25;
     }
+    .artifact-actions {
+      grid-row: 1;
+      grid-column: 2;
+      gap: 4px;
+    }
+    .artifact-inspect,
     .artifact-next {
       min-height: 24px;
       padding: 3px 7px;
@@ -542,7 +561,10 @@
     <div class="station-artifact" aria-live="polite">
       <strong class="artifact-name" id="artifactName">磨亮的锤柄</strong>
       <span class="artifact-line" id="artifactLine">握痕说明主人长期亲自下场：把移动端经验和 AI 协作一起磨顺。</span>
-      <button class="artifact-next" id="artifactNext" type="button">换一枚</button>
+      <span class="artifact-actions">
+        <button class="artifact-inspect" id="artifactInspect" type="button">鉴定</button>
+        <button class="artifact-next" id="artifactNext" type="button">换一枚</button>
+      </span>
     </div>
   </div>
   <p class="tour-title">巡铺路线</p>
@@ -795,10 +817,16 @@ const TOUR_STOPS = {
       {
         name: '磨亮的锤柄',
         line: '握痕说明主人长期亲自下场：把移动端经验和 AI 协作一起磨顺。',
+        label: '常用件 · 炉前主锤',
+        reading: '这不是奖杯，而是每天都要拿起来的工具。它把老杨的身份落在“亲自下场解决问题”上。',
+        next: '读完后适合去 iLoop 站，看这些手感怎样被整理成闭环工序。',
       },
       {
         name: '炉前便签',
         line: '便签只留目标、证据和验收点，像老杨做工具时先把混乱压成可执行小块。',
+        label: '纸面痕迹 · 开工前',
+        reading: '便签刻意很短，说明铁匠铺不靠长篇设定撑场，而靠目标、证据和验收把活往前推。',
+        next: '读完后适合点“最近项目”，把抽象身份接到 iLoop 主线。',
       },
     ],
   },
@@ -811,10 +839,16 @@ const TOUR_STOPS = {
       {
         name: '闭环铁环',
         line: '五道刻线首尾相扣，提醒 Agent 每一锤都要回到证据和验收。',
+        label: '工序样件 · 五锤闭环',
+        reading: '铁环的重点不是造型，而是首尾相扣：计划、取证、改动、验证、收口缺一锤都不算出炉。',
+        next: '读完后可以点“五锤工序”，逐步查看 iLoop 怎样约束 Agent 交付。',
       },
       {
         name: '淬火夹钳',
         line: '夹钳夹住的是风险边界：先控住范围，再让 AI 落锤。',
+        label: '控火工具 · 风险边界',
+        reading: '夹钳把热铁固定住，像工程里的范围控制。AI 可以用力，但每次只打一块铁。',
+        next: '读完后适合去近况站，看每日自迭代怎样小步试火。',
       },
     ],
   },
@@ -827,10 +861,16 @@ const TOUR_STOPS = {
       {
         name: '今日试火单',
         line: '单子上只记一轮主题，说明这间铺子每天小步试火，不靠一次性堆满。',
+        label: '当日记录 · 一轮一题',
+        reading: '试火单把“每天变好一点”变成可检查的样本：今天做什么、为什么做、怎么验证。',
+        next: '读完后适合继续看火炉站，感受这套记录怎样回到可见反馈。',
       },
       {
         name: '复盘煤灰',
         line: '灰里留着昨天的截图、日志和失败原因，下一锤从证据继续。',
+        label: '余料 · 失败也留痕',
+        reading: '煤灰不是垃圾，是下一轮判断火候的证据。它提醒这间铺子允许失败，但不能没有复盘。',
+        next: '读完后适合回老杨站，理解主人为什么把工程手艺看得比热闹更重。',
       },
     ],
   },
@@ -843,10 +883,16 @@ const TOUR_STOPS = {
       {
         name: '炉膛回声',
         line: '每次锻出的短句都带一点老杨式吐槽，火候轻但能让铺子有声气。',
+        label: '互动残响 · 欢迎语',
+        reading: '回声把页面从静态介绍拉回现场：访客点一下火炉，铺子就用老杨式短句回应一次。',
+        next: '读完后可以再锻一句，或回 iLoop 站看这类反馈怎样被纳入验证。',
       },
       {
         name: '余温刻度',
         line: '火光强弱对应当前模式：舒缓时看铺，开炉时让人物和欢迎语更有反馈。',
+        label: '火候读数 · 场景模式',
+        reading: '刻度说明这里的氛围不是装饰。舒缓模式方便参观，火炉模式让声音、灯光和反馈更像开工。',
+        next: '读完后可以切换右上角场景模式，对照炉火和人物反馈的差异。',
       },
     ],
   },
@@ -1262,6 +1308,7 @@ const tourProgressFill = document.getElementById('tourProgressFill');
 const tourNextCue = document.getElementById('tourNextCue');
 const artifactName = document.getElementById('artifactName');
 const artifactLine = document.getElementById('artifactLine');
+const artifactInspect = document.getElementById('artifactInspect');
 const artifactNext = document.getElementById('artifactNext');
 const visitedTourStops = new Set(['profile']);
 
@@ -1418,8 +1465,36 @@ function renderStationArtifact() {
   const artifact = artifacts[activeArtifactIndex % Math.max(1, artifacts.length)];
   artifactName.textContent = artifact?.name || '铺内物证';
   artifactLine.textContent = artifact?.line || '这枚痕迹还在等下一轮补充。';
+  artifactInspect.setAttribute('aria-label', `鉴定${station.title}的${artifact?.name || '铺内物证'}`);
   artifactNext.hidden = artifacts.length < 2;
   artifactNext.setAttribute('aria-label', `切换${station.title}的铺内物证`);
+}
+
+function getActiveArtifact() {
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  const artifacts = station.artifacts || [];
+  const artifact = artifacts[activeArtifactIndex % Math.max(1, artifacts.length)];
+  return { station, artifact };
+}
+
+function inspectActiveArtifact() {
+  const { station, artifact } = getActiveArtifact();
+  if (!artifact) return;
+  activeKey = station.npc || null;
+  selectedObjectKey = station.object || null;
+  setActiveNpcButton(activeKey);
+  const stationActionType = activeTourType === 'forge' ? 'forge' : activeTourType;
+  renderDialog({
+    name: `物证鉴定 · ${artifact.name}`,
+    meta: `${station.step} · ${station.title} · ${artifact.label || '铺内物证'}`,
+    line: `是什么：${artifact.line} 说明老杨：${artifact.reading || station.cue} 下一步：${artifact.next || station.cue}`,
+    actions: [
+      { label: stationActionType === 'forge' ? '再锻一句' : '看本站说明', type: stationActionType },
+      { label: '换一枚物证', type: 'artifact_next' },
+    ],
+    allowVoice: false,
+  });
+  showContextBubble(`${artifact.name}：${artifact.line}`, 4600);
 }
 
 function setActiveTourStop(type, options = {}) {
@@ -1557,6 +1632,14 @@ function runDialogAction(index) {
   const action = dialogActions[index];
   if (!action) return;
   if (action.url) {
+    return;
+  }
+  if (action.type === 'artifact_next') {
+    const artifacts = TOUR_STOPS[activeTourType]?.artifacts || [];
+    if (artifacts.length < 2) return;
+    activeArtifactIndex = (activeArtifactIndex + 1) % artifacts.length;
+    renderStationArtifact();
+    inspectActiveArtifact();
     return;
   }
   openGuideCard(action.type);
@@ -1832,6 +1915,7 @@ tourStops.forEach(stop => {
 });
 tourPrev.addEventListener('click', () => goAdjacentTourStop(-1));
 tourNext.addEventListener('click', () => goAdjacentTourStop(1));
+artifactInspect.addEventListener('click', inspectActiveArtifact);
 artifactNext.addEventListener('click', () => {
   const artifacts = TOUR_STOPS[activeTourType]?.artifacts || [];
   if (artifacts.length < 2) return;
