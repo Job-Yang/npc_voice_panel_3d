@@ -181,6 +181,38 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .tour-receipt {
+    grid-column: 1 / -1;
+    display: none;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-top: 1px solid rgba(142,190,123,.16);
+    background: rgba(142, 190, 123, .08);
+    color: rgba(231,244,214,.86);
+    border-radius: 8px;
+  }
+  .tour-receipt.show { display: grid; }
+  .receipt-summary {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  .receipt-open {
+    min-height: 26px;
+    padding: 4px 9px;
+    background: rgba(142,190,123,.12);
+    color: #e7f4d6;
+    border: 1px solid rgba(142,190,123,.32);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .receipt-open:hover { background: rgba(142,190,123,.2); }
   .station-artifact {
     grid-column: 1 / -1;
     display: grid;
@@ -473,6 +505,21 @@
       white-space: normal;
       line-height: 1.25;
     }
+    .tour-receipt {
+      grid-template-columns: 1fr auto;
+      gap: 5px 8px;
+      padding: 6px;
+    }
+    .receipt-summary {
+      white-space: normal;
+      line-height: 1.25;
+      font-size: 10px;
+    }
+    .receipt-open {
+      min-height: 24px;
+      padding: 3px 7px;
+      font-size: 10px;
+    }
     .station-artifact {
       grid-template-columns: 1fr auto;
       gap: 5px 8px;
@@ -511,7 +558,7 @@
     .tour-actions { display: none; }
     .dialog {
       right: 12px;
-      bottom: 274px;
+      bottom: 304px;
       left: 12px;
       max-width: none;
       padding: 14px 16px;
@@ -557,6 +604,10 @@
         <span class="tour-progress-fill" id="tourProgressFill"></span>
       </span>
       <span class="tour-next-cue" id="tourNextCue">下一站：iLoop</span>
+    </div>
+    <div class="tour-receipt" id="tourReceipt" aria-live="polite">
+      <span class="receipt-summary" id="receiptSummary">四站已齐：老杨、iLoop、近况和火炉合成一枚炉印。</span>
+      <button class="receipt-open" id="receiptOpen" type="button">看炉印</button>
     </div>
     <div class="station-artifact" aria-live="polite">
       <strong class="artifact-name" id="artifactName">磨亮的锤柄</strong>
@@ -813,6 +864,7 @@ const TOUR_STOPS = {
     step: '第 1 站',
     title: '老杨',
     cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
+    receipt: '认识主人：iOS 手艺、AI 工具和亲自下场的工作方式。',
     artifacts: [
       {
         name: '磨亮的锤柄',
@@ -835,6 +887,7 @@ const TOUR_STOPS = {
     step: '第 2 站',
     title: 'iLoop',
     cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
+    receipt: '看清主炉：计划、取证、改动、验证、收口缺一不可。',
     artifacts: [
       {
         name: '闭环铁环',
@@ -857,6 +910,7 @@ const TOUR_STOPS = {
     step: '第 3 站',
     title: '近况',
     cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
+    receipt: '摸到近况：每日只打一题，失败和截图都留作下一锤证据。',
     artifacts: [
       {
         name: '今日试火单',
@@ -879,6 +933,7 @@ const TOUR_STOPS = {
     step: '第 4 站',
     title: '火炉',
     cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
+    receipt: '回到火候：点击、声音、灯光和短句把介绍变成现场反馈。',
     artifacts: [
       {
         name: '炉膛回声',
@@ -898,6 +953,7 @@ const TOUR_STOPS = {
   },
 };
 const TOUR_ORDER = Object.keys(TOUR_STOPS);
+const TOUR_RECEIPT_SUMMARY = '四站已齐：老杨、iLoop、近况和火炉合成一枚炉印。';
 
 const OBJECT_CONFIG = {
   forge: {
@@ -1306,6 +1362,9 @@ const tourProgressText = document.getElementById('tourProgressText');
 const tourProgressBar = document.getElementById('tourProgressBar');
 const tourProgressFill = document.getElementById('tourProgressFill');
 const tourNextCue = document.getElementById('tourNextCue');
+const tourReceipt = document.getElementById('tourReceipt');
+const receiptSummary = document.getElementById('receiptSummary');
+const receiptOpen = document.getElementById('receiptOpen');
 const artifactName = document.getElementById('artifactName');
 const artifactLine = document.getElementById('artifactLine');
 const artifactInspect = document.getElementById('artifactInspect');
@@ -1477,6 +1536,26 @@ function getActiveArtifact() {
   return { station, artifact };
 }
 
+function renderTourReceipt() {
+  const lines = TOUR_ORDER
+    .filter(key => visitedTourStops.has(key))
+    .map(key => `${TOUR_STOPS[key].title}：${TOUR_STOPS[key].receipt}`);
+  renderDialog({
+    name: '巡铺炉印 · 四站回执',
+    meta: `已看 ${visitedTourStops.size}/${TOUR_ORDER.length}`,
+    line: `${TOUR_RECEIPT_SUMMARY} ${lines.join(' ')}`,
+    actions: [
+      { label: '回炉再锻', type: 'forge' },
+      { label: '重走一遍', type: 'tour_restart' },
+    ],
+    allowVoice: false,
+  });
+  selectedObjectKey = 'forge';
+  activeKey = null;
+  setActiveNpcButton(null);
+  showContextBubble('四站炉印已合成，回炉再看一眼火候。', 4600);
+}
+
 function inspectActiveArtifact() {
   const { station, artifact } = getActiveArtifact();
   if (!artifact) return;
@@ -1531,6 +1610,10 @@ function setActiveTourStop(type, options = {}) {
   tourProgressBar.setAttribute('aria-valuetext', `已看 ${visitedCount} 站，共 ${totalCount} 站`);
   tourProgressFill.style.width = `${(visitedCount / totalCount) * 100}%`;
   tourNextCue.textContent = nextText;
+  const complete = visitedCount >= totalCount;
+  tourReceipt.classList.toggle('show', complete);
+  receiptSummary.textContent = TOUR_RECEIPT_SUMMARY;
+  receiptOpen.setAttribute('aria-label', complete ? '查看四站巡铺炉印回执' : '四站完成后查看炉印回执');
   renderStationArtifact();
 }
 
@@ -1640,6 +1723,13 @@ function runDialogAction(index) {
     activeArtifactIndex = (activeArtifactIndex + 1) % artifacts.length;
     renderStationArtifact();
     inspectActiveArtifact();
+    return;
+  }
+  if (action.type === 'tour_restart') {
+    visitedTourStops.clear();
+    visitedTourStops.add('profile');
+    activeArtifactIndex = 0;
+    goTourStop('profile');
     return;
   }
   openGuideCard(action.type);
@@ -1915,6 +2005,7 @@ tourStops.forEach(stop => {
 });
 tourPrev.addEventListener('click', () => goAdjacentTourStop(-1));
 tourNext.addEventListener('click', () => goAdjacentTourStop(1));
+receiptOpen.addEventListener('click', renderTourReceipt);
 artifactInspect.addEventListener('click', inspectActiveArtifact);
 artifactNext.addEventListener('click', () => {
   const artifacts = TOUR_STOPS[activeTourType]?.artifacts || [];
