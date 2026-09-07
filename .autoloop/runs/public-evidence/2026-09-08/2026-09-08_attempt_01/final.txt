@@ -1,0 +1,17 @@
+已完成 2026-09-08 这一轮自迭代，并推送到远端 `main`。
+
+本轮主题是“巡铺炉印回执”：访客按四站看完老杨、iLoop、近况、火炉后，底部导览会出现“四站已齐”的完成回执；点击“看炉印”会打开总结弹窗，把四站各自的印记串成离开前的收束。改动集中在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-08/index.html)，并补齐了输入卡、手记和截图证据。
+
+验证结果：
+- 本地交互验证通过：`.autoloop/runs/2026-09-08_attempt_01/local_receipt_check.json`
+- 创意门禁通过：`.autoloop/runs/2026-09-08_attempt_01/creative_validation.json`
+- 线上无痕验证通过：`.autoloop/runs/2026-09-08_attempt_01/visual_verification.json`
+- 线上截图：`.autoloop/journal/assets/2026-09-08-online.png`
+- 线上地址已发布：https://job-yang.github.io/npc_voice_panel_3d/
+
+推送记录：
+- 功能 commit：`973d343ce0222f03c488d795c019312ff7314ca0`
+- 记录回填 commit：`491c1c73032499f8bec62e6944bc1444426c337a`
+- 最终线上截图证据 commit：`993c65d25f10aba2863e79ee2cbd052bcf5b3488`
+
+注意：当前环境把本地 `.git` 单独只读挂载，所以普通 `git add/commit` 无法写索引。我用临时 git index/object database 完成了提交和推送；远端 `main` 已确认指向 `993c65d25f10aba2863e79ee2cbd052bcf5b3488`。本地 `git status` 仍会因为只读 `.git` 的 stale HEAD 显示改动，这是环境元数据限制，不是远端缺提交。
