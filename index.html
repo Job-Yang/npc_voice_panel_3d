@@ -387,6 +387,62 @@
   }
   .hover-label.show { opacity: 1; }
 
+  .station-pin {
+    position: fixed;
+    z-index: 17;
+    min-width: 118px;
+    max-width: min(220px, calc(100vw - 32px));
+    padding: 7px 10px 8px;
+    background: rgba(20, 14, 10, .82);
+    color: #fff1d8;
+    border: 1px solid rgba(255,207,138,.34);
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(0,0,0,.34), 0 0 16px rgba(255,119,51,.15);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -120%);
+    transition: opacity .18s, transform .18s;
+  }
+  .station-pin.show {
+    opacity: 1;
+    transform: translate(-50%, -135%);
+  }
+  .station-pin::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    width: 10px;
+    height: 10px;
+    background: rgba(20, 14, 10, .82);
+    border-right: 1px solid rgba(255,207,138,.34);
+    border-bottom: 1px solid rgba(255,207,138,.34);
+    transform: translateX(-50%) rotate(45deg);
+  }
+  .station-pin .pin-step {
+    display: block;
+    margin-bottom: 2px;
+    color: rgba(255,207,138,.76);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .station-pin .pin-title {
+    display: block;
+    color: #fff1d8;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+  .station-pin .pin-line {
+    display: block;
+    margin-top: 3px;
+    color: rgba(240,224,200,.68);
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
   .npc-bubble {
     position: fixed;
     min-width: 170px;
@@ -566,6 +622,17 @@
     .dialog .process-steps {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+    .station-pin {
+      min-width: 104px;
+      max-width: 176px;
+      padding: 6px 8px 7px;
+    }
+    .station-pin .pin-title {
+      font-size: 12px;
+    }
+    .station-pin .pin-line {
+      display: none;
+    }
     .hint {
       bottom: 10px;
       width: calc(100vw - 24px);
@@ -577,6 +644,11 @@
 </head>
 <body>
 <canvas id="viewer"></canvas>
+<div class="station-pin" id="stationPin" aria-live="polite">
+  <span class="pin-step" id="pinStep">第 1 站</span>
+  <strong class="pin-title" id="pinTitle">老杨</strong>
+  <span class="pin-line" id="pinLine">主人在这里</span>
+</div>
 
 <div class="loader" id="loader">
   <div class="spinner"></div>
@@ -861,9 +933,11 @@ const YQ_EASTER_LINES = [
 const TOUR_STOPS = {
   profile: {
     npc: 'master',
+    pin: [-3.15, FLOOR_Y + 2.35, 2.95],
     step: '第 1 站',
     title: '老杨',
     cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
+    pinLine: '主人站位',
     receipt: '认识主人：iOS 手艺、AI 工具和亲自下场的工作方式。',
     artifacts: [
       {
@@ -884,9 +958,11 @@ const TOUR_STOPS = {
   },
   iloop: {
     npc: 'yq',
+    pin: [0.3, FLOOR_Y + 2.35, 3.2],
     step: '第 2 站',
     title: 'iLoop',
     cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
+    pinLine: '闭环主炉',
     receipt: '看清主炉：计划、取证、改动、验证、收口缺一不可。',
     artifacts: [
       {
@@ -907,9 +983,11 @@ const TOUR_STOPS = {
   },
   latest: {
     npc: 'apprentice',
+    pin: [2.2, FLOOR_Y + 2.35, 1.0],
     step: '第 3 站',
     title: '近况',
     cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
+    pinLine: '今日试火',
     receipt: '摸到近况：每日只打一题，失败和截图都留作下一锤证据。',
     artifacts: [
       {
@@ -930,9 +1008,11 @@ const TOUR_STOPS = {
   },
   forge: {
     object: 'forge',
+    pin: [0, FLOOR_Y + 1.75, 1.05],
     step: '第 4 站',
     title: '火炉',
     cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
+    pinLine: '火候入口',
     receipt: '回到火候：点击、声音、灯光和短句把介绍变成现场反馈。',
     artifacts: [
       {
@@ -1190,6 +1270,22 @@ createHotspot('forge', [0, FLOOR_Y + 0.7, 1.05], [1.8, 1.5, 1.3]);
 window.__SCENE_DEBUG__ = {
   interactiveKeys: () => Object.keys(interactiveObjects),
   npcKeys: () => Object.keys(npcs),
+  stationPin: () => {
+    const rect = stationPin?.getBoundingClientRect();
+    return {
+      activeTourType,
+      text: stationPin?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      visible: stationPin?.classList.contains('show') || false,
+      rect: rect ? {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+      } : null,
+    };
+  },
 };
 
 function tickLoad() {
@@ -1358,6 +1454,10 @@ const tourNext = document.getElementById('tourNext');
 const stationStep = document.getElementById('stationStep');
 const stationName = document.getElementById('stationName');
 const stationLine = document.getElementById('stationLine');
+const stationPin = document.getElementById('stationPin');
+const pinStep = document.getElementById('pinStep');
+const pinTitle = document.getElementById('pinTitle');
+const pinLine = document.getElementById('pinLine');
 const tourProgressText = document.getElementById('tourProgressText');
 const tourProgressBar = document.getElementById('tourProgressBar');
 const tourProgressFill = document.getElementById('tourProgressFill');
@@ -1502,6 +1602,42 @@ function updateNPCBubblePosition() {
   npcBubble.style.top = Math.max(h * 1.35 + margin, Math.min(innerHeight - margin, y)) + 'px';
 }
 
+function worldToViewport(position) {
+  const point = position.clone();
+  point.project(camera);
+  return {
+    x: (point.x * 0.5 + 0.5) * innerWidth,
+    y: (-point.y * 0.5 + 0.5) * innerHeight,
+    behind: point.z > 1,
+  };
+}
+
+function getStationPinPosition(type = activeTourType) {
+  const station = TOUR_STOPS[type] || TOUR_STOPS.profile;
+  const root = station.npc ? npcs[station.npc]?.root : interactiveObjects[station.object]?.root;
+  if (root) {
+    const box = new THREE.Box3().setFromObject(root);
+    const pos = box.getCenter(new THREE.Vector3());
+    pos.y = box.max.y + (station.object ? 0.18 : 0.26);
+    return pos;
+  }
+  return new THREE.Vector3(...(station.pin || TOUR_STOPS.profile.pin));
+}
+
+function updateStationPinPosition() {
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  const screen = worldToViewport(getStationPinPosition(activeTourType));
+  const width = stationPin.offsetWidth || 150;
+  const height = stationPin.offsetHeight || 54;
+  const margin = 14;
+  const hiddenByRail = innerWidth <= 640 && screen.y > innerHeight - 330;
+  const visible = !screen.behind && !hiddenByRail;
+  stationPin.classList.toggle('show', visible);
+  if (!visible) return;
+  stationPin.style.left = Math.max(width / 2 + margin, Math.min(innerWidth - width / 2 - margin, screen.x)) + 'px';
+  stationPin.style.top = Math.max(height * 1.35 + margin, Math.min(innerHeight - margin, screen.y)) + 'px';
+}
+
 function togglePanel(force) {
   const show = typeof force === 'boolean' ? force : !sidePanel.classList.contains('show');
   sidePanel.classList.toggle('show', show);
@@ -1595,6 +1731,9 @@ function setActiveTourStop(type, options = {}) {
   stationStep.textContent = station.step;
   stationName.textContent = station.title;
   stationLine.textContent = station.cue;
+  pinStep.textContent = station.step;
+  pinTitle.textContent = station.title;
+  pinLine.textContent = station.pinLine;
   const visitedCount = visitedTourStops.size;
   const totalCount = TOUR_ORDER.length;
   const currentIndex = TOUR_ORDER.indexOf(activeTourType);
@@ -1615,6 +1754,7 @@ function setActiveTourStop(type, options = {}) {
   receiptSummary.textContent = TOUR_RECEIPT_SUMMARY;
   receiptOpen.setAttribute('aria-label', complete ? '查看四站巡铺炉印回执' : '四站完成后查看炉印回执');
   renderStationArtifact();
+  updateStationPinPosition();
 }
 
 function tourTypeForNpc(key) {
@@ -2121,6 +2261,7 @@ function animate() {
     }
   });
   updateNPCBubblePosition();
+  updateStationPinPosition();
   controls.update();
   renderer.render(scene, camera);
 }
@@ -2365,6 +2506,7 @@ addEventListener('resize', () => {
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
     renderer.setSize(innerWidth, innerHeight);
     renderer.shadowMap.needsUpdate = true; // 尺寸变了，重渲一次冻结阴影
+    updateStationPinPosition();
   });
 });
 </script>
