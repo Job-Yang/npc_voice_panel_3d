@@ -443,6 +443,79 @@
     line-height: 1.25;
   }
 
+  .station-hotspot {
+    position: fixed;
+    z-index: 16;
+    min-width: 74px;
+    min-height: 30px;
+    display: inline-grid;
+    grid-template-columns: 18px auto;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    background: rgba(20, 14, 10, .72);
+    color: rgba(240,224,200,.82);
+    border: 1px solid rgba(255,170,100,.22);
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.28);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.96);
+    transition: opacity .18s, transform .18s, background .18s, border-color .18s, color .18s;
+  }
+  .station-hotspot.show {
+    opacity: .84;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .station-hotspot:hover,
+  .station-hotspot:focus-visible {
+    opacity: 1;
+    color: #fff1d8;
+    background: rgba(42, 24, 14, .88);
+    border-color: rgba(255,207,138,.58);
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  .station-hotspot.active {
+    opacity: 1;
+    color: #fff1d8;
+    background: rgba(255,119,51,.22);
+    border-color: rgba(255,140,70,.72);
+    box-shadow: 0 8px 22px rgba(0,0,0,.34), 0 0 18px rgba(255,119,51,.2);
+  }
+  .station-hotspot.visited:not(.active) {
+    color: rgba(231,244,214,.9);
+    border-color: rgba(142,190,123,.38);
+  }
+  .station-hotspot .hotspot-index {
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,170,100,.16);
+    color: #ffcf8a;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .station-hotspot.active .hotspot-index {
+    background: rgba(255,207,138,.24);
+    color: #fff1d8;
+  }
+  .station-hotspot.visited:not(.active) .hotspot-index {
+    background: rgba(142,190,123,.18);
+    color: #d6f0bd;
+  }
+  .station-hotspot .hotspot-title {
+    min-width: 0;
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+
   .npc-bubble {
     position: fixed;
     min-width: 170px;
@@ -633,6 +706,16 @@
     .station-pin .pin-line {
       display: none;
     }
+    .station-hotspot {
+      min-width: 32px;
+      min-height: 30px;
+      grid-template-columns: 18px;
+      justify-content: center;
+      padding: 5px 6px;
+    }
+    .station-hotspot .hotspot-title {
+      display: none;
+    }
     .hint {
       bottom: 10px;
       width: calc(100vw - 24px);
@@ -649,6 +732,7 @@
   <strong class="pin-title" id="pinTitle">老杨</strong>
   <span class="pin-line" id="pinLine">主人在这里</span>
 </div>
+<div class="station-hotspots" id="stationHotspots" aria-label="铺内可点击站点"></div>
 
 <div class="loader" id="loader">
   <div class="spinner"></div>
@@ -934,6 +1018,7 @@ const TOUR_STOPS = {
   profile: {
     npc: 'master',
     pin: [-3.15, FLOOR_Y + 2.35, 2.95],
+    hotspotOffset: [0.12, -0.04, 0],
     step: '第 1 站',
     title: '老杨',
     cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
@@ -959,6 +1044,7 @@ const TOUR_STOPS = {
   iloop: {
     npc: 'yq',
     pin: [0.3, FLOOR_Y + 2.35, 3.2],
+    hotspotOffset: [0.62, -0.02, 0],
     step: '第 2 站',
     title: 'iLoop',
     cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
@@ -984,6 +1070,7 @@ const TOUR_STOPS = {
   latest: {
     npc: 'apprentice',
     pin: [2.2, FLOOR_Y + 2.35, 1.0],
+    hotspotOffset: [0.1, -0.04, 0],
     step: '第 3 站',
     title: '近况',
     cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
@@ -1009,6 +1096,7 @@ const TOUR_STOPS = {
   forge: {
     object: 'forge',
     pin: [0, FLOOR_Y + 1.75, 1.05],
+    hotspotOffset: [-0.72, -0.18, 0.05],
     step: '第 4 站',
     title: '火炉',
     cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
@@ -1286,6 +1374,25 @@ window.__SCENE_DEBUG__ = {
       } : null,
     };
   },
+  stationHotspots: () => Object.fromEntries(
+    Object.entries(stationHotspotButtons).map(([key, btn]) => {
+      const rect = btn.getBoundingClientRect();
+      return [key, {
+        text: btn.textContent.replace(/\s+/g, ' ').trim(),
+        visible: btn.classList.contains('show'),
+        active: btn.classList.contains('active'),
+        visited: btn.classList.contains('visited'),
+        rect: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        },
+      }];
+    }),
+  ),
 };
 
 function tickLoad() {
@@ -1455,6 +1562,7 @@ const stationStep = document.getElementById('stationStep');
 const stationName = document.getElementById('stationName');
 const stationLine = document.getElementById('stationLine');
 const stationPin = document.getElementById('stationPin');
+const stationHotspots = document.getElementById('stationHotspots');
 const pinStep = document.getElementById('pinStep');
 const pinTitle = document.getElementById('pinTitle');
 const pinLine = document.getElementById('pinLine');
@@ -1470,6 +1578,25 @@ const artifactLine = document.getElementById('artifactLine');
 const artifactInspect = document.getElementById('artifactInspect');
 const artifactNext = document.getElementById('artifactNext');
 const visitedTourStops = new Set(['profile']);
+const stationHotspotButtons = {};
+
+function createStationHotspots() {
+  TOUR_ORDER.forEach((key, index) => {
+    const station = TOUR_STOPS[key];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'station-hotspot';
+    btn.dataset.tour = key;
+    btn.innerHTML = `<span class="hotspot-index">${index + 1}</span><span class="hotspot-title">${station.title}</span>`;
+    btn.setAttribute('aria-label', `${station.step} ${station.title}，进入铺内站点`);
+    btn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      goTourStop(key);
+    });
+    stationHotspots.appendChild(btn);
+    stationHotspotButtons[key] = btn;
+  });
+}
 
 function pickTarget(event) {
   pointer.x = (event.clientX / innerWidth) * 2 - 1;
@@ -1624,6 +1751,18 @@ function getStationPinPosition(type = activeTourType) {
   return new THREE.Vector3(...(station.pin || TOUR_STOPS.profile.pin));
 }
 
+function getStationHotspotPosition(type) {
+  const pos = getStationPinPosition(type);
+  const station = TOUR_STOPS[type] || TOUR_STOPS.profile;
+  pos.y -= station.object ? 0.32 : 0.58;
+  if (station.hotspotOffset) {
+    pos.x += station.hotspotOffset[0] || 0;
+    pos.y += station.hotspotOffset[1] || 0;
+    pos.z += station.hotspotOffset[2] || 0;
+  }
+  return pos;
+}
+
 function updateStationPinPosition() {
   const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
   const screen = worldToViewport(getStationPinPosition(activeTourType));
@@ -1636,6 +1775,24 @@ function updateStationPinPosition() {
   if (!visible) return;
   stationPin.style.left = Math.max(width / 2 + margin, Math.min(innerWidth - width / 2 - margin, screen.x)) + 'px';
   stationPin.style.top = Math.max(height * 1.35 + margin, Math.min(innerHeight - margin, screen.y)) + 'px';
+}
+
+function updateStationHotspots() {
+  Object.entries(stationHotspotButtons).forEach(([key, btn]) => {
+    const screen = worldToViewport(getStationHotspotPosition(key));
+    const width = btn.offsetWidth || 74;
+    const height = btn.offsetHeight || 30;
+    const margin = 12;
+    const hiddenByRail = innerWidth <= 640 && screen.y > innerHeight - 318;
+    const visible = !screen.behind && !hiddenByRail;
+    btn.classList.toggle('show', visible);
+    btn.classList.toggle('active', key === activeTourType);
+    btn.classList.toggle('visited', visitedTourStops.has(key));
+    btn.setAttribute('aria-current', key === activeTourType ? 'step' : 'false');
+    if (!visible) return;
+    btn.style.left = Math.max(width / 2 + margin, Math.min(innerWidth - width / 2 - margin, screen.x)) + 'px';
+    btn.style.top = Math.max(height / 2 + margin, Math.min(innerHeight - height / 2 - margin, screen.y)) + 'px';
+  });
 }
 
 function togglePanel(force) {
@@ -1755,6 +1912,7 @@ function setActiveTourStop(type, options = {}) {
   receiptOpen.setAttribute('aria-label', complete ? '查看四站巡铺炉印回执' : '四站完成后查看炉印回执');
   renderStationArtifact();
   updateStationPinPosition();
+  updateStationHotspots();
 }
 
 function tourTypeForNpc(key) {
@@ -2262,6 +2420,7 @@ function animate() {
   });
   updateNPCBubblePosition();
   updateStationPinPosition();
+  updateStationHotspots();
   controls.update();
   renderer.render(scene, camera);
 }
@@ -2493,6 +2652,8 @@ applySceneMode(initialMode, { animateLight: false });
 // 初始模式与曲风确定后,进场即尝试开启 BGM(浏览器允许则直接响,否则等首次交互解锁)
 startBgmDefault();
 
+createStationHotspots();
+setActiveTourStop('profile');
 togglePanel(false);
 
 // 性能：resize 用 rAF 节流，避免拖拽窗口时高频重建渲染缓冲
@@ -2507,6 +2668,7 @@ addEventListener('resize', () => {
     renderer.setSize(innerWidth, innerHeight);
     renderer.shadowMap.needsUpdate = true; // 尺寸变了，重渲一次冻结阴影
     updateStationPinPosition();
+    updateStationHotspots();
   });
 });
 </script>
