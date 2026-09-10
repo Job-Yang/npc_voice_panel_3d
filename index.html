@@ -151,6 +151,39 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .station-brief {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    padding: 6px 0 1px;
+  }
+  .station-brief-item {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 6px;
+    padding: 6px 7px;
+    background: rgba(255,170,100,.07);
+    border: 1px solid rgba(255,170,100,.12);
+    border-radius: 8px;
+  }
+  .station-brief-kicker {
+    color: rgba(255,207,138,.8);
+    font-size: 10px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .station-brief-text {
+    min-width: 0;
+    color: rgba(240,224,200,.76);
+    font-size: 11px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .station-progress {
     grid-column: 1 / -1;
     display: grid;
@@ -624,6 +657,19 @@
       white-space: normal;
       line-height: 1.35;
     }
+    .station-brief {
+      grid-template-columns: 1fr;
+      gap: 4px;
+      padding-top: 5px;
+    }
+    .station-brief-item {
+      padding: 5px 6px;
+    }
+    .station-brief-text {
+      font-size: 10px;
+      white-space: normal;
+      line-height: 1.25;
+    }
     .station-progress {
       grid-template-columns: auto 1fr;
       gap: 5px 8px;
@@ -754,6 +800,16 @@
     <span class="station-step" id="stationStep">第 1 站</span>
     <strong class="station-name" id="stationName">老杨</strong>
     <span class="station-line" id="stationLine">先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。</span>
+    <div class="station-brief" aria-label="本站问题和带走结论">
+      <span class="station-brief-item">
+        <span class="station-brief-kicker">问</span>
+        <span class="station-brief-text" id="stationQuestion">这间铺子的主人是谁？</span>
+      </span>
+      <span class="station-brief-item">
+        <span class="station-brief-kicker">带走</span>
+        <span class="station-brief-text" id="stationTakeaway">老杨把 iOS 手艺和 AI 协作放进同一间铺子。</span>
+      </span>
+    </div>
     <div class="station-progress">
       <span id="tourProgressText">已看 1/4</span>
       <span class="tour-progress-track" id="tourProgressBar" role="progressbar" aria-label="巡铺进度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" aria-valuetext="已看 1 站，共 4 站">
@@ -1022,6 +1078,8 @@ const TOUR_STOPS = {
     step: '第 1 站',
     title: '老杨',
     cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
+    question: '这间铺子的主人是谁？',
+    takeaway: '老杨把 iOS 手艺和 AI 协作放进同一间铺子。',
     pinLine: '主人站位',
     receipt: '认识主人：iOS 手艺、AI 工具和亲自下场的工作方式。',
     artifacts: [
@@ -1048,6 +1106,8 @@ const TOUR_STOPS = {
     step: '第 2 站',
     title: 'iLoop',
     cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
+    question: 'AI 协作怎样从试试看变成交付流程？',
+    takeaway: '五锤闭环把计划、证据、改动、验证和收口扣在一起。',
     pinLine: '闭环主炉',
     receipt: '看清主炉：计划、取证、改动、验证、收口缺一不可。',
     artifacts: [
@@ -1074,6 +1134,8 @@ const TOUR_STOPS = {
     step: '第 3 站',
     title: '近况',
     cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
+    question: '这间铺子最近在试什么火？',
+    takeaway: '每日只打一题，截图、日志和失败原因都留下来。',
     pinLine: '今日试火',
     receipt: '摸到近况：每日只打一题，失败和截图都留作下一锤证据。',
     artifacts: [
@@ -1100,6 +1162,8 @@ const TOUR_STOPS = {
     step: '第 4 站',
     title: '火炉',
     cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
+    question: '访客动手后，铺子会怎样回应？',
+    takeaway: '点击火炉会触发短句、灯光和声音，把介绍变成现场反馈。',
     pinLine: '火候入口',
     receipt: '回到火候：点击、声音、灯光和短句把介绍变成现场反馈。',
     artifacts: [
@@ -1393,6 +1457,12 @@ window.__SCENE_DEBUG__ = {
       }];
     }),
   ),
+  stationBrief: () => ({
+    activeTourType,
+    question: stationQuestion?.textContent || '',
+    takeaway: stationTakeaway?.textContent || '',
+    cue: stationLine?.textContent || '',
+  }),
 };
 
 function tickLoad() {
@@ -1561,6 +1631,8 @@ const tourNext = document.getElementById('tourNext');
 const stationStep = document.getElementById('stationStep');
 const stationName = document.getElementById('stationName');
 const stationLine = document.getElementById('stationLine');
+const stationQuestion = document.getElementById('stationQuestion');
+const stationTakeaway = document.getElementById('stationTakeaway');
 const stationPin = document.getElementById('stationPin');
 const stationHotspots = document.getElementById('stationHotspots');
 const pinStep = document.getElementById('pinStep');
@@ -1888,6 +1960,8 @@ function setActiveTourStop(type, options = {}) {
   stationStep.textContent = station.step;
   stationName.textContent = station.title;
   stationLine.textContent = station.cue;
+  stationQuestion.textContent = station.question;
+  stationTakeaway.textContent = station.takeaway;
   pinStep.textContent = station.step;
   pinTitle.textContent = station.title;
   pinLine.textContent = station.pinLine;
