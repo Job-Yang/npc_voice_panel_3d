@@ -184,6 +184,42 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .station-action {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(255,119,51,.08);
+    border: 1px solid rgba(255,170,100,.14);
+    border-radius: 8px;
+  }
+  .station-action-hint {
+    min-width: 0;
+    color: rgba(240,224,200,.72);
+    font-size: 11px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .station-action-button {
+    min-height: 28px;
+    padding: 4px 10px;
+    background: rgba(255,119,51,.18);
+    color: #fff1d8;
+    border: 1px solid rgba(255,207,138,.36);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .station-action-button:hover {
+    background: rgba(255,119,51,.28);
+    border-color: rgba(255,207,138,.62);
+  }
   .station-progress {
     grid-column: 1 / -1;
     display: grid;
@@ -670,6 +706,21 @@
       white-space: normal;
       line-height: 1.25;
     }
+    .station-action {
+      grid-template-columns: 1fr;
+      gap: 5px;
+      padding: 6px;
+    }
+    .station-action-hint {
+      white-space: normal;
+      font-size: 10px;
+    }
+    .station-action-button {
+      width: 100%;
+      min-height: 26px;
+      padding: 4px 8px;
+      font-size: 10px;
+    }
     .station-progress {
       grid-template-columns: auto 1fr;
       gap: 5px 8px;
@@ -809,6 +860,10 @@
         <span class="station-brief-kicker">带走</span>
         <span class="station-brief-text" id="stationTakeaway">老杨把 iOS 手艺和 AI 协作放进同一间铺子。</span>
       </span>
+    </div>
+    <div class="station-action" aria-label="本站下一步">
+      <span class="station-action-hint" id="stationActionHint">读完这一站，先听主人开场。</span>
+      <button class="station-action-button" id="stationAction" type="button">敲这一锤</button>
     </div>
     <div class="station-progress">
       <span id="tourProgressText">已看 1/4</span>
@@ -1080,6 +1135,9 @@ const TOUR_STOPS = {
     cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
     question: '这间铺子的主人是谁？',
     takeaway: '老杨把 iOS 手艺和 AI 协作放进同一间铺子。',
+    actionHint: '读完这一站，先听主人开场。',
+    actionLabel: '敲主人锤',
+    actionType: 'profile',
     pinLine: '主人站位',
     receipt: '认识主人：iOS 手艺、AI 工具和亲自下场的工作方式。',
     artifacts: [
@@ -1108,6 +1166,9 @@ const TOUR_STOPS = {
     cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
     question: 'AI 协作怎样从试试看变成交付流程？',
     takeaway: '五锤闭环把计划、证据、改动、验证和收口扣在一起。',
+    actionHint: '进入主炉，按顺序看五锤工序。',
+    actionLabel: '看五锤',
+    actionType: 'iloop',
     pinLine: '闭环主炉',
     receipt: '看清主炉：计划、取证、改动、验证、收口缺一不可。',
     artifacts: [
@@ -1136,6 +1197,9 @@ const TOUR_STOPS = {
     cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
     question: '这间铺子最近在试什么火？',
     takeaway: '每日只打一题，截图、日志和失败原因都留下来。',
+    actionHint: '看近期火候，理解这间铺子如何每日试火。',
+    actionLabel: '看近况',
+    actionType: 'latest',
     pinLine: '今日试火',
     receipt: '摸到近况：每日只打一题，失败和截图都留作下一锤证据。',
     artifacts: [
@@ -1164,6 +1228,9 @@ const TOUR_STOPS = {
     cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
     question: '访客动手后，铺子会怎样回应？',
     takeaway: '点击火炉会触发短句、灯光和声音，把介绍变成现场反馈。',
+    actionHint: '到炉边亲手锻一句欢迎语。',
+    actionLabel: '锻一句',
+    actionType: 'forge',
     pinLine: '火候入口',
     receipt: '回到火候：点击、声音、灯光和短句把介绍变成现场反馈。',
     artifacts: [
@@ -1462,6 +1529,8 @@ window.__SCENE_DEBUG__ = {
     question: stationQuestion?.textContent || '',
     takeaway: stationTakeaway?.textContent || '',
     cue: stationLine?.textContent || '',
+    actionHint: stationActionHint?.textContent || '',
+    actionLabel: stationAction?.textContent || '',
   }),
 };
 
@@ -1633,6 +1702,8 @@ const stationName = document.getElementById('stationName');
 const stationLine = document.getElementById('stationLine');
 const stationQuestion = document.getElementById('stationQuestion');
 const stationTakeaway = document.getElementById('stationTakeaway');
+const stationActionHint = document.getElementById('stationActionHint');
+const stationAction = document.getElementById('stationAction');
 const stationPin = document.getElementById('stationPin');
 const stationHotspots = document.getElementById('stationHotspots');
 const pinStep = document.getElementById('pinStep');
@@ -1962,6 +2033,9 @@ function setActiveTourStop(type, options = {}) {
   stationLine.textContent = station.cue;
   stationQuestion.textContent = station.question;
   stationTakeaway.textContent = station.takeaway;
+  stationActionHint.textContent = station.actionHint;
+  stationAction.textContent = station.actionLabel;
+  stationAction.setAttribute('aria-label', `${station.step} ${station.title}：${station.actionHint}`);
   pinStep.textContent = station.step;
   pinTitle.textContent = station.title;
   pinLine.textContent = station.pinLine;
@@ -2282,6 +2356,11 @@ function goAdjacentTourStop(direction) {
   goTourStop(TOUR_ORDER[nextIndex]);
 }
 
+function runStationAction() {
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  openGuideCard(station.actionType || activeTourType);
+}
+
 // 点击反馈：缩放 1.0 → 1.06 → 1.0
 function bounceNPC(key) {
   const n = npcs[key];
@@ -2377,6 +2456,7 @@ tourStops.forEach(stop => {
 });
 tourPrev.addEventListener('click', () => goAdjacentTourStop(-1));
 tourNext.addEventListener('click', () => goAdjacentTourStop(1));
+stationAction.addEventListener('click', runStationAction);
 receiptOpen.addEventListener('click', renderTourReceipt);
 artifactInspect.addEventListener('click', inspectActiveArtifact);
 artifactNext.addEventListener('click', () => {
