@@ -399,6 +399,8 @@
     position: fixed; right: 24px; bottom: 24px;
     z-index: 29;
     max-width: 390px; padding: 16px 20px;
+    max-height: calc(100vh - 48px);
+    overflow: auto;
     background: rgba(20, 14, 10, .85); backdrop-filter: blur(12px);
     border-radius: 14px; border: 1px solid rgba(255,170,100,.3);
     box-shadow: 0 8px 32px rgba(0,0,0,.5);
@@ -413,6 +415,34 @@
   }
   .dialog .meta.show { display: block; }
   .dialog .line { font-size: 14px; line-height: 1.6; color: #f0e0c8; }
+  .dialog .receipt-details {
+    display: none;
+    grid-template-columns: 1fr;
+    gap: 7px;
+    margin-top: 12px;
+  }
+  .dialog .receipt-details.show { display: grid; }
+  .dialog .receipt-detail {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 7px;
+    align-items: start;
+    padding: 7px 8px;
+    background: rgba(142,190,123,.08);
+    border: 1px solid rgba(142,190,123,.18);
+    border-radius: 8px;
+  }
+  .dialog .receipt-detail strong {
+    color: #d6f0bd;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .dialog .receipt-detail span {
+    min-width: 0;
+    color: rgba(240,224,200,.78);
+    font-size: 12px;
+    line-height: 1.45;
+  }
   .dialog .process-steps {
     display: none;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -785,9 +815,11 @@
     .tour-actions { display: none; }
     .dialog {
       right: 12px;
-      bottom: 304px;
+      top: 112px;
+      bottom: auto;
       left: 12px;
       max-width: none;
+      max-height: min(42vh, 260px);
       padding: 14px 16px;
     }
     .dialog .process-steps {
@@ -927,6 +959,7 @@
   <div class="name" id="dlgName">老杨的铁匠铺</div>
   <div class="meta" id="dlgMeta">点击人物认识 Job Yang.</div>
   <div class="line" id="dlgLine">欢迎来到老杨的铁匠铺，也可以叫我老羊。要打把什么家伙？</div>
+  <div class="receipt-details" id="receiptDetails" aria-label="巡铺炉印带走结论"></div>
   <div class="process-steps" id="processSteps" aria-label="iLoop 五锤工序"></div>
   <div class="actions">
     <button id="btnPrimary">老杨是谁</button>
@@ -1254,7 +1287,21 @@ const TOUR_STOPS = {
   },
 };
 const TOUR_ORDER = Object.keys(TOUR_STOPS);
-const TOUR_RECEIPT_SUMMARY = '四站已齐：老杨、iLoop、近况和火炉合成一枚炉印。';
+const TOUR_RECEIPT_SUMMARY = '四站合炉：身份、方法、近况和反馈都已看过。';
+const TOUR_RECEIPT_DETAILS = [
+  {
+    label: '记住老杨',
+    text: '他不是把 AI 当噱头展示，而是把 iOS 工程手艺放进一套能复查的协作流程里。',
+  },
+  {
+    label: '记住 iLoop',
+    text: '主炉的五锤是计划、取证、改动、验证、收口；每一步都要留下证据。',
+  },
+  {
+    label: '下一锤',
+    text: '带着一个目标、一张截图或一段日志进门，铺子会把混乱问题锻成能跑的工具。',
+  },
+];
 
 const OBJECT_CONFIG = {
   forge: {
@@ -1563,6 +1610,10 @@ window.__SCENE_DEBUG__ = {
     actionHint: stationActionHint?.textContent || '',
     actionLabel: stationAction?.textContent || '',
   }),
+  receiptDetails: () => Array.from(receiptDetails?.querySelectorAll('.receipt-detail') || []).map(item => ({
+    label: item.querySelector('strong')?.textContent || '',
+    text: item.querySelector('span')?.textContent || '',
+  })),
 };
 
 function tickLoad() {
@@ -1766,6 +1817,7 @@ const tourNextCue = document.getElementById('tourNextCue');
 const tourReceipt = document.getElementById('tourReceipt');
 const receiptSummary = document.getElementById('receiptSummary');
 const receiptOpen = document.getElementById('receiptOpen');
+const receiptDetails = document.getElementById('receiptDetails');
 const artifactName = document.getElementById('artifactName');
 const artifactLine = document.getElementById('artifactLine');
 const artifactInspect = document.getElementById('artifactInspect');
@@ -2022,13 +2074,15 @@ function getActiveArtifact() {
 }
 
 function renderTourReceipt() {
-  const lines = TOUR_ORDER
+  const stationNames = TOUR_ORDER
     .filter(key => visitedTourStops.has(key))
-    .map(key => `${TOUR_STOPS[key].title}：${TOUR_STOPS[key].receipt}`);
+    .map(key => TOUR_STOPS[key].title)
+    .join(' / ');
   renderDialog({
     name: '巡铺炉印 · 四站回执',
-    meta: `已看 ${visitedTourStops.size}/${TOUR_ORDER.length}`,
-    line: `${TOUR_RECEIPT_SUMMARY} ${lines.join(' ')}`,
+    meta: `已看 ${visitedTourStops.size}/${TOUR_ORDER.length} · ${stationNames}`,
+    line: `${TOUR_RECEIPT_SUMMARY} 下面三条，是这趟巡铺最该带走的炉印。`,
+    details: TOUR_RECEIPT_DETAILS,
     actions: [
       { label: '回炉再锻', type: 'forge' },
       { label: '重走一遍', type: 'tour_restart' },
@@ -2148,7 +2202,22 @@ function showProcessStep(stepKey) {
   showContextBubble(step.line, 4600);
 }
 
-function renderDialog({ name, meta = '', line, actions = [], steps = [], activeStep = '', allowVoice = false }) {
+function renderReceiptDetails(details = []) {
+  receiptDetails.innerHTML = '';
+  receiptDetails.classList.toggle('show', details.length > 0);
+  details.forEach(detail => {
+    const item = document.createElement('div');
+    item.className = 'receipt-detail';
+    const label = document.createElement('strong');
+    label.textContent = detail.label;
+    const text = document.createElement('span');
+    text.textContent = detail.text;
+    item.append(label, text);
+    receiptDetails.appendChild(item);
+  });
+}
+
+function renderDialog({ name, meta = '', line, actions = [], steps = [], activeStep = '', details = [], allowVoice = false }) {
   document.getElementById('dlgName').textContent = name;
   const metaEl = document.getElementById('dlgMeta');
   metaEl.textContent = meta;
@@ -2157,6 +2226,7 @@ function renderDialog({ name, meta = '', line, actions = [], steps = [], activeS
 
   dialogActions = actions;
   currentProcessSteps = steps;
+  renderReceiptDetails(details);
   renderProcessSteps(activeStep);
   [document.getElementById('btnPrimary'), document.getElementById('btnSecondary')].forEach((btn, i) => {
     const action = actions[i];
