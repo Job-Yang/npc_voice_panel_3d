@@ -1,0 +1,211 @@
+{
+  "blender_version": "5.1.2",
+  "rest_pose": "original authored pose, not T-pose",
+  "scope": "FK body skeleton with fixed sculpted grips; no facial or individual finger rig",
+  "limits": "Fused prop/body and apron/body contact surfaces remain. Large swings, walking retargets and releasing props require mesh separation/retopology and new deformation tests.",
+  "models": {
+    "master": {
+      "source_sha256": "77def7cb5fd336d65c1c1c48fc7a43e00f2db227ab63485b4648beca744d95f1",
+      "glb_sha256": "465c07d9bdcb3a6fbd5b98713f39f7dca74864e9e4c2d3a05bc6797f240d0dbe",
+      "blend": "npc_master.blend",
+      "glb": "npc_master.glb",
+      "bones": 20,
+      "vertices": 432854,
+      "clips": [
+        "Idle",
+        "Greet",
+        "Listen",
+        "RigCheck"
+      ],
+      "binding_checks": {
+        "key": "master",
+        "vertices": 432854,
+        "bones": 20,
+        "unweighted": 0,
+        "weight_sum_max_error": 1.7943489183380734e-07,
+        "bind_position_max_error": 1.6924465739975858e-07,
+        "regions": {
+          "tool": 56907,
+          "cargo": 47800,
+          "head": 57593
+        },
+        "source_geometry_unchanged": true
+      },
+      "motion_checks": {
+        "mesh_weights_textures_unchanged": true,
+        "bones": 20,
+        "clips": {
+          "Idle": {
+            "duration": 16,
+            "max_foot_anchor_movement": 1.864134669780255e-07,
+            "loop_vertex_error": 0.0,
+            "sampled_lowest_z": -0.011533680371940136
+          },
+          "Greet": {
+            "duration": 2.7916666666666665,
+            "max_foot_anchor_movement": 1.0457388198091238e-07,
+            "loop_vertex_error": 0.0,
+            "sampled_lowest_z": -2.114554575882721e-08
+          },
+          "Listen": {
+            "duration": 8,
+            "max_foot_anchor_movement": 9.335550730035951e-08,
+            "loop_vertex_error": 0.0,
+            "sampled_lowest_z": -0.001998624997213483
+          }
+        }
+      },
+      "motion": {
+        "key": "master",
+        "profile": {
+          "idle": 16,
+          "greet": 2.8,
+          "listen": 8,
+          "breath": 1.3,
+          "shift": 0.016
+        },
+        "max_ik_error": 5.131714152611066e-07,
+        "loop_errors": {
+          "Idle": 0.0,
+          "Listen": 4.702643791504314e-19
+        }
+      }
+    },
+    "apprentice": {
+      "source_sha256": "5409d15722886967f4e80f6fd56ea0f8a1359af952f3e0c1a00aaafa1d7dfb14",
+      "glb_sha256": "15438d64ade1da34b225a5fa11552f48cffdf1b95a6e3e5542b5dd7112440995",
+      "blend": "npc_apprentice.blend",
+      "glb": "npc_apprentice.glb",
+      "bones": 20,
+      "vertices": 595708,
+      "clips": [
+        "Idle",
+        "Greet",
+        "Listen",
+        "RigCheck"
+      ],
+      "binding_checks": {
+        "key": "apprentice",
+        "vertices": 595708,
+        "bones": 20,
+        "unweighted": 0,
+        "weight_sum_max_error": 1.7601996660232544e-07,
+        "bind_position_max_error": 2.528810796320613e-07,
+        "regions": {
+          "tool": 40929,
+          "cargo": 89985,
+          "head": 142388
+        },
+        "source_geometry_unchanged": true
+      },
+      "motion_checks": {
+        "mesh_weights_textures_unchanged": true,
+        "bones": 20,
+        "clips": {
+          "Idle": {
+            "duration": 19,
+            "max_foot_anchor_movement": 2.630223796979167e-07,
+            "loop_vertex_error": 0.0,
+            "sampled_lowest_z": -0.012566576711833477
+          },
+          "Greet": {
+            "duration": 3.4166666666666665,
+            "max_foot_anchor_movement": 3.526455111664196e-07,
+            "loop_vertex_error": 0.0,
+            "sampled_lowest_z": -0.0010266941972076893
+          },
+          "Listen": {
+            "duration": 9,
+            "max_foot_anchor_movement": 3.7726726833498965e-07,
+            "loop_vertex_error": 0.0,
+            "sampled_lowest_z": -0.00015835629892535508
+          }
+        }
+      },
+      "motion": {
+        "key": "apprentice",
+        "profile": {
+          "idle": 19,
+          "greet": 3.4,
+          "listen": 9,
+          "breath": 1.7,
+          "shift": 0.021
+        },
+        "max_ik_error": 2.255262563774781e-07,
+        "loop_errors": {
+          "Idle": 0.0,
+          "Listen": 0.0
+        }
+      }
+    },
+    "yq": {
+      "source_sha256": "4b0d924dc9b27aa27cc1846749675e5b6070a6a067964768d918530365f64875",
+      "glb_sha256": "b2f2c2bcb70ad1c5d519d7dc1eaf9b0dfe0909040b9df1c23d1fdcba0cad0c9c",
+      "blend": "npc_yq.blend",
+      "glb": "npc_yq.glb",
+      "bones": 20,
+      "vertices": 246298,
+      "clips": [
+        "Idle",
+        "Greet",
+        "Listen",
+        "RigCheck"
+      ],
+      "binding_checks": {
+        "key": "yq",
+        "vertices": 246298,
+        "bones": 20,
+        "unweighted": 0,
+        "weight_sum_max_error": 1.7881393432617188e-07,
+        "bind_position_max_error": 2.4211522031691857e-07,
+        "regions": {
+          "tool": 3241,
+          "apron": 32127,
+          "head": 73581
+        },
+        "source_geometry_unchanged": true
+      },
+      "motion_checks": {
+        "mesh_weights_textures_unchanged": true,
+        "bones": 20,
+        "clips": {
+          "Idle": {
+            "duration": 17,
+            "max_foot_anchor_movement": 1.1921860241275794e-06,
+            "loop_vertex_error": 0.0,
+            "sampled_lowest_z": -9.452703579881927e-07
+          },
+          "Greet": {
+            "duration": 2.5833333333333335,
+            "max_foot_anchor_movement": 0.0,
+            "loop_vertex_error": 0.0,
+            "sampled_lowest_z": -9.452703579881927e-07
+          },
+          "Listen": {
+            "duration": 8.5,
+            "max_foot_anchor_movement": 2.5070401070104897e-07,
+            "loop_vertex_error": 0.0,
+            "sampled_lowest_z": 0.0001564863050589338
+          }
+        }
+      },
+      "motion": {
+        "key": "yq",
+        "profile": {
+          "idle": 17,
+          "greet": 2.6,
+          "listen": 8.5,
+          "breath": 0.95,
+          "shift": 0.012
+        },
+        "max_ik_error": 2.1258094169567613e-06,
+        "loop_errors": {
+          "Idle": 0.0,
+          "Listen": 0.0
+        }
+      }
+    }
+  },
+  "motion_revision": 3,
+  "behavior": "Grounded per-character Idle, single acknowledgement Greet and quiet Listen. No marching or whole-root bounce."
+}
