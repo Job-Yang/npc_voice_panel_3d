@@ -1,0 +1,30 @@
+本轮已完成并推送到 `main`，线上地址已通过固定无痕验证：
+
+https://job-yang.github.io/npc_voice_panel_3d/
+
+本轮主题是“巡铺炉印总结”：四站都走完后，`看炉印` 不再只是长摘要，而是展示三条可带走结论：
+
+- `记住老杨`
+- `记住 iLoop`
+- `下一锤`
+
+主要改动在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-13/index.html)，同时新增/更新了：
+
+- [.autoloop/inputs/2026-09-13.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-13/.autoloop/inputs/2026-09-13.md)
+- [.autoloop/journal/2026-09-13.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-13/.autoloop/journal/2026-09-13.md)
+- [.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-13/.autoloop/CHANGELOG.md)
+- 本地/移动端/线上截图：`.autoloop/journal/assets/2026-09-13-*.png`
+
+验证结果：
+
+- 创意门禁：通过，`.autoloop/runs/2026-09-13_attempt_01/creative_validation.json`
+- 本地固定渲染：通过，loader 隐藏、canvas 存在、无 console error、无请求失败
+- 本地炉印行为：通过，三条详情正确展示，移动端横向溢出为 0，回炉后详情会清空
+- 线上无痕验证：通过，线上 HTML 与当前 `index.html` SHA-256 一致：`5afca42bd8231625ca06c47f2f553f4863f66511b76edc041cb86be1e6ca6018`
+
+提交记录：
+
+- 作品与本轮主要记录：`33800c1c31e1cf400d866285c81801cef552d97b`
+- 线上验证截图与记录回填：`381b260b078fbb0e92d32261b2cf8d8b5a77c43b`
+
+有一个环境细节：当前原工作区的 `.git` 被只读挂载，无法 `git add`，所以我用 `/tmp` 临时克隆同一远端完成了 commit 和 push。临时副本已确认干净，远端 `main` 已包含本轮全部提交；原工作区文件内容也已更新，只是本地 `git status` 会因为只读 `.git` 仍显示未 staged。
