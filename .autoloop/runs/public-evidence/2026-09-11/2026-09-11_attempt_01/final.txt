@@ -1,0 +1,21 @@
+本轮已完成并发布。
+
+今天做的是“站前读牌 · 问题与带走”：在四站巡铺当前站下方增加两条短读牌，分别说明“这一站回答什么问题”和“看完能带走什么”。四站切换时会同步更新，桌面是双列，移动端自动变单列，不新增 3D 模型，也不改现有 assets。
+
+已完成的关键文件：
+- [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-11/index.html)
+- [.autoloop/inputs/2026-09-11.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-11/.autoloop/inputs/2026-09-11.md)
+- [.autoloop/journal/2026-09-11.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-11/.autoloop/journal/2026-09-11.md)
+- [.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-11/.autoloop/CHANGELOG.md)
+
+验证结果：
+- 本地桌面截图：`.autoloop/journal/assets/2026-09-11-local.png`
+- 本地移动端截图：`.autoloop/journal/assets/2026-09-11-mobile.png`
+- 线上截图：`.autoloop/journal/assets/2026-09-11-online.png`
+- 创意门禁通过：`.autoloop/runs/2026-09-11_attempt_01/creative_validation.json`
+- 线上无痕验证通过：线上 `index.html` 与发布副本 SHA-256 一致，loader 正常隐藏，canvas 存在，无 console error、无请求失败。
+
+已 push 到 `main`。最终远端 commit：
+`4dd6d347bb6236715f68f339397bd7991945f8cb`
+
+说明一点环境细节：当前原工作区的 `.git` 被只读挂载，无法直接 `git add/commit`，所以我在 `/tmp/autoloop_commit_20260911_01` 可写副本中完成提交和 push；原工作区文件内容和验证证据已保留。

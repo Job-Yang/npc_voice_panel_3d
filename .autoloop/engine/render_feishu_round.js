@@ -72,14 +72,18 @@ function candidates(markdown) {
 
   function appendCandidate(title, start, end) {
     let url = "";
+    let bodyTitle = "";
     for (let cursor = start; cursor < end; cursor += 1) {
       const urlMatch = lines[cursor].match(/URL[：:]\s*(https?:\/\/\S+)/);
       if (urlMatch) {
         url = urlMatch[1].replace(/[)>，。；;]+$/, "");
-        break;
+      }
+      const titleMatch = lines[cursor].match(/标题[：:]\s*(.+)$/);
+      if (titleMatch && !bodyTitle) {
+        bodyTitle = titleMatch[1].replaceAll("`", "").trim();
       }
     }
-    result.push({ title: title.replaceAll("`", "").trim(), url });
+    result.push({ title: (bodyTitle || title).replaceAll("`", "").trim(), url });
   }
 
   for (let index = 0; index < lines.length; index += 1) {
@@ -92,8 +96,8 @@ function candidates(markdown) {
     appendCandidate(match[1], index + 1, end);
   }
 
-  const candidateSourcesStart = lines.findIndex(
-    (line) => line.trim() === "## 候选来源",
+  const candidateSourcesStart = lines.findIndex((line) =>
+    ["## 候选来源", "## 公开来源候选"].includes(line.trim()),
   );
   if (candidateSourcesStart >= 0) {
     let candidateSourcesEnd = candidateSourcesStart + 1;
@@ -109,7 +113,7 @@ function candidates(markdown) {
       index += 1
     ) {
       const match = lines[index].match(
-        /^###\s+来源\s*\d+[：:]\s*(.+)$/,
+        /^###\s+来源\s*\d+(?:[：:]\s*(.+))?$/,
       );
       if (!match) continue;
       let end = index + 1;
@@ -119,7 +123,7 @@ function candidates(markdown) {
       ) {
         end += 1;
       }
-      appendCandidate(match[1], index + 1, end);
+      appendCandidate(match[1] || lines[index].replace(/^###\s+/, ""), index + 1, end);
     }
   }
 

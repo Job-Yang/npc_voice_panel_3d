@@ -1,0 +1,29 @@
+已完成今天这一轮自迭代，并已推送到 `main`。
+
+本轮主题是“巡铺当前站提示”：把底部四站路线从单纯按钮升级成带“第几站 / 站名 / 一句摘要”的自助导览，并补了键盘左右切站和清晰 `focus-visible`，让访客更容易顺着“老杨 → iLoop → 近况 → 火炉”理解这个铺子。
+
+主要产物：
+
+- 作品提交：`f7415d871960a255c3ab64fa9662e2c473bc11f8`
+- 记录回填提交：`6b1497c4d09113cbc7dff08e08d1e3b552a98e39`
+- 远端 `main` 已确认指向：`6b1497c4d09113cbc7dff08e08d1e3b552a98e39`
+- 线上地址已验证：https://job-yang.github.io/npc_voice_panel_3d/
+
+验证结果：
+
+- 本地交互验证通过：loader 隐藏、canvas 存在、点击 iLoop 后 5 个工序按钮仍正常、左右键能从 iLoop 切到近况、焦点描边为 `2px solid`。
+- 移动端布局验证通过：第一次发现 iLoop 对话框和导览条有约 5px 重叠，已修正；重测后间距为 `15.15625px`。
+- 线上无痕验证通过：线上 `index.html` SHA-256 与本地一致，均为 `ddad8a6ca97ac574ec135e7b1eefcc64bd549d84743486dbae38838920b9dbfd`；无 console error、无请求失败。
+- 仅有 SwiftShader `ReadPixels` performance warning，和历史验证环境一致，不影响页面。
+
+已写入：
+
+- `.autoloop/inputs/2026-09-04.md`
+- `.autoloop/journal/2026-09-04.md`
+- `.autoloop/CHANGELOG.md`
+- 截图：
+  - `.autoloop/journal/assets/2026-09-04-local.png`
+  - `.autoloop/journal/assets/2026-09-04-mobile.png`
+  - `.autoloop/journal/assets/2026-09-04-online.png`
+
+环境说明：本轮工作区的 `.git` 被只读挂载，普通 `git add/commit` 无法创建 `.git/index.lock`。我没有改引擎或做破坏性操作，而是用临时 index 和临时 object directory 生成正常 commit 并 push。远端已经是正确状态；本地 `git status` 仍可能显示旧的未提交状态，是因为本地 `.git/index` 和 `origin/main` 跟踪 ref 无法写入更新。

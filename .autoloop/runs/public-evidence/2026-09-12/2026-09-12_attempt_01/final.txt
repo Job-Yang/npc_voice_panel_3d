@@ -1,0 +1,32 @@
+本轮已完成并推送到 `main`。
+
+主题是“站内行动锤”：在四站导览的“问 / 带走”下面新增一个随站点切换的下一步按钮。访客现在可以直接从当前站进入对应核心内容：
+
+- 老杨站：`敲主人锤`，打开主人介绍
+- iLoop 站：`看五锤`，打开 5 个 iLoop 工序
+- 近况站：`看近况`
+- 火炉站：`锻一句`
+
+已更新文件：
+
+- [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-12/index.html)
+- [.autoloop/inputs/2026-09-12.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-12/.autoloop/inputs/2026-09-12.md)
+- [.autoloop/journal/2026-09-12.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-12/.autoloop/journal/2026-09-12.md)
+- [.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-12/.autoloop/CHANGELOG.md)
+- 新截图：`2026-09-12-local.png`、`2026-09-12-mobile.png`、`2026-09-12-online.png`
+
+验证结果：
+
+- `node --check` 通过
+- 本地固定渲染验证通过：`local_visual_verification.json`
+- 本地行为验证通过：默认按钮、iLoop 按钮、5 个工序、桌面/移动端无横向溢出
+- 创意门禁通过：`creative_validation.json`
+- 线上无痕验证通过：线上 `index.html` 与本地 SHA-256 一致，canvas 正常、loader 隐藏、无 console error、无请求失败
+
+提交情况：
+
+- 主体功能提交：`aa569ac943051b57a3a784fc94caef47204adada`
+- 记录回填提交：`61bf2fffc3cad897c7e814473b1ba8115eb8ca5e`
+- 远端 `main` 已到 `61bf2fffc3cad897c7e814473b1ba8115eb8ca5e`
+
+说明：当前原工作区的 `.git` 是只读挂载，无法在原地更新 index，所以我用 `/tmp` 临时克隆完成提交和 push。原工作区文件内容已更新，但 `git status` 仍会显示这些文件未暂存；远端已包含同内容。

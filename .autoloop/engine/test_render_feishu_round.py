@@ -102,6 +102,28 @@ class RenderFeishuRoundTests(unittest.TestCase):
         self.assertIn("J.B. Schlegelmilch", output)
         self.assertIn("A Paper Tear", output)
 
+    def test_renders_public_source_candidate_subheadings_with_body_titles(self):
+        result, output = render(
+            "\n".join(
+                [
+                    "## 公开来源候选",
+                    "### 来源 1",
+                    "- 标题：Progressive Disclosure",
+                    "- URL：https://www.nngroup.com/articles/progressive-disclosure/",
+                    "### 来源 2",
+                    "- 标题：Museum Labels",
+                    "- URL：https://example.com/museum-labels",
+                    "## 消化与选择",
+                    "选择。",
+                ]
+            )
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Progressive Disclosure", output)
+        self.assertIn("https://www.nngroup.com/articles/progressive-disclosure/", output)
+        self.assertIn("Museum Labels", output)
+
     def test_keeps_legacy_candidate_format(self):
         result, output = render(
             "\n".join(

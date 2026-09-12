@@ -1,0 +1,24 @@
+今天这一轮已完成并推送到 `main`。
+
+本轮主题是“iLoop 五锤工序”：在既有 iLoop/YQ 对话里加入 `计划 / 取证 / 改动 / 验证 / 收口` 五个可点击分层说明，让访客不只是看到一句 iLoop 定义，而是能按铁匠铺语境理解这套 AI 协作闭环。
+
+已完成内容：
+- 改了 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-03/index.html)：新增工序按钮样式、`ILOOP_STEPS` 数据、分层渲染逻辑，并让底部 iLoop 导览和 YQ 人物入口都展示同一套五锤工序。
+- 新增输入卡：[2026-09-03.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-03/.autoloop/inputs/2026-09-03.md)
+- 新增手记：[2026-09-03.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-03/.autoloop/journal/2026-09-03.md)
+- 更新 [CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-03/.autoloop/CHANGELOG.md)
+
+验证结果：
+- 本地交互验证通过：点击 iLoop 后出现 5 个工序按钮，点击“验证”后正文正确切换；无 console error、无请求失败。
+- 创意轮门禁通过：`.autoloop/runs/2026-09-03_attempt_01/creative_validation.json`
+- 线上无痕验证通过：线上与本地 `index.html` SHA-256 一致，loader 隐藏，canvas 存在，无 console error。
+- 截图已保存：
+  - `.autoloop/journal/assets/2026-09-03-local.png`
+  - `.autoloop/journal/assets/2026-09-03-online.png`
+
+提交记录：
+- `243762646b95c731bacfa77da6d2a250b4ba899a`：`feat: 展开 iLoop 五锤工序`
+- `eea40d6eae3e62eb6477b24c4d9a4c7595a45865`：`chore: 回填五锤工序记录`
+- `691af1c08523845c679d3729930cfb3040388bee`：`chore: 记录五锤工序线上验证`
+
+有一个环境情况也记录一下：当前原始工作区的 `.git/index.lock` 写入返回 `Read-only file system`，所以无法直接在该工作区 `git add/commit`。我按上轮同类处理方式使用 `/tmp` 临时克隆承接同一批已验证改动完成提交和 push；远端 `main` 已到 `691af1c08523845c679d3729930cfb3040388bee`。

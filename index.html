@@ -10,6 +10,12 @@
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
   #viewer { display: block; width: 100vw; height: 100vh; cursor: grab; }
   #viewer:active { cursor: grabbing; }
+  button:focus-visible,
+  input:focus-visible {
+    outline: 2px solid rgba(255,207,138,.95);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(255,119,51,.18);
+  }
 
   /* 顶部标题 */
   .topbar {
@@ -117,6 +123,211 @@
     border-radius: 12px;
     box-shadow: 0 8px 26px rgba(0,0,0,.32);
   }
+  .station-cue {
+    grid-column: 1 / -1;
+    min-height: 48px;
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,170,100,.13);
+    color: rgba(240,224,200,.82);
+    font-size: 12px;
+  }
+  .station-cue .station-step {
+    color: rgba(255,207,138,.82);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .station-cue .station-name {
+    color: #fff1d8;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .station-cue .station-line {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .station-brief {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    padding: 6px 0 1px;
+  }
+  .station-brief-item {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 6px;
+    padding: 6px 7px;
+    background: rgba(255,170,100,.07);
+    border: 1px solid rgba(255,170,100,.12);
+    border-radius: 8px;
+  }
+  .station-brief-kicker {
+    color: rgba(255,207,138,.8);
+    font-size: 10px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .station-brief-text {
+    min-width: 0;
+    color: rgba(240,224,200,.76);
+    font-size: 11px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .station-action {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(255,119,51,.08);
+    border: 1px solid rgba(255,170,100,.14);
+    border-radius: 8px;
+  }
+  .station-action-hint {
+    min-width: 0;
+    color: rgba(240,224,200,.72);
+    font-size: 11px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .station-action-button {
+    min-height: 28px;
+    padding: 4px 10px;
+    background: rgba(255,119,51,.18);
+    color: #fff1d8;
+    border: 1px solid rgba(255,207,138,.36);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .station-action-button:hover {
+    background: rgba(255,119,51,.28);
+    border-color: rgba(255,207,138,.62);
+  }
+  .station-progress {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(82px, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    color: rgba(232,213,176,.66);
+    font-size: 11px;
+  }
+  .tour-progress-track {
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255,170,100,.12);
+  }
+  .tour-progress-fill {
+    display: block;
+    width: 25%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ff7733, #ffcf8a);
+    transition: width .25s ease;
+  }
+  .tour-next-cue {
+    min-width: 0;
+    color: rgba(255,207,138,.78);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tour-receipt {
+    grid-column: 1 / -1;
+    display: none;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-top: 1px solid rgba(142,190,123,.16);
+    background: rgba(142, 190, 123, .08);
+    color: rgba(231,244,214,.86);
+    border-radius: 8px;
+  }
+  .tour-receipt.show { display: grid; }
+  .receipt-summary {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  .receipt-open {
+    min-height: 26px;
+    padding: 4px 9px;
+    background: rgba(142,190,123,.12);
+    color: #e7f4d6;
+    border: 1px solid rgba(142,190,123,.32);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .receipt-open:hover { background: rgba(142,190,123,.2); }
+  .station-artifact {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,170,100,.1);
+  }
+  .station-artifact .artifact-name {
+    color: #ffcf8a;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .station-artifact .artifact-line {
+    min-width: 0;
+    color: rgba(240,224,200,.74);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .artifact-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .artifact-inspect,
+  .artifact-next {
+    min-height: 26px;
+    padding: 4px 8px;
+    background: rgba(255,170,100,.08);
+    color: rgba(232,213,176,.86);
+    border: 1px solid rgba(255,170,100,.18);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .artifact-inspect {
+    color: #fff1d8;
+    border-color: rgba(255,207,138,.34);
+    background: rgba(255,119,51,.12);
+  }
+  .artifact-inspect:hover,
+  .artifact-next:hover { background: rgba(255,170,100,.16); }
   .tour-title {
     margin: 0;
     white-space: nowrap;
@@ -145,6 +356,10 @@
     border-color: rgba(255,140,70,.72);
     color: #fff1d8;
   }
+  .tour-stop.visited:not(.active) {
+    border-color: rgba(255,207,138,.34);
+    color: rgba(240,224,200,.9);
+  }
   .tour-index {
     display: inline-flex;
     width: 20px;
@@ -158,6 +373,10 @@
     font-variant-numeric: tabular-nums;
   }
   .tour-stop.active .tour-index { background: rgba(255,170,100,.28); }
+  .tour-stop.visited:not(.active) .tour-index {
+    background: rgba(142, 190, 123, .18);
+    color: #d6f0bd;
+  }
   .tour-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -178,6 +397,7 @@
   /* 右下角对话气泡 */
   .dialog {
     position: fixed; right: 24px; bottom: 24px;
+    z-index: 29;
     max-width: 390px; padding: 16px 20px;
     background: rgba(20, 14, 10, .85); backdrop-filter: blur(12px);
     border-radius: 14px; border: 1px solid rgba(255,170,100,.3);
@@ -193,6 +413,29 @@
   }
   .dialog .meta.show { display: block; }
   .dialog .line { font-size: 14px; line-height: 1.6; color: #f0e0c8; }
+  .dialog .process-steps {
+    display: none;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .dialog .process-steps.show { display: grid; }
+  .dialog .process-step {
+    min-height: 30px;
+    padding: 5px 6px;
+    background: rgba(255,170,100,.08);
+    color: rgba(232,213,176,.86);
+    border: 1px solid rgba(255,170,100,.18);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .dialog .process-step:hover { background: rgba(255,170,100,.16); }
+  .dialog .process-step.active {
+    color: #fff1d8;
+    background: rgba(255,119,51,.24);
+    border-color: rgba(255,140,70,.72);
+  }
   .dialog .actions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
   .dialog .actions button {
     flex: 1 1 42%; padding: 6px 10px; font-size: 12px;
@@ -213,6 +456,135 @@
     white-space: nowrap;
   }
   .hover-label.show { opacity: 1; }
+
+  .station-pin {
+    position: fixed;
+    z-index: 17;
+    min-width: 118px;
+    max-width: min(220px, calc(100vw - 32px));
+    padding: 7px 10px 8px;
+    background: rgba(20, 14, 10, .82);
+    color: #fff1d8;
+    border: 1px solid rgba(255,207,138,.34);
+    border-radius: 8px;
+    box-shadow: 0 8px 22px rgba(0,0,0,.34), 0 0 16px rgba(255,119,51,.15);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -120%);
+    transition: opacity .18s, transform .18s;
+  }
+  .station-pin.show {
+    opacity: 1;
+    transform: translate(-50%, -135%);
+  }
+  .station-pin::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    width: 10px;
+    height: 10px;
+    background: rgba(20, 14, 10, .82);
+    border-right: 1px solid rgba(255,207,138,.34);
+    border-bottom: 1px solid rgba(255,207,138,.34);
+    transform: translateX(-50%) rotate(45deg);
+  }
+  .station-pin .pin-step {
+    display: block;
+    margin-bottom: 2px;
+    color: rgba(255,207,138,.76);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .station-pin .pin-title {
+    display: block;
+    color: #fff1d8;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+  .station-pin .pin-line {
+    display: block;
+    margin-top: 3px;
+    color: rgba(240,224,200,.68);
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .station-hotspot {
+    position: fixed;
+    z-index: 16;
+    min-width: 74px;
+    min-height: 30px;
+    display: inline-grid;
+    grid-template-columns: 18px auto;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    background: rgba(20, 14, 10, .72);
+    color: rgba(240,224,200,.82);
+    border: 1px solid rgba(255,170,100,.22);
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.28);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.96);
+    transition: opacity .18s, transform .18s, background .18s, border-color .18s, color .18s;
+  }
+  .station-hotspot.show {
+    opacity: .84;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .station-hotspot:hover,
+  .station-hotspot:focus-visible {
+    opacity: 1;
+    color: #fff1d8;
+    background: rgba(42, 24, 14, .88);
+    border-color: rgba(255,207,138,.58);
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+  .station-hotspot.active {
+    opacity: 1;
+    color: #fff1d8;
+    background: rgba(255,119,51,.22);
+    border-color: rgba(255,140,70,.72);
+    box-shadow: 0 8px 22px rgba(0,0,0,.34), 0 0 18px rgba(255,119,51,.2);
+  }
+  .station-hotspot.visited:not(.active) {
+    color: rgba(231,244,214,.9);
+    border-color: rgba(142,190,123,.38);
+  }
+  .station-hotspot .hotspot-index {
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,170,100,.16);
+    color: #ffcf8a;
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .station-hotspot.active .hotspot-index {
+    background: rgba(255,207,138,.24);
+    color: #fff1d8;
+  }
+  .station-hotspot.visited:not(.active) .hotspot-index {
+    background: rgba(142,190,123,.18);
+    color: #d6f0bd;
+  }
+  .station-hotspot .hotspot-title {
+    min-width: 0;
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
 
   .npc-bubble {
     position: fixed;
@@ -310,6 +682,93 @@
       padding: 8px;
     }
     .tour-title { display: none; }
+    .station-cue {
+      min-height: 36px;
+      grid-template-columns: auto 1fr;
+      gap: 4px 8px;
+      padding: 5px 6px 7px;
+      font-size: 11px;
+    }
+    .station-cue .station-line {
+      grid-column: 1 / -1;
+      white-space: normal;
+      line-height: 1.35;
+    }
+    .station-brief {
+      grid-template-columns: 1fr;
+      gap: 4px;
+      padding-top: 5px;
+    }
+    .station-brief-item {
+      padding: 5px 6px;
+    }
+    .station-brief-text {
+      font-size: 10px;
+      white-space: normal;
+      line-height: 1.25;
+    }
+    .station-action {
+      grid-template-columns: 1fr;
+      gap: 5px;
+      padding: 6px;
+    }
+    .station-action-hint {
+      white-space: normal;
+      font-size: 10px;
+    }
+    .station-action-button {
+      width: 100%;
+      min-height: 26px;
+      padding: 4px 8px;
+      font-size: 10px;
+    }
+    .station-progress {
+      grid-template-columns: auto 1fr;
+      gap: 5px 8px;
+      font-size: 10px;
+    }
+    .tour-next-cue {
+      grid-column: 1 / -1;
+      white-space: normal;
+      line-height: 1.25;
+    }
+    .tour-receipt {
+      grid-template-columns: 1fr auto;
+      gap: 5px 8px;
+      padding: 6px;
+    }
+    .receipt-summary {
+      white-space: normal;
+      line-height: 1.25;
+      font-size: 10px;
+    }
+    .receipt-open {
+      min-height: 24px;
+      padding: 3px 7px;
+      font-size: 10px;
+    }
+    .station-artifact {
+      grid-template-columns: 1fr auto;
+      gap: 5px 8px;
+      padding-top: 5px;
+      font-size: 10px;
+    }
+    .station-artifact .artifact-line {
+      grid-column: 1 / -1;
+      white-space: normal;
+      line-height: 1.25;
+    }
+    .artifact-actions {
+      grid-row: 1;
+      grid-column: 2;
+      gap: 4px;
+    }
+    .artifact-inspect,
+    .artifact-next {
+      min-height: 24px;
+      padding: 3px 7px;
+      font-size: 10px;
+    }
     .tour-stop {
       min-height: 32px;
       margin: 0;
@@ -326,10 +785,34 @@
     .tour-actions { display: none; }
     .dialog {
       right: 12px;
-      bottom: 122px;
+      bottom: 304px;
       left: 12px;
       max-width: none;
       padding: 14px 16px;
+    }
+    .dialog .process-steps {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .station-pin {
+      min-width: 104px;
+      max-width: 176px;
+      padding: 6px 8px 7px;
+    }
+    .station-pin .pin-title {
+      font-size: 12px;
+    }
+    .station-pin .pin-line {
+      display: none;
+    }
+    .station-hotspot {
+      min-width: 32px;
+      min-height: 30px;
+      grid-template-columns: 18px;
+      justify-content: center;
+      padding: 5px 6px;
+    }
+    .station-hotspot .hotspot-title {
+      display: none;
     }
     .hint {
       bottom: 10px;
@@ -342,6 +825,12 @@
 </head>
 <body>
 <canvas id="viewer"></canvas>
+<div class="station-pin" id="stationPin" aria-live="polite">
+  <span class="pin-step" id="pinStep">第 1 站</span>
+  <strong class="pin-title" id="pinTitle">老杨</strong>
+  <span class="pin-line" id="pinLine">主人在这里</span>
+</div>
+<div class="station-hotspots" id="stationHotspots" aria-label="铺内可点击站点"></div>
 
 <div class="loader" id="loader">
   <div class="spinner"></div>
@@ -359,8 +848,46 @@
 <button class="bgm-toggle" id="bgmToggle" title="背景音乐">🔇 音乐</button>
 
 <nav class="tour-rail" aria-label="巡铺路线">
+  <div class="station-cue" id="stationCue" aria-live="polite">
+    <span class="station-step" id="stationStep">第 1 站</span>
+    <strong class="station-name" id="stationName">老杨</strong>
+    <span class="station-line" id="stationLine">先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。</span>
+    <div class="station-brief" aria-label="本站问题和带走结论">
+      <span class="station-brief-item">
+        <span class="station-brief-kicker">问</span>
+        <span class="station-brief-text" id="stationQuestion">这间铺子的主人是谁？</span>
+      </span>
+      <span class="station-brief-item">
+        <span class="station-brief-kicker">带走</span>
+        <span class="station-brief-text" id="stationTakeaway">老杨把 iOS 手艺和 AI 协作放进同一间铺子。</span>
+      </span>
+    </div>
+    <div class="station-action" aria-label="本站下一步">
+      <span class="station-action-hint" id="stationActionHint">读完这一站，先听主人开场。</span>
+      <button class="station-action-button" id="stationAction" type="button">敲这一锤</button>
+    </div>
+    <div class="station-progress">
+      <span id="tourProgressText">已看 1/4</span>
+      <span class="tour-progress-track" id="tourProgressBar" role="progressbar" aria-label="巡铺进度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" aria-valuetext="已看 1 站，共 4 站">
+        <span class="tour-progress-fill" id="tourProgressFill"></span>
+      </span>
+      <span class="tour-next-cue" id="tourNextCue">下一站：iLoop</span>
+    </div>
+    <div class="tour-receipt" id="tourReceipt" aria-live="polite">
+      <span class="receipt-summary" id="receiptSummary">四站已齐：老杨、iLoop、近况和火炉合成一枚炉印。</span>
+      <button class="receipt-open" id="receiptOpen" type="button">看炉印</button>
+    </div>
+    <div class="station-artifact" aria-live="polite">
+      <strong class="artifact-name" id="artifactName">磨亮的锤柄</strong>
+      <span class="artifact-line" id="artifactLine">握痕说明主人长期亲自下场：把移动端经验和 AI 协作一起磨顺。</span>
+      <span class="artifact-actions">
+        <button class="artifact-inspect" id="artifactInspect" type="button">鉴定</button>
+        <button class="artifact-next" id="artifactNext" type="button">换一枚</button>
+      </span>
+    </div>
+  </div>
   <p class="tour-title">巡铺路线</p>
-  <button class="tour-stop active" data-tour="profile" aria-label="第一站 老杨">
+  <button class="tour-stop active visited" data-tour="profile" aria-label="第 1 站 老杨，已看">
     <span class="tour-index">1</span><span>老杨</span>
   </button>
   <button class="tour-stop" data-tour="iloop" aria-label="第二站 iLoop">
@@ -400,6 +927,7 @@
   <div class="name" id="dlgName">老杨的铁匠铺</div>
   <div class="meta" id="dlgMeta">点击人物认识 Job Yang.</div>
   <div class="line" id="dlgLine">欢迎来到老杨的铁匠铺，也可以叫我老羊。要打把什么家伙？</div>
+  <div class="process-steps" id="processSteps" aria-label="iLoop 五锤工序"></div>
   <div class="actions">
     <button id="btnPrimary">老杨是谁</button>
     <button id="btnSecondary">锻造欢迎语</button>
@@ -500,6 +1028,34 @@ const yqLines = [
   'AI时代我还是苦工,只是挖矿的方式不一样了',
 ];
 
+const ILOOP_STEPS = [
+  {
+    key: 'plan',
+    label: '计划',
+    line: '先把一句模糊需求压成可执行的炉前计划：目标、边界、风险和验收点都摆到台面上。',
+  },
+  {
+    key: 'evidence',
+    label: '取证',
+    line: '再去看日志、截图、diff 和运行结果。没有证据的判断，只能算炉边闲聊。',
+  },
+  {
+    key: 'change',
+    label: '改动',
+    line: '落锤时只打一块铁：围绕当前主题改最关键的地方，避免顺手把整间铺子拆掉重装。',
+  },
+  {
+    key: 'verify',
+    label: '验证',
+    line: '火候要现场看：本地跑通、截图对照、线上无痕确认，让“能跑”变成可复查的证据。',
+  },
+  {
+    key: 'close',
+    label: '收口',
+    line: '最后把为什么这么打、打成什么样、哪里没做到写进手记，下一轮才能接着同一块铁继续锻。',
+  },
+];
+
 const GUIDE_CARDS = {
   profile: {
     name: '老杨是谁',
@@ -512,17 +1068,21 @@ const GUIDE_CARDS = {
   projects: {
     name: '最近在锻造',
     meta: '铺内主线',
-    line: '主线是 iLoop：让 Agent 不只会写代码，还能计划、取证、验证、收口，在真实工程里闭环交付。',
+    line: '主线是 iLoop：让 Agent 不只会写代码，还能按计划、取证、改动、验证、收口五锤闭环交付。',
     actions: [
+      { label: '看五锤工序', type: 'iloop' },
       { label: '看近况', type: 'latest' },
     ],
   },
   iloop: {
     name: 'iLoop',
     meta: 'i + 反馈闭环 Loop',
-    line: 'iLoop 是这间铺子的主炉：把任务拆成计划、证据、改动、验证和复盘，让 AI 协作可持续。',
+    line: 'iLoop 是这间铺子的主炉：把 AI 协作拆成五锤工序，每一步都留下能复查的火候。',
+    steps: ILOOP_STEPS,
+    activeStep: 'plan',
     actions: [
       { label: '启动闭环彩蛋', type: 'iloop_easter' },
+      { label: '锻造欢迎语', type: 'forge' },
     ],
   },
   latest: {
@@ -568,12 +1128,133 @@ const YQ_EASTER_LINES = [
 ];
 
 const TOUR_STOPS = {
-  profile: { npc: 'master' },
-  iloop: { npc: 'yq' },
-  latest: { npc: 'apprentice' },
-  forge: { object: 'forge' },
+  profile: {
+    npc: 'master',
+    pin: [-3.15, FLOOR_Y + 2.35, 2.95],
+    hotspotOffset: [0.12, -0.04, 0],
+    step: '第 1 站',
+    title: '老杨',
+    cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
+    question: '这间铺子的主人是谁？',
+    takeaway: '老杨把 iOS 手艺和 AI 协作放进同一间铺子。',
+    actionHint: '读完这一站，先听主人开场。',
+    actionLabel: '敲主人锤',
+    actionType: 'profile',
+    pinLine: '主人站位',
+    receipt: '认识主人：iOS 手艺、AI 工具和亲自下场的工作方式。',
+    artifacts: [
+      {
+        name: '磨亮的锤柄',
+        line: '握痕说明主人长期亲自下场：把移动端经验和 AI 协作一起磨顺。',
+        label: '常用件 · 炉前主锤',
+        reading: '这不是奖杯，而是每天都要拿起来的工具。它把老杨的身份落在“亲自下场解决问题”上。',
+        next: '读完后适合去 iLoop 站，看这些手感怎样被整理成闭环工序。',
+      },
+      {
+        name: '炉前便签',
+        line: '便签只留目标、证据和验收点，像老杨做工具时先把混乱压成可执行小块。',
+        label: '纸面痕迹 · 开工前',
+        reading: '便签刻意很短，说明铁匠铺不靠长篇设定撑场，而靠目标、证据和验收把活往前推。',
+        next: '读完后适合点“最近项目”，把抽象身份接到 iLoop 主线。',
+      },
+    ],
+  },
+  iloop: {
+    npc: 'yq',
+    pin: [0.3, FLOOR_Y + 2.35, 3.2],
+    hotspotOffset: [0.62, -0.02, 0],
+    step: '第 2 站',
+    title: 'iLoop',
+    cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
+    question: 'AI 协作怎样从试试看变成交付流程？',
+    takeaway: '五锤闭环把计划、证据、改动、验证和收口扣在一起。',
+    actionHint: '进入主炉，按顺序看五锤工序。',
+    actionLabel: '看五锤',
+    actionType: 'iloop',
+    pinLine: '闭环主炉',
+    receipt: '看清主炉：计划、取证、改动、验证、收口缺一不可。',
+    artifacts: [
+      {
+        name: '闭环铁环',
+        line: '五道刻线首尾相扣，提醒 Agent 每一锤都要回到证据和验收。',
+        label: '工序样件 · 五锤闭环',
+        reading: '铁环的重点不是造型，而是首尾相扣：计划、取证、改动、验证、收口缺一锤都不算出炉。',
+        next: '读完后可以点“五锤工序”，逐步查看 iLoop 怎样约束 Agent 交付。',
+      },
+      {
+        name: '淬火夹钳',
+        line: '夹钳夹住的是风险边界：先控住范围，再让 AI 落锤。',
+        label: '控火工具 · 风险边界',
+        reading: '夹钳把热铁固定住，像工程里的范围控制。AI 可以用力，但每次只打一块铁。',
+        next: '读完后适合去近况站，看每日自迭代怎样小步试火。',
+      },
+    ],
+  },
+  latest: {
+    npc: 'apprentice',
+    pin: [2.2, FLOOR_Y + 2.35, 1.0],
+    hotspotOffset: [0.1, -0.04, 0],
+    step: '第 3 站',
+    title: '近况',
+    cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
+    question: '这间铺子最近在试什么火？',
+    takeaway: '每日只打一题，截图、日志和失败原因都留下来。',
+    actionHint: '看近期火候，理解这间铺子如何每日试火。',
+    actionLabel: '看近况',
+    actionType: 'latest',
+    pinLine: '今日试火',
+    receipt: '摸到近况：每日只打一题，失败和截图都留作下一锤证据。',
+    artifacts: [
+      {
+        name: '今日试火单',
+        line: '单子上只记一轮主题，说明这间铺子每天小步试火，不靠一次性堆满。',
+        label: '当日记录 · 一轮一题',
+        reading: '试火单把“每天变好一点”变成可检查的样本：今天做什么、为什么做、怎么验证。',
+        next: '读完后适合继续看火炉站，感受这套记录怎样回到可见反馈。',
+      },
+      {
+        name: '复盘煤灰',
+        line: '灰里留着昨天的截图、日志和失败原因，下一锤从证据继续。',
+        label: '余料 · 失败也留痕',
+        reading: '煤灰不是垃圾，是下一轮判断火候的证据。它提醒这间铺子允许失败，但不能没有复盘。',
+        next: '读完后适合回老杨站，理解主人为什么把工程手艺看得比热闹更重。',
+      },
+    ],
+  },
+  forge: {
+    object: 'forge',
+    pin: [0, FLOOR_Y + 1.75, 1.05],
+    hotspotOffset: [-0.72, -0.18, 0.05],
+    step: '第 4 站',
+    title: '火炉',
+    cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
+    question: '访客动手后，铺子会怎样回应？',
+    takeaway: '点击火炉会触发短句、灯光和声音，把介绍变成现场反馈。',
+    actionHint: '到炉边亲手锻一句欢迎语。',
+    actionLabel: '锻一句',
+    actionType: 'forge',
+    pinLine: '火候入口',
+    receipt: '回到火候：点击、声音、灯光和短句把介绍变成现场反馈。',
+    artifacts: [
+      {
+        name: '炉膛回声',
+        line: '每次锻出的短句都带一点老杨式吐槽，火候轻但能让铺子有声气。',
+        label: '互动残响 · 欢迎语',
+        reading: '回声把页面从静态介绍拉回现场：访客点一下火炉，铺子就用老杨式短句回应一次。',
+        next: '读完后可以再锻一句，或回 iLoop 站看这类反馈怎样被纳入验证。',
+      },
+      {
+        name: '余温刻度',
+        line: '火光强弱对应当前模式：舒缓时看铺，开炉时让人物和欢迎语更有反馈。',
+        label: '火候读数 · 场景模式',
+        reading: '刻度说明这里的氛围不是装饰。舒缓模式方便参观，火炉模式让声音、灯光和反馈更像开工。',
+        next: '读完后可以切换右上角场景模式，对照炉火和人物反馈的差异。',
+      },
+    ],
+  },
 };
 const TOUR_ORDER = Object.keys(TOUR_STOPS);
+const TOUR_RECEIPT_SUMMARY = '四站已齐：老杨、iLoop、近况和火炉合成一枚炉印。';
 
 const OBJECT_CONFIG = {
   forge: {
@@ -602,8 +1283,10 @@ let fireVtxFrame = 0;   // 火焰顶点动画隔帧计数器（性能）
 let furnaceFireBasePositions = null;
 let forgePulseUntil = 0;
 let dialogActions = [];
+let currentProcessSteps = [];
 let selectedObjectKey = null;
 let activeTourType = 'profile';
+let activeArtifactIndex = 0;
 let yqClickCount = 0;
 let typedSecret = '';
 
@@ -837,6 +1520,49 @@ window.__SCENE_DEBUG__ = {
       })(),
     }];
   })),
+  stationPin: () => {
+    const rect = stationPin?.getBoundingClientRect();
+    return {
+      activeTourType,
+      text: stationPin?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      visible: stationPin?.classList.contains('show') || false,
+      rect: rect ? {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+      } : null,
+    };
+  },
+  stationHotspots: () => Object.fromEntries(
+    Object.entries(stationHotspotButtons).map(([key, btn]) => {
+      const rect = btn.getBoundingClientRect();
+      return [key, {
+        text: btn.textContent.replace(/\s+/g, ' ').trim(),
+        visible: btn.classList.contains('show'),
+        active: btn.classList.contains('active'),
+        visited: btn.classList.contains('visited'),
+        rect: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        },
+      }];
+    }),
+  ),
+  stationBrief: () => ({
+    activeTourType,
+    question: stationQuestion?.textContent || '',
+    takeaway: stationTakeaway?.textContent || '',
+    cue: stationLine?.textContent || '',
+    actionHint: stationActionHint?.textContent || '',
+    actionLabel: stationAction?.textContent || '',
+  }),
 };
 
 function tickLoad() {
@@ -921,6 +1647,25 @@ function createHotspot(key, position, size) {
   return registerInteractive(hit, key);
 }
 
+function createNpcHitbox(root, key) {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root, true);
+  const size = box.getSize(new THREE.Vector3());
+  const hitbox = new THREE.Mesh(
+    new THREE.BoxGeometry(size.x, size.y, size.z),
+    new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      colorWrite: false,
+    }),
+  );
+  hitbox.position.copy(box.getCenter(new THREE.Vector3()));
+  hitbox.userData.npcKey = key;
+  scene.add(hitbox);
+  return hitbox;
+}
+
 // 加载 NPC
 function loadNPC(key, cfg) {
   loader.load(cfg.url, gltf => {
@@ -933,7 +1678,7 @@ function loadNPC(key, cfg) {
     const scale = (1.8 / size.y) * cfg.scale;
     root.scale.setScalar(scale);
 
-    // 绑定姿势已在 Blender 校准；不能再按骨骼名字猜旋转角度。
+    // 2. 绑定姿势已在 Blender 校准；不能再按骨骼名字猜旋转角度。
     let rigged = false;
     root.traverse(o => { if (o.isSkinnedMesh) rigged = true; });
     if (!rigged) {
@@ -957,6 +1702,7 @@ function loadNPC(key, cfg) {
       }
     });
     scene.add(root);
+    const hitbox = createNpcHitbox(root, key);
 
     const idle = THREE.AnimationClip.findByName(gltf.animations, 'Idle');
     const phase = Object.keys(NPC_CONFIG).indexOf(key) * 3.7;
@@ -964,7 +1710,7 @@ function loadNPC(key, cfg) {
     const mixer = motion?.mixer || null;
     const idleAction = motion?.actions.Idle || null;
     npcs[key] = {
-      root, config: cfg, baseY: root.position.y, mixer, idleAction, motion,
+      root, hitbox, config: cfg, baseY: root.position.y, mixer, idleAction, motion,
       fittedHeight: box.max.y - box.min.y,
       clips: gltf.animations.map(clip => clip.name),
     };
@@ -997,16 +1743,60 @@ const dialog = document.getElementById('dialog');
 const npcBubble = document.getElementById('npcBubble');
 const sidePanel = document.getElementById('sidePanel');
 const panelToggle = document.getElementById('panelToggle');
+const tourRail = document.querySelector('.tour-rail');
 const tourStops = document.querySelectorAll('.tour-stop');
 const tourPrev = document.getElementById('tourPrev');
 const tourNext = document.getElementById('tourNext');
+const stationStep = document.getElementById('stationStep');
+const stationName = document.getElementById('stationName');
+const stationLine = document.getElementById('stationLine');
+const stationQuestion = document.getElementById('stationQuestion');
+const stationTakeaway = document.getElementById('stationTakeaway');
+const stationActionHint = document.getElementById('stationActionHint');
+const stationAction = document.getElementById('stationAction');
+const stationPin = document.getElementById('stationPin');
+const stationHotspots = document.getElementById('stationHotspots');
+const pinStep = document.getElementById('pinStep');
+const pinTitle = document.getElementById('pinTitle');
+const pinLine = document.getElementById('pinLine');
+const tourProgressText = document.getElementById('tourProgressText');
+const tourProgressBar = document.getElementById('tourProgressBar');
+const tourProgressFill = document.getElementById('tourProgressFill');
+const tourNextCue = document.getElementById('tourNextCue');
+const tourReceipt = document.getElementById('tourReceipt');
+const receiptSummary = document.getElementById('receiptSummary');
+const receiptOpen = document.getElementById('receiptOpen');
+const artifactName = document.getElementById('artifactName');
+const artifactLine = document.getElementById('artifactLine');
+const artifactInspect = document.getElementById('artifactInspect');
+const artifactNext = document.getElementById('artifactNext');
+const visitedTourStops = new Set(['profile']);
+const stationHotspotButtons = {};
+
+function createStationHotspots() {
+  TOUR_ORDER.forEach((key, index) => {
+    const station = TOUR_STOPS[key];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'station-hotspot';
+    btn.dataset.tour = key;
+    btn.innerHTML = `<span class="hotspot-index">${index + 1}</span><span class="hotspot-title">${station.title}</span>`;
+    btn.setAttribute('aria-label', `${station.step} ${station.title}，进入铺内站点`);
+    btn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      goTourStop(key);
+    });
+    stationHotspots.appendChild(btn);
+    stationHotspotButtons[key] = btn;
+  });
+}
 
 function pickTarget(event) {
   pointer.x = (event.clientX / innerWidth) * 2 - 1;
   pointer.y = -(event.clientY / innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
   const roots = [
-    ...Object.values(npcs).map(n => n.root),
+    ...Object.values(npcs).map(n => n.hitbox || n.root),
     ...Object.values(interactiveObjects).map(o => o.root),
   ].filter(Boolean);
   const hits = raycaster.intersectObjects(roots, true);
@@ -1029,8 +1819,11 @@ canvas.addEventListener('pointerdown', e => {
   hoverKey = null;
   hoverLabel.classList.remove('show');
   activePointers.add(e.pointerId);
-  if (activePointers.size === 1) pointerGesture = { x: e.clientX, y: e.clientY, button: e.button, dragged: false };
-  else if (pointerGesture) pointerGesture.dragged = true;
+  if (activePointers.size === 1) {
+    pointerGesture = { x: e.clientX, y: e.clientY, button: e.button, dragged: false };
+  } else if (pointerGesture) {
+    pointerGesture.dragged = true;
+  }
 });
 canvas.addEventListener('pointerup', e => activePointers.delete(e.pointerId));
 canvas.addEventListener('pointercancel', e => {
@@ -1128,6 +1921,72 @@ function updateNPCBubblePosition() {
   npcBubble.style.top = Math.max(h * 1.35 + margin, Math.min(innerHeight - margin, y)) + 'px';
 }
 
+function worldToViewport(position) {
+  const point = position.clone();
+  point.project(camera);
+  return {
+    x: (point.x * 0.5 + 0.5) * innerWidth,
+    y: (-point.y * 0.5 + 0.5) * innerHeight,
+    behind: point.z > 1,
+  };
+}
+
+function getStationPinPosition(type = activeTourType) {
+  const station = TOUR_STOPS[type] || TOUR_STOPS.profile;
+  const root = station.npc ? npcs[station.npc]?.root : interactiveObjects[station.object]?.root;
+  if (root) {
+    const box = new THREE.Box3().setFromObject(root);
+    const pos = box.getCenter(new THREE.Vector3());
+    pos.y = box.max.y + (station.object ? 0.18 : 0.26);
+    return pos;
+  }
+  return new THREE.Vector3(...(station.pin || TOUR_STOPS.profile.pin));
+}
+
+function getStationHotspotPosition(type) {
+  const pos = getStationPinPosition(type);
+  const station = TOUR_STOPS[type] || TOUR_STOPS.profile;
+  pos.y -= station.object ? 0.32 : 0.58;
+  if (station.hotspotOffset) {
+    pos.x += station.hotspotOffset[0] || 0;
+    pos.y += station.hotspotOffset[1] || 0;
+    pos.z += station.hotspotOffset[2] || 0;
+  }
+  return pos;
+}
+
+function updateStationPinPosition() {
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  const screen = worldToViewport(getStationPinPosition(activeTourType));
+  const width = stationPin.offsetWidth || 150;
+  const height = stationPin.offsetHeight || 54;
+  const margin = 14;
+  const hiddenByRail = innerWidth <= 640 && screen.y > innerHeight - 330;
+  const visible = !screen.behind && !hiddenByRail;
+  stationPin.classList.toggle('show', visible);
+  if (!visible) return;
+  stationPin.style.left = Math.max(width / 2 + margin, Math.min(innerWidth - width / 2 - margin, screen.x)) + 'px';
+  stationPin.style.top = Math.max(height * 1.35 + margin, Math.min(innerHeight - margin, screen.y)) + 'px';
+}
+
+function updateStationHotspots() {
+  Object.entries(stationHotspotButtons).forEach(([key, btn]) => {
+    const screen = worldToViewport(getStationHotspotPosition(key));
+    const width = btn.offsetWidth || 74;
+    const height = btn.offsetHeight || 30;
+    const margin = 12;
+    const hiddenByRail = innerWidth <= 640 && screen.y > innerHeight - 318;
+    const visible = !screen.behind && !hiddenByRail;
+    btn.classList.toggle('show', visible);
+    btn.classList.toggle('active', key === activeTourType);
+    btn.classList.toggle('visited', visitedTourStops.has(key));
+    btn.setAttribute('aria-current', key === activeTourType ? 'step' : 'false');
+    if (!visible) return;
+    btn.style.left = Math.max(width / 2 + margin, Math.min(innerWidth - width / 2 - margin, screen.x)) + 'px';
+    btn.style.top = Math.max(height / 2 + margin, Math.min(innerHeight - height / 2 - margin, screen.y)) + 'px';
+  });
+}
+
 function togglePanel(force) {
   const show = typeof force === 'boolean' ? force : !sidePanel.classList.contains('show');
   sidePanel.classList.toggle('show', show);
@@ -1144,13 +2003,113 @@ function setActiveNpcButton(key) {
   });
 }
 
-function setActiveTourStop(type) {
-  activeTourType = type || 'profile';
+function renderStationArtifact() {
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  const artifacts = station.artifacts || [];
+  const artifact = artifacts[activeArtifactIndex % Math.max(1, artifacts.length)];
+  artifactName.textContent = artifact?.name || '铺内物证';
+  artifactLine.textContent = artifact?.line || '这枚痕迹还在等下一轮补充。';
+  artifactInspect.setAttribute('aria-label', `鉴定${station.title}的${artifact?.name || '铺内物证'}`);
+  artifactNext.hidden = artifacts.length < 2;
+  artifactNext.setAttribute('aria-label', `切换${station.title}的铺内物证`);
+}
+
+function getActiveArtifact() {
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  const artifacts = station.artifacts || [];
+  const artifact = artifacts[activeArtifactIndex % Math.max(1, artifacts.length)];
+  return { station, artifact };
+}
+
+function renderTourReceipt() {
+  const lines = TOUR_ORDER
+    .filter(key => visitedTourStops.has(key))
+    .map(key => `${TOUR_STOPS[key].title}：${TOUR_STOPS[key].receipt}`);
+  renderDialog({
+    name: '巡铺炉印 · 四站回执',
+    meta: `已看 ${visitedTourStops.size}/${TOUR_ORDER.length}`,
+    line: `${TOUR_RECEIPT_SUMMARY} ${lines.join(' ')}`,
+    actions: [
+      { label: '回炉再锻', type: 'forge' },
+      { label: '重走一遍', type: 'tour_restart' },
+    ],
+    allowVoice: false,
+  });
+  selectedObjectKey = 'forge';
+  activeKey = null;
+  setActiveNpcButton(null);
+  showContextBubble('四站炉印已合成，回炉再看一眼火候。', 4600);
+}
+
+function inspectActiveArtifact() {
+  const { station, artifact } = getActiveArtifact();
+  if (!artifact) return;
+  activeKey = station.npc || null;
+  selectedObjectKey = station.object || null;
+  setActiveNpcButton(activeKey);
+  const stationActionType = activeTourType === 'forge' ? 'forge' : activeTourType;
+  renderDialog({
+    name: `物证鉴定 · ${artifact.name}`,
+    meta: `${station.step} · ${station.title} · ${artifact.label || '铺内物证'}`,
+    line: `是什么：${artifact.line} 说明老杨：${artifact.reading || station.cue} 下一步：${artifact.next || station.cue}`,
+    actions: [
+      { label: stationActionType === 'forge' ? '再锻一句' : '看本站说明', type: stationActionType },
+      { label: '换一枚物证', type: 'artifact_next' },
+    ],
+    allowVoice: false,
+  });
+  showContextBubble(`${artifact.name}：${artifact.line}`, 4600);
+}
+
+function setActiveTourStop(type, options = {}) {
+  const previousType = activeTourType;
+  activeTourType = TOUR_STOPS[type] ? type : 'profile';
+  if (activeTourType !== previousType || options.resetArtifact) {
+    activeArtifactIndex = 0;
+  }
+  visitedTourStops.add(activeTourType);
   tourStops.forEach(stop => {
     const active = stop.dataset.tour === activeTourType;
+    const visited = visitedTourStops.has(stop.dataset.tour);
     stop.classList.toggle('active', active);
+    stop.classList.toggle('visited', visited);
     stop.setAttribute('aria-current', active ? 'step' : 'false');
+    stop.setAttribute('aria-label', `${TOUR_STOPS[stop.dataset.tour].step} ${TOUR_STOPS[stop.dataset.tour].title}${visited ? '，已看' : ''}`);
   });
+  const station = TOUR_STOPS[activeTourType];
+  stationStep.textContent = station.step;
+  stationName.textContent = station.title;
+  stationLine.textContent = station.cue;
+  stationQuestion.textContent = station.question;
+  stationTakeaway.textContent = station.takeaway;
+  stationActionHint.textContent = station.actionHint;
+  stationAction.textContent = station.actionLabel;
+  stationAction.setAttribute('aria-label', `${station.step} ${station.title}：${station.actionHint}`);
+  pinStep.textContent = station.step;
+  pinTitle.textContent = station.title;
+  pinLine.textContent = station.pinLine;
+  const visitedCount = visitedTourStops.size;
+  const totalCount = TOUR_ORDER.length;
+  const currentIndex = TOUR_ORDER.indexOf(activeTourType);
+  const nextKey = TOUR_ORDER
+    .slice(currentIndex + 1)
+    .concat(TOUR_ORDER.slice(0, currentIndex))
+    .find(key => !visitedTourStops.has(key));
+  const nextText = visitedCount >= totalCount
+    ? '巡铺完成：可以回火炉再锻一句'
+    : `下一站：${TOUR_STOPS[nextKey].title}`;
+  tourProgressText.textContent = `已看 ${visitedCount}/${totalCount}`;
+  tourProgressBar.setAttribute('aria-valuenow', String(visitedCount));
+  tourProgressBar.setAttribute('aria-valuetext', `已看 ${visitedCount} 站，共 ${totalCount} 站`);
+  tourProgressFill.style.width = `${(visitedCount / totalCount) * 100}%`;
+  tourNextCue.textContent = nextText;
+  const complete = visitedCount >= totalCount;
+  tourReceipt.classList.toggle('show', complete);
+  receiptSummary.textContent = TOUR_RECEIPT_SUMMARY;
+  receiptOpen.setAttribute('aria-label', complete ? '查看四站巡铺炉印回执' : '四站完成后查看炉印回执');
+  renderStationArtifact();
+  updateStationPinPosition();
+  updateStationHotspots();
 }
 
 function tourTypeForNpc(key) {
@@ -1164,7 +2123,32 @@ function tourTypeForGuide(type) {
   return ['profile', 'iloop', 'latest', 'forge'].includes(type) ? type : null;
 }
 
-function renderDialog({ name, meta = '', line, actions = [], allowVoice = false }) {
+function renderProcessSteps(activeKey) {
+  const holder = document.getElementById('processSteps');
+  holder.innerHTML = '';
+  holder.classList.toggle('show', currentProcessSteps.length > 0);
+  if (currentProcessSteps.length === 0) return;
+
+  currentProcessSteps.forEach(step => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `process-step${step.key === activeKey ? ' active' : ''}`;
+    btn.textContent = step.label;
+    btn.setAttribute('aria-pressed', step.key === activeKey ? 'true' : 'false');
+    btn.addEventListener('click', () => showProcessStep(step.key));
+    holder.appendChild(btn);
+  });
+}
+
+function showProcessStep(stepKey) {
+  const step = currentProcessSteps.find(item => item.key === stepKey);
+  if (!step) return;
+  document.getElementById('dlgLine').textContent = step.line;
+  renderProcessSteps(step.key);
+  showContextBubble(step.line, 4600);
+}
+
+function renderDialog({ name, meta = '', line, actions = [], steps = [], activeStep = '', allowVoice = false }) {
   document.getElementById('dlgName').textContent = name;
   const metaEl = document.getElementById('dlgMeta');
   metaEl.textContent = meta;
@@ -1172,6 +2156,8 @@ function renderDialog({ name, meta = '', line, actions = [], allowVoice = false 
   document.getElementById('dlgLine').textContent = line;
 
   dialogActions = actions;
+  currentProcessSteps = steps;
+  renderProcessSteps(activeStep);
   [document.getElementById('btnPrimary'), document.getElementById('btnSecondary')].forEach((btn, i) => {
     const action = actions[i];
     btn.textContent = action?.label || '';
@@ -1224,6 +2210,21 @@ function runDialogAction(index) {
   const action = dialogActions[index];
   if (!action) return;
   if (action.url) {
+    return;
+  }
+  if (action.type === 'artifact_next') {
+    const artifacts = TOUR_STOPS[activeTourType]?.artifacts || [];
+    if (artifacts.length < 2) return;
+    activeArtifactIndex = (activeArtifactIndex + 1) % artifacts.length;
+    renderStationArtifact();
+    inspectActiveArtifact();
+    return;
+  }
+  if (action.type === 'tour_restart') {
+    visitedTourStops.clear();
+    visitedTourStops.add('profile');
+    activeArtifactIndex = 0;
+    goTourStop('profile');
     return;
   }
   openGuideCard(action.type);
@@ -1340,6 +2341,8 @@ function selectNPC(key) {
     meta: cfg.meta,
     line: cfg.line,
     actions: cfg.actions,
+    steps: key === 'yq' ? GUIDE_CARDS.iloop.steps : [],
+    activeStep: key === 'yq' ? GUIDE_CARDS.iloop.activeStep : '',
     allowVoice: !!voiceFiles[key],
   });
   showNPCBubble(key, cfg.line, 4200);
@@ -1391,6 +2394,11 @@ function goAdjacentTourStop(direction) {
   const currentIndex = Math.max(0, TOUR_ORDER.indexOf(activeTourType));
   const nextIndex = (currentIndex + direction + TOUR_ORDER.length) % TOUR_ORDER.length;
   goTourStop(TOUR_ORDER[nextIndex]);
+}
+
+function runStationAction() {
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  openGuideCard(station.actionType || activeTourType);
 }
 
 // 暴露给外部接你现成的语音逻辑
@@ -1471,6 +2479,21 @@ tourStops.forEach(stop => {
 });
 tourPrev.addEventListener('click', () => goAdjacentTourStop(-1));
 tourNext.addEventListener('click', () => goAdjacentTourStop(1));
+stationAction.addEventListener('click', runStationAction);
+receiptOpen.addEventListener('click', renderTourReceipt);
+artifactInspect.addEventListener('click', inspectActiveArtifact);
+artifactNext.addEventListener('click', () => {
+  const artifacts = TOUR_STOPS[activeTourType]?.artifacts || [];
+  if (artifacts.length < 2) return;
+  activeArtifactIndex = (activeArtifactIndex + 1) % artifacts.length;
+  renderStationArtifact();
+});
+tourRail.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  goAdjacentTourStop(e.key === 'ArrowRight' ? 1 : -1);
+  document.querySelector(`.tour-stop[data-tour="${activeTourType}"]`)?.focus({ preventScroll: true });
+});
 document.getElementById('btnPrimary').addEventListener('click', () => runDialogAction(0));
 document.getElementById('btnSecondary').addEventListener('click', () => runDialogAction(1));
 document.getElementById('btnClose').addEventListener('click', () => {
@@ -1517,7 +2540,6 @@ document.getElementById('resetView').addEventListener('click', () => {
 const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
-  // 骨骼轨道按真实时间取样，低帧率时也保持动作速度。
   const delta = clock.getDelta();
   const t = clock.elapsedTime;
   // 炉火轻微闪烁(基准强度随场景模式变化)
@@ -1583,6 +2605,8 @@ function animate() {
     }
   });
   updateNPCBubblePosition();
+  updateStationPinPosition();
+  updateStationHotspots();
   controls.update();
   renderer.render(scene, camera);
 }
@@ -1814,6 +2838,8 @@ applySceneMode(initialMode, { animateLight: false });
 // 初始模式与曲风确定后,进场即尝试开启 BGM(浏览器允许则直接响,否则等首次交互解锁)
 startBgmDefault();
 
+createStationHotspots();
+setActiveTourStop('profile');
 togglePanel(false);
 
 // 性能：resize 用 rAF 节流，避免拖拽窗口时高频重建渲染缓冲
@@ -1827,6 +2853,8 @@ addEventListener('resize', () => {
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
     renderer.setSize(innerWidth, innerHeight);
     renderer.shadowMap.needsUpdate = true; // 尺寸变了，重渲一次冻结阴影
+    updateStationPinPosition();
+    updateStationHotspots();
   });
 });
 </script>

@@ -1,0 +1,24 @@
+今天这一轮已完成并推送到 `main`。
+
+本轮主题是“物证鉴定牌”：在昨天的四站“铺内物证短读”基础上，给每枚物证加了可展开的“鉴定”层。访客现在可以点底部物证旁的“鉴定”，在右下角看到“是什么 / 说明老杨 / 下一步”的结构化说明，也可以从弹窗直接切换同站第二枚物证。
+
+主要改动：
+- [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-07/index.html)：新增物证 `label / reading / next` 内容、鉴定按钮、弹窗复用逻辑和移动端样式。
+- [.autoloop/inputs/2026-09-07.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-07/.autoloop/inputs/2026-09-07.md)：记录 3 个公开输入来源、三案竞争和最终选择。
+- [.autoloop/journal/2026-09-07.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-07/.autoloop/journal/2026-09-07.md)：记录现状、判断、实现、验证和线上结果。
+- [.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-07/.autoloop/CHANGELOG.md)：追加 2026-09-07 条目。
+
+验证结果：
+- 创意门禁通过：`.autoloop/runs/2026-09-07_attempt_01/creative_validation.json`
+- 本地桌面交互通过：`.autoloop/runs/2026-09-07_attempt_01/local_interaction_check.json`
+- 移动端布局通过：对话框与巡铺条间距 `11.15625px`，横向溢出 `0`
+- 线上无痕验证通过：`.autoloop/runs/2026-09-07_attempt_01/visual_verification.json`
+- 线上 `index.html` 与本地 SHA-256 一致：`585d6447d699c94a5bcdb2da57123b9a13801480ea30a1a255097862f233315b`
+
+提交情况：
+- 作品提交：`ef6f1dffd58e5976cecc8e7c2f9bbcda4bf83c6b`
+- 记录回填提交：`3134e13b5b00c5c3e791441ae2b6d65ece93fdf7`
+- 线上验证回填提交：`6341a3599b7ca69dad6dc2e6c593b38bcaeb6a99`
+- 远端 `origin/main` 已确认在 `6341a3599b7ca69dad6dc2e6c593b38bcaeb6a99`
+
+补充：当前工作区 `.git` 的 index/object/ref lock 路径是只读的，所以本地 `git status` 仍会按旧 HEAD 显示改动；我用临时 index/object directory 生成并推送提交，没有改历史、没有强推。
