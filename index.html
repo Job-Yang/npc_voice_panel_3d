@@ -127,7 +127,7 @@
     grid-column: 1 / -1;
     min-height: 48px;
     display: grid;
-    grid-template-columns: auto auto 1fr;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
@@ -151,6 +151,29 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .station-details-toggle {
+    min-height: 26px;
+    padding: 4px 9px;
+    background: rgba(255,170,100,.08);
+    color: rgba(255,207,138,.86);
+    border: 1px solid rgba(255,170,100,.18);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .station-details-toggle:hover,
+  .station-details-toggle[aria-expanded="true"] {
+    background: rgba(255,170,100,.16);
+    border-color: rgba(255,207,138,.44);
+    color: #fff1d8;
+  }
+  .station-details {
+    grid-column: 1 / -1;
+    display: none;
+    gap: 7px;
+  }
+  .station-details.show { display: grid; }
   .station-brief {
     grid-column: 1 / -1;
     display: grid;
@@ -714,7 +737,7 @@
     .tour-title { display: none; }
     .station-cue {
       min-height: 36px;
-      grid-template-columns: auto 1fr;
+      grid-template-columns: auto 1fr auto;
       gap: 4px 8px;
       padding: 5px 6px 7px;
       font-size: 11px;
@@ -723,6 +746,11 @@
       grid-column: 1 / -1;
       white-space: normal;
       line-height: 1.35;
+    }
+    .station-details-toggle {
+      min-height: 24px;
+      padding: 3px 7px;
+      font-size: 10px;
     }
     .station-brief {
       grid-template-columns: 1fr;
@@ -884,16 +912,7 @@
     <span class="station-step" id="stationStep">第 1 站</span>
     <strong class="station-name" id="stationName">老杨</strong>
     <span class="station-line" id="stationLine">先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。</span>
-    <div class="station-brief" aria-label="本站问题和带走结论">
-      <span class="station-brief-item">
-        <span class="station-brief-kicker">问</span>
-        <span class="station-brief-text" id="stationQuestion">这间铺子的主人是谁？</span>
-      </span>
-      <span class="station-brief-item">
-        <span class="station-brief-kicker">带走</span>
-        <span class="station-brief-text" id="stationTakeaway">老杨把 iOS 手艺和 AI 协作放进同一间铺子。</span>
-      </span>
-    </div>
+    <button class="station-details-toggle" id="stationDetailsToggle" type="button" aria-expanded="false" aria-controls="stationDetails">读牌</button>
     <div class="station-action" aria-label="本站下一步">
       <span class="station-action-hint" id="stationActionHint">读完这一站，先听主人开场。</span>
       <button class="station-action-button" id="stationAction" type="button">敲这一锤</button>
@@ -909,13 +928,25 @@
       <span class="receipt-summary" id="receiptSummary">四站已齐：老杨、iLoop、近况和火炉合成一枚炉印。</span>
       <button class="receipt-open" id="receiptOpen" type="button">看炉印</button>
     </div>
-    <div class="station-artifact" aria-live="polite">
-      <strong class="artifact-name" id="artifactName">磨亮的锤柄</strong>
-      <span class="artifact-line" id="artifactLine">握痕说明主人长期亲自下场：把移动端经验和 AI 协作一起磨顺。</span>
-      <span class="artifact-actions">
-        <button class="artifact-inspect" id="artifactInspect" type="button">鉴定</button>
-        <button class="artifact-next" id="artifactNext" type="button">换一枚</button>
-      </span>
+    <div class="station-details" id="stationDetails">
+      <div class="station-brief" aria-label="本站问题和带走结论">
+        <span class="station-brief-item">
+          <span class="station-brief-kicker">问</span>
+          <span class="station-brief-text" id="stationQuestion">这间铺子的主人是谁？</span>
+        </span>
+        <span class="station-brief-item">
+          <span class="station-brief-kicker">带走</span>
+          <span class="station-brief-text" id="stationTakeaway">老杨把 iOS 手艺和 AI 协作放进同一间铺子。</span>
+        </span>
+      </div>
+      <div class="station-artifact" aria-live="polite">
+        <strong class="artifact-name" id="artifactName">磨亮的锤柄</strong>
+        <span class="artifact-line" id="artifactLine">握痕说明主人长期亲自下场：把移动端经验和 AI 协作一起磨顺。</span>
+        <span class="artifact-actions">
+          <button class="artifact-inspect" id="artifactInspect" type="button">鉴定</button>
+          <button class="artifact-next" id="artifactNext" type="button">换一枚</button>
+        </span>
+      </div>
     </div>
   </div>
   <p class="tour-title">巡铺路线</p>
@@ -1609,6 +1640,10 @@ window.__SCENE_DEBUG__ = {
     cue: stationLine?.textContent || '',
     actionHint: stationActionHint?.textContent || '',
     actionLabel: stationAction?.textContent || '',
+    detailsOpen: stationDetailsOpen,
+    detailsVisible: stationDetails?.classList.contains('show') || false,
+    railHeight: Math.round(tourRail?.getBoundingClientRect().height || 0),
+    detailsHeight: Math.round(stationDetails?.getBoundingClientRect().height || 0),
   }),
   receiptDetails: () => Array.from(receiptDetails?.querySelectorAll('.receipt-detail') || []).map(item => ({
     label: item.querySelector('strong')?.textContent || '',
@@ -1818,12 +1853,15 @@ const tourReceipt = document.getElementById('tourReceipt');
 const receiptSummary = document.getElementById('receiptSummary');
 const receiptOpen = document.getElementById('receiptOpen');
 const receiptDetails = document.getElementById('receiptDetails');
+const stationDetails = document.getElementById('stationDetails');
+const stationDetailsToggle = document.getElementById('stationDetailsToggle');
 const artifactName = document.getElementById('artifactName');
 const artifactLine = document.getElementById('artifactLine');
 const artifactInspect = document.getElementById('artifactInspect');
 const artifactNext = document.getElementById('artifactNext');
 const visitedTourStops = new Set(['profile']);
 const stationHotspotButtons = {};
+let stationDetailsOpen = false;
 
 function createStationHotspots() {
   TOUR_ORDER.forEach((key, index) => {
@@ -2055,6 +2093,20 @@ function setActiveNpcButton(key) {
   });
 }
 
+function setStationDetailsOpen(open, announce = false) {
+  stationDetailsOpen = !!open;
+  stationDetails.classList.toggle('show', stationDetailsOpen);
+  stationDetailsToggle.setAttribute('aria-expanded', stationDetailsOpen ? 'true' : 'false');
+  stationDetailsToggle.textContent = stationDetailsOpen ? '收起读牌' : '读牌';
+  stationDetailsToggle.setAttribute(
+    'aria-label',
+    `${stationDetailsOpen ? '收起' : '展开'}${TOUR_STOPS[activeTourType]?.title || '本站'}的问题、带走结论和物证`
+  );
+  if (announce) {
+    showContextBubble(stationDetailsOpen ? '读牌展开：先看问题、再看物证。' : '读牌收起：先看铺子，再按站点走。', 2800);
+  }
+}
+
 function renderStationArtifact() {
   const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
   const artifacts = station.artifacts || [];
@@ -2098,6 +2150,7 @@ function renderTourReceipt() {
 function inspectActiveArtifact() {
   const { station, artifact } = getActiveArtifact();
   if (!artifact) return;
+  setStationDetailsOpen(true);
   activeKey = station.npc || null;
   selectedObjectKey = station.object || null;
   setActiveNpcButton(activeKey);
@@ -2162,6 +2215,7 @@ function setActiveTourStop(type, options = {}) {
   receiptSummary.textContent = TOUR_RECEIPT_SUMMARY;
   receiptOpen.setAttribute('aria-label', complete ? '查看四站巡铺炉印回执' : '四站完成后查看炉印回执');
   renderStationArtifact();
+  setStationDetailsOpen(stationDetailsOpen);
   updateStationPinPosition();
   updateStationHotspots();
 }
@@ -2550,11 +2604,13 @@ tourStops.forEach(stop => {
 tourPrev.addEventListener('click', () => goAdjacentTourStop(-1));
 tourNext.addEventListener('click', () => goAdjacentTourStop(1));
 stationAction.addEventListener('click', runStationAction);
+stationDetailsToggle.addEventListener('click', () => setStationDetailsOpen(!stationDetailsOpen, true));
 receiptOpen.addEventListener('click', renderTourReceipt);
 artifactInspect.addEventListener('click', inspectActiveArtifact);
 artifactNext.addEventListener('click', () => {
   const artifacts = TOUR_STOPS[activeTourType]?.artifacts || [];
   if (artifacts.length < 2) return;
+  setStationDetailsOpen(true);
   activeArtifactIndex = (activeArtifactIndex + 1) % artifacts.length;
   renderStationArtifact();
 });
