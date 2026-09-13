@@ -1,0 +1,25 @@
+完成今天这一轮自迭代并已推送上线。
+
+本轮主题是“巡铺读牌分层”：把底部四站导览里原本默认常显的“问 / 带走 / 物证”收进可展开的“读牌”按钮。默认首屏更轻，访客先看到当前站、行动、进度和 3D 铁匠铺主体；需要深入时再展开读牌继续看问题、带走结论和物证。
+
+主要提交：
+
+- `cdee15db7611761470274c1e9a230a48dd518983`：`feat: 给巡铺读牌分层`
+- `d8e6395`：回填本轮记录里的作品 commit
+- `a3e6f6c`：记录线上无痕验证截图与结果
+
+验证结果：
+
+- 本地行为验证通过：`.autoloop/runs/2026-09-14_attempt_01/local_readplate_check.json`
+- 创意门禁通过：`.autoloop/runs/2026-09-14_attempt_01/creative_validation.json`
+- 线上无痕验证通过：`.autoloop/runs/2026-09-14_attempt_01/visual_verification.json`
+- 线上截图：`.autoloop/journal/assets/2026-09-14-online.png`
+- 线上 `index.html` SHA 与本地一致：`7acc7e2c42185706ccff0d2ee9d7fc1b3cb91d2e23c87a81d6698b0a123849a1`
+
+记录已更新：
+
+- `.autoloop/inputs/2026-09-14.md`
+- `.autoloop/journal/2026-09-14.md`
+- `.autoloop/CHANGELOG.md`
+
+注意：当前环境把仓库原 `.git` 挂成只读，我用 `/tmp/autoloop-git-2026-09-14` 作为临时可写 Git 目录完成 commit/push。临时 Git 状态已确认 `main...origin/main` 同步，后台本地服务也已关闭。
