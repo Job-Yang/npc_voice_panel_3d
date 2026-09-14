@@ -243,6 +243,32 @@
     background: rgba(255,119,51,.28);
     border-color: rgba(255,207,138,.62);
   }
+  .station-relay {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+    padding: 5px 8px;
+    background: rgba(142,190,123,.07);
+    border: 1px solid rgba(142,190,123,.14);
+    border-radius: 8px;
+  }
+  .station-relay-kicker {
+    color: rgba(214,240,189,.8);
+    font-size: 10px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .station-relay-text {
+    min-width: 0;
+    color: rgba(231,244,214,.76);
+    font-size: 11px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .station-progress {
     grid-column: 1 / -1;
     display: grid;
@@ -359,12 +385,12 @@
   }
   .tour-stop {
     width: 100%;
-    min-height: 34px;
+    min-height: 40px;
     margin: 0;
     display: grid;
-    grid-template-columns: 20px 1fr;
+    grid-template-columns: 20px minmax(0, 1fr);
     align-items: center;
-    gap: 5px;
+    gap: 1px 5px;
     background: rgba(255,170,100,.08);
     color: #e8d5b0;
     border: 1px solid rgba(255,170,100,.16);
@@ -372,6 +398,19 @@
     cursor: pointer;
     font-size: 12px;
     text-align: left;
+  }
+  .tour-label,
+  .tour-track {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tour-track {
+    grid-column: 2;
+    color: rgba(214,240,189,.62);
+    font-size: 10px;
+    line-height: 1;
   }
   .tour-stop:hover { background: rgba(255,170,100,.16); border-color: rgba(255,170,100,.38); }
   .tour-stop.active {
@@ -780,6 +819,15 @@
       padding: 4px 8px;
       font-size: 10px;
     }
+    .station-relay {
+      gap: 5px;
+      padding: 5px 6px;
+    }
+    .station-relay-text {
+      white-space: normal;
+      font-size: 10px;
+      line-height: 1.25;
+    }
     .station-progress {
       grid-template-columns: auto 1fr;
       gap: 5px 8px;
@@ -828,12 +876,15 @@
       font-size: 10px;
     }
     .tour-stop {
-      min-height: 32px;
+      min-height: 34px;
       margin: 0;
       grid-template-columns: 18px 1fr;
       gap: 4px;
       padding: 5px 6px;
       font-size: 11px;
+    }
+    .tour-track {
+      display: none;
     }
     .tour-index {
       width: 18px;
@@ -917,6 +968,10 @@
       <span class="station-action-hint" id="stationActionHint">读完这一站，先听主人开场。</span>
       <button class="station-action-button" id="stationAction" type="button">敲这一锤</button>
     </div>
+    <div class="station-relay" id="stationRelay" aria-label="巡铺接力">
+      <span class="station-relay-kicker" id="stationRelayKicker">锻出</span>
+      <span class="station-relay-text" id="stationRelayText">身份落点，下一锤去看方法。</span>
+    </div>
     <div class="station-progress">
       <span id="tourProgressText">已看 1/4</span>
       <span class="tour-progress-track" id="tourProgressBar" role="progressbar" aria-label="巡铺进度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" aria-valuetext="已看 1 站，共 4 站">
@@ -951,16 +1006,16 @@
   </div>
   <p class="tour-title">巡铺路线</p>
   <button class="tour-stop active visited" data-tour="profile" aria-label="第 1 站 老杨，已看">
-    <span class="tour-index">1</span><span>老杨</span>
+    <span class="tour-index">1</span><span class="tour-label">老杨</span><span class="tour-track">身份</span>
   </button>
   <button class="tour-stop" data-tour="iloop" aria-label="第二站 iLoop">
-    <span class="tour-index">2</span><span>iLoop</span>
+    <span class="tour-index">2</span><span class="tour-label">iLoop</span><span class="tour-track">方法</span>
   </button>
   <button class="tour-stop" data-tour="latest" aria-label="第三站 近况">
-    <span class="tour-index">3</span><span>近况</span>
+    <span class="tour-index">3</span><span class="tour-label">近况</span><span class="tour-track">试火</span>
   </button>
   <button class="tour-stop" data-tour="forge" aria-label="第四站 火炉">
-    <span class="tour-index">4</span><span>火炉</span>
+    <span class="tour-index">4</span><span class="tour-label">火炉</span><span class="tour-track">反馈</span>
   </button>
   <div class="tour-actions" aria-label="巡铺切换">
     <button id="tourPrev" type="button">上一站</button>
@@ -1198,9 +1253,11 @@ const TOUR_STOPS = {
     hotspotOffset: [0.12, -0.04, 0],
     step: '第 1 站',
     title: '老杨',
+    track: '身份',
     cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
     question: '这间铺子的主人是谁？',
     takeaway: '老杨把 iOS 手艺和 AI 协作放进同一间铺子。',
+    relay: '锻出身份落点：先知道是谁，再去看他怎样把 AI 协作锻成方法。',
     actionHint: '读完这一站，先听主人开场。',
     actionLabel: '敲主人锤',
     actionType: 'profile',
@@ -1229,9 +1286,11 @@ const TOUR_STOPS = {
     hotspotOffset: [0.62, -0.02, 0],
     step: '第 2 站',
     title: 'iLoop',
+    track: '方法',
     cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
     question: 'AI 协作怎样从试试看变成交付流程？',
     takeaway: '五锤闭环把计划、证据、改动、验证和收口扣在一起。',
+    relay: '锻出方法骨架：五锤闭环成形后，下一站看它每天怎样试火。',
     actionHint: '进入主炉，按顺序看五锤工序。',
     actionLabel: '看五锤',
     actionType: 'iloop',
@@ -1260,9 +1319,11 @@ const TOUR_STOPS = {
     hotspotOffset: [0.1, -0.04, 0],
     step: '第 3 站',
     title: '近况',
+    track: '试火',
     cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
     question: '这间铺子最近在试什么火？',
     takeaway: '每日只打一题，截图、日志和失败原因都留下来。',
+    relay: '锻出当日火候：每日一题留下证据，最后回到火炉看现场反馈。',
     actionHint: '看近期火候，理解这间铺子如何每日试火。',
     actionLabel: '看近况',
     actionType: 'latest',
@@ -1291,9 +1352,11 @@ const TOUR_STOPS = {
     hotspotOffset: [-0.72, -0.18, 0.05],
     step: '第 4 站',
     title: '火炉',
+    track: '反馈',
     cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
     question: '访客动手后，铺子会怎样回应？',
     takeaway: '点击火炉会触发短句、灯光和声音，把介绍变成现场反馈。',
+    relay: '锻出现场反馈：身份、方法和试火都回到一次可听可看的落锤。',
     actionHint: '到炉边亲手锻一句欢迎语。',
     actionLabel: '锻一句',
     actionType: 'forge',
@@ -1640,6 +1703,8 @@ window.__SCENE_DEBUG__ = {
     cue: stationLine?.textContent || '',
     actionHint: stationActionHint?.textContent || '',
     actionLabel: stationAction?.textContent || '',
+    relayKicker: stationRelayKicker?.textContent || '',
+    relay: stationRelayText?.textContent || '',
     detailsOpen: stationDetailsOpen,
     detailsVisible: stationDetails?.classList.contains('show') || false,
     railHeight: Math.round(tourRail?.getBoundingClientRect().height || 0),
@@ -1840,6 +1905,8 @@ const stationQuestion = document.getElementById('stationQuestion');
 const stationTakeaway = document.getElementById('stationTakeaway');
 const stationActionHint = document.getElementById('stationActionHint');
 const stationAction = document.getElementById('stationAction');
+const stationRelayKicker = document.getElementById('stationRelayKicker');
+const stationRelayText = document.getElementById('stationRelayText');
 const stationPin = document.getElementById('stationPin');
 const stationHotspots = document.getElementById('stationHotspots');
 const pinStep = document.getElementById('pinStep');
@@ -2181,7 +2248,9 @@ function setActiveTourStop(type, options = {}) {
     stop.classList.toggle('active', active);
     stop.classList.toggle('visited', visited);
     stop.setAttribute('aria-current', active ? 'step' : 'false');
-    stop.setAttribute('aria-label', `${TOUR_STOPS[stop.dataset.tour].step} ${TOUR_STOPS[stop.dataset.tour].title}${visited ? '，已看' : ''}`);
+    const stopConfig = TOUR_STOPS[stop.dataset.tour];
+    stop.querySelector('.tour-track').textContent = stopConfig.track;
+    stop.setAttribute('aria-label', `${stopConfig.step} ${stopConfig.title}，${stopConfig.track}${visited ? '，已看' : ''}`);
   });
   const station = TOUR_STOPS[activeTourType];
   stationStep.textContent = station.step;
@@ -2191,6 +2260,8 @@ function setActiveTourStop(type, options = {}) {
   stationTakeaway.textContent = station.takeaway;
   stationActionHint.textContent = station.actionHint;
   stationAction.textContent = station.actionLabel;
+  stationRelayKicker.textContent = `锻出 · ${station.track}`;
+  stationRelayText.textContent = station.relay;
   stationAction.setAttribute('aria-label', `${station.step} ${station.title}：${station.actionHint}`);
   pinStep.textContent = station.step;
   pinTitle.textContent = station.title;
