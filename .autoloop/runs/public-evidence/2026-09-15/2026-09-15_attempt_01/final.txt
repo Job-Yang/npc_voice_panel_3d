@@ -1,0 +1,20 @@
+本轮已完成并推送。
+
+今天做的是“巡铺火候接力”：在四站导览里补了 `身份 / 方法 / 试火 / 反馈` 的轨迹词，并在当前站底栏增加“锻出 · ……”接力句。访客现在能更清楚地理解四站顺序：先认识老杨，再看 iLoop 方法，再看每日试火，最后回到火炉获得现场反馈。没有新增 3D 模型，也没有碰相机、灯光、BGM 或渲染循环。
+
+已提交到 `main`：
+- `351243fc3923d6c5b6fe0780d7446321771c233a`：`feat: 给巡铺加火候接力`
+- `6958bca3ad9606a9bd7b389814b545e69e3c2189`：`docs: 补充巡铺接力验证记录`
+
+验证结果：
+- 本地验证通过：无 console error、无请求失败、loader 正常隐藏、canvas 存在。
+- 截图已保存：
+  - `.autoloop/journal/assets/2026-09-15-local.png`
+  - `.autoloop/journal/assets/2026-09-15-mobile.png`
+  - `.autoloop/journal/assets/2026-09-15-online.png`
+- 创意门禁通过：`.autoloop/runs/2026-09-15_attempt_01/creative_validation.json`
+- 线上无痕验证通过：`.autoloop/runs/2026-09-15_attempt_01/visual_verification.json`
+  - 线上和本地 `index.html` SHA-256 一致：`5920fbc00b70d5c441d19ba41fb34dc02d76505ad049c36ff7438dfdae162952`
+  - 线上页面加载正常，无 JS error，无请求失败。
+
+有一个环境细节：当前工作区的 `.git` 被只读挂载，不能直接在本目录提交，所以我按同一远端在 `/tmp` 建了临时克隆完成提交和 push。当前工作区文件内容已是本轮最终内容，但本地 `git status` 会显示落后/未暂存，这是只读 `.git` 导致无法同步索引，不影响远端 `main` 已发布的结果。
