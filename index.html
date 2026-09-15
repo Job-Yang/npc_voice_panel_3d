@@ -299,6 +299,48 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .tour-gains {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+    color: rgba(232,213,176,.64);
+    font-size: 10px;
+  }
+  .tour-gains-label {
+    color: rgba(255,207,138,.74);
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .tour-gains-list {
+    min-width: 0;
+    display: flex;
+    gap: 5px;
+    overflow: hidden;
+  }
+  .tour-gain {
+    min-width: 0;
+    max-width: 112px;
+    padding: 4px 7px;
+    border: 1px solid rgba(255,170,100,.14);
+    border-radius: 999px;
+    background: rgba(255,170,100,.06);
+    color: rgba(232,213,176,.42);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tour-gain.collected {
+    border-color: rgba(142,190,123,.28);
+    background: rgba(142,190,123,.1);
+    color: rgba(231,244,214,.86);
+  }
+  .tour-gain.active {
+    border-color: rgba(255,207,138,.45);
+    background: rgba(255,119,51,.16);
+    color: #fff1d8;
+  }
   .tour-receipt {
     grid-column: 1 / -1;
     display: none;
@@ -838,6 +880,20 @@
       white-space: normal;
       line-height: 1.25;
     }
+    .tour-gains {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+    .tour-gains-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px;
+    }
+    .tour-gain {
+      max-width: none;
+      padding: 4px 6px;
+      font-size: 10px;
+    }
     .tour-receipt {
       grid-template-columns: 1fr auto;
       gap: 5px 8px;
@@ -978,6 +1034,10 @@
         <span class="tour-progress-fill" id="tourProgressFill"></span>
       </span>
       <span class="tour-next-cue" id="tourNextCue">下一站：iLoop</span>
+    </div>
+    <div class="tour-gains" aria-label="已收下的巡铺结论" aria-live="polite">
+      <span class="tour-gains-label">炉屑袋</span>
+      <span class="tour-gains-list" id="tourGainsList"></span>
     </div>
     <div class="tour-receipt" id="tourReceipt" aria-live="polite">
       <span class="receipt-summary" id="receiptSummary">四站已齐：老杨、iLoop、近况和火炉合成一枚炉印。</span>
@@ -1257,6 +1317,7 @@ const TOUR_STOPS = {
     cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
     question: '这间铺子的主人是谁？',
     takeaway: '老杨把 iOS 手艺和 AI 协作放进同一间铺子。',
+    gain: '收下身份：iOS 手艺 + AI 工具匠',
     relay: '锻出身份落点：先知道是谁，再去看他怎样把 AI 协作锻成方法。',
     actionHint: '读完这一站，先听主人开场。',
     actionLabel: '敲主人锤',
@@ -1290,6 +1351,7 @@ const TOUR_STOPS = {
     cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
     question: 'AI 协作怎样从试试看变成交付流程？',
     takeaway: '五锤闭环把计划、证据、改动、验证和收口扣在一起。',
+    gain: '收下方法：五锤闭环',
     relay: '锻出方法骨架：五锤闭环成形后，下一站看它每天怎样试火。',
     actionHint: '进入主炉，按顺序看五锤工序。',
     actionLabel: '看五锤',
@@ -1323,6 +1385,7 @@ const TOUR_STOPS = {
     cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
     question: '这间铺子最近在试什么火？',
     takeaway: '每日只打一题，截图、日志和失败原因都留下来。',
+    gain: '收下试火：一轮一题留证据',
     relay: '锻出当日火候：每日一题留下证据，最后回到火炉看现场反馈。',
     actionHint: '看近期火候，理解这间铺子如何每日试火。',
     actionLabel: '看近况',
@@ -1356,6 +1419,7 @@ const TOUR_STOPS = {
     cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
     question: '访客动手后，铺子会怎样回应？',
     takeaway: '点击火炉会触发短句、灯光和声音，把介绍变成现场反馈。',
+    gain: '收下反馈：点击、火光和短句',
     relay: '锻出现场反馈：身份、方法和试火都回到一次可听可看的落锤。',
     actionHint: '到炉边亲手锻一句欢迎语。',
     actionLabel: '锻一句',
@@ -1705,6 +1769,11 @@ window.__SCENE_DEBUG__ = {
     actionLabel: stationAction?.textContent || '',
     relayKicker: stationRelayKicker?.textContent || '',
     relay: stationRelayText?.textContent || '',
+    gains: Array.from(document.querySelectorAll('#tourGainsList .tour-gain')).map(item => ({
+      text: item.textContent || '',
+      collected: item.classList.contains('collected'),
+      active: item.classList.contains('active'),
+    })),
     detailsOpen: stationDetailsOpen,
     detailsVisible: stationDetails?.classList.contains('show') || false,
     railHeight: Math.round(tourRail?.getBoundingClientRect().height || 0),
@@ -1916,6 +1985,7 @@ const tourProgressText = document.getElementById('tourProgressText');
 const tourProgressBar = document.getElementById('tourProgressBar');
 const tourProgressFill = document.getElementById('tourProgressFill');
 const tourNextCue = document.getElementById('tourNextCue');
+const tourGainsList = document.getElementById('tourGainsList');
 const tourReceipt = document.getElementById('tourReceipt');
 const receiptSummary = document.getElementById('receiptSummary');
 const receiptOpen = document.getElementById('receiptOpen');
@@ -2185,6 +2255,19 @@ function renderStationArtifact() {
   artifactNext.setAttribute('aria-label', `切换${station.title}的铺内物证`);
 }
 
+function renderTourGains() {
+  tourGainsList.innerHTML = '';
+  TOUR_ORDER.forEach(key => {
+    const station = TOUR_STOPS[key];
+    const collected = visitedTourStops.has(key);
+    const item = document.createElement('span');
+    item.className = `tour-gain${collected ? ' collected' : ''}${key === activeTourType ? ' active' : ''}`;
+    item.textContent = collected ? station.gain : `${station.track}待收`;
+    item.setAttribute('aria-label', `${station.title}：${collected ? station.gain : '还没有访问'}`);
+    tourGainsList.appendChild(item);
+  });
+}
+
 function getActiveArtifact() {
   const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
   const artifacts = station.artifacts || [];
@@ -2285,6 +2368,7 @@ function setActiveTourStop(type, options = {}) {
   tourReceipt.classList.toggle('show', complete);
   receiptSummary.textContent = TOUR_RECEIPT_SUMMARY;
   receiptOpen.setAttribute('aria-label', complete ? '查看四站巡铺炉印回执' : '四站完成后查看炉印回执');
+  renderTourGains();
   renderStationArtifact();
   setStationDetailsOpen(stationDetailsOpen);
   updateStationPinPosition();
