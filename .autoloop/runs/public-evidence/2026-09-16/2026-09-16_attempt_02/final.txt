@@ -1,0 +1,16 @@
+本轮从 `2026-09-16_attempt_01` 的断点继续，没有重复做第二套创意。已复核并保留今天的主题“随走随得的炉屑袋”：`index.html` 已新增四站巡铺的累计收获标签，输入卡、手记、CHANGELOG 和截图也都已写好。
+
+验证结果已补到本轮 RUN_DIR：
+
+- 创意门禁通过：`.autoloop/runs/2026-09-16_attempt_02/creative_validation.json`
+- 固定线上验证已运行：`.autoloop/runs/2026-09-16_attempt_02/visual_verification.json`
+- 线上验证失败原因仍是未发布导致 `online_html_match=false`，不是页面渲染崩坏；验证里 loader 隐藏、canvas 存在、无 console error、无请求失败。
+- 本轮最终证据已写入：`.autoloop/runs/2026-09-16_attempt_02/final.txt`
+
+阻塞仍然是环境层：`.git` 被单独只读挂载，`git add` 报：
+
+```text
+fatal: Unable to create '.../.git/index.lock': Read-only file system
+```
+
+`findmnt` 显示 `.git` 选项为 `ro,nosuid,nodev,relatime`。当前权限策略是 `never`，不能提权或改挂载，所以无法 commit、push，也无法让 GitHub Pages 更新。工作区仍保留未提交改动，线上仍停留在 2026-09-15 版本。

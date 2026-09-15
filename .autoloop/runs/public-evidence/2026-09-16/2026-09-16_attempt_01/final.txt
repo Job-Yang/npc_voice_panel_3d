@@ -1,0 +1,34 @@
+本轮已按宪法完成到“本地收口”，但发布被环境阻塞，未能 `commit/push`。
+
+已完成的改动：
+
+- [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-16/index.html)：新增“炉屑袋”，四站巡铺会按访问状态点亮“收下身份 / 方法 / 试火 / 反馈”短结论；移动端两列展示，补了 `aria-live` 和调试输出。
+- [.autoloop/inputs/2026-09-16.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-16/.autoloop/inputs/2026-09-16.md)：记录 3 个公开来源、三案竞争和最终选择。
+- [.autoloop/journal/2026-09-16.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-16/.autoloop/journal/2026-09-16.md)：记录现状、外部输入、决策、实现、本地验证和发布阻塞。
+- [.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-16/.autoloop/CHANGELOG.md)：顶部已加 2026-09-16 条目，标明本地完成但发布受阻。
+- 截图已生成：
+  - `.autoloop/journal/assets/2026-09-16-local.png`
+  - `.autoloop/journal/assets/2026-09-16-mobile.png`
+  - `.autoloop/journal/assets/2026-09-16-online.png`
+
+验证结果：
+
+- 创意门禁通过：`.autoloop/runs/2026-09-16_attempt_01/creative_validation.json`
+- 本地固定视觉验证通过：loader 隐藏、canvas 存在、无 console error、无请求失败。
+- 交互验证通过：默认 1 个炉屑已收下，访问 iLoop 后 2 个，走到火炉后 4 个；移动端 `overflowX=0`。
+- 线上固定验证运行了，但失败原因是未发布导致 SHA 不一致，不是页面渲染崩坏：
+  - 线上 SHA：`5920fbc00b70d5c441d19ba41fb34dc02d76505ad049c36ff7438dfdae162952`
+  - 本地 SHA：`3b2428778a580f2daf4fb1c2c31eab81da0ff14606190fce9a6226eb6bc885d8`
+  - 线上验证里 loader 仍正常隐藏、canvas 存在、无 error、无请求失败。
+
+阻塞点：
+
+`git add ...` 失败，报错：
+
+```text
+fatal: Unable to create '.../.git/index.lock': Read-only file system
+```
+
+进一步检查到工作区本体是 `rw`，但 `.git` 单独挂载为 `ro`，所以无法写 index、无法 commit，也无法 push。当前权限策略是 `approval policy: never`，我不能提权或改挂载；因此没有生成 commit hash，线上仍停留在上一版。
+
+本地 HTTP 服务已停止。
