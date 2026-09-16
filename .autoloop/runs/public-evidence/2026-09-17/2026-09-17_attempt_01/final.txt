@@ -1,0 +1,21 @@
+本轮已完成并发布。
+
+做了“下一锤路标”：在四站巡铺里，下一个未访问站点会同时在底部路线按钮和 3D 空间热点上显示 `下一锤` 状态。默认进入页面时，老杨是当前站，iLoop 是下一锤；点到 iLoop 后，路标自动移动到近况。没有新增模型，也没有改相机、音频或渲染循环。
+
+已推送到 `main`：
+
+- 功能提交：`6dbdb161cb6db376d5b6d0cf342a36630ceee44e`
+- 记录回填提交：`07104ceb16478c166d92a513f8440ea3b5844131`
+
+验证结果：
+
+- 本地交互验证通过：`.autoloop/runs/2026-09-17_attempt_01/local_next_marker_check.json`
+- 创意门禁通过：`.autoloop/runs/2026-09-17_attempt_01/creative_validation.json`
+- 线上无痕验证通过：`.autoloop/runs/2026-09-17_attempt_01/visual_verification.json`
+- 线上 `index.html` SHA 与本地一致：`1c2a0339adbcb2c6ee6e70200969b617124f542bfcb7e0f53644b3842e2ac7a3`
+- 截图已写入：
+  - `.autoloop/journal/assets/2026-09-17-local.png`
+  - `.autoloop/journal/assets/2026-09-17-mobile.png`
+  - `.autoloop/journal/assets/2026-09-17-online.png`
+
+注意：当前工作区的 `.git` 仍是只读挂载，所以本地 `git status` 会显示相对本地 HEAD 的未提交/behind 状态；实际改动已通过 `/tmp` 临时克隆提交并推送到远端。
