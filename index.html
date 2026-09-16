@@ -426,6 +426,7 @@
     color: rgba(255,207,138,.88);
   }
   .tour-stop {
+    position: relative;
     width: 100%;
     min-height: 40px;
     margin: 0;
@@ -459,6 +460,26 @@
     background: rgba(255,119,51,.22);
     border-color: rgba(255,140,70,.72);
     color: #fff1d8;
+  }
+  .tour-stop.next:not(.active)::after {
+    content: "下一锤";
+    position: absolute;
+    top: -8px;
+    right: 6px;
+    padding: 1px 5px 2px;
+    background: rgba(20, 14, 10, .92);
+    color: #ffcf8a;
+    border: 1px solid rgba(255,207,138,.38);
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.28);
+    font-size: 9px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .tour-stop.next:not(.active) {
+    border-color: rgba(255,207,138,.5);
+    background: rgba(255,170,100,.13);
+    box-shadow: inset 0 0 0 1px rgba(255,207,138,.1);
   }
   .tour-stop.visited:not(.active) {
     border-color: rgba(255,207,138,.34);
@@ -688,6 +709,29 @@
     background: rgba(255,119,51,.22);
     border-color: rgba(255,140,70,.72);
     box-shadow: 0 8px 22px rgba(0,0,0,.34), 0 0 18px rgba(255,119,51,.2);
+  }
+  .station-hotspot.next:not(.active) {
+    opacity: .96;
+    color: #ffcf8a;
+    border-color: rgba(255,207,138,.58);
+    background: rgba(42, 24, 14, .84);
+    box-shadow: 0 8px 22px rgba(0,0,0,.32), 0 0 16px rgba(255,207,138,.16);
+  }
+  .station-hotspot.next:not(.active)::after {
+    content: "下一锤";
+    position: absolute;
+    left: 50%;
+    top: -18px;
+    transform: translateX(-50%);
+    padding: 1px 5px 2px;
+    background: rgba(20, 14, 10, .9);
+    color: #ffcf8a;
+    border: 1px solid rgba(255,207,138,.34);
+    border-radius: 999px;
+    font-size: 9px;
+    line-height: 1.2;
+    white-space: nowrap;
+    pointer-events: none;
   }
   .station-hotspot.visited:not(.active) {
     color: rgba(231,244,214,.9);
@@ -1748,6 +1792,7 @@ window.__SCENE_DEBUG__ = {
         text: btn.textContent.replace(/\s+/g, ' ').trim(),
         visible: btn.classList.contains('show'),
         active: btn.classList.contains('active'),
+        next: btn.classList.contains('next'),
         visited: btn.classList.contains('visited'),
         rect: {
           left: rect.left,
@@ -1762,6 +1807,7 @@ window.__SCENE_DEBUG__ = {
   ),
   stationBrief: () => ({
     activeTourType,
+    nextTourType: getNextTourKey(),
     question: stationQuestion?.textContent || '',
     takeaway: stationTakeaway?.textContent || '',
     cue: stationLine?.textContent || '',
@@ -2197,6 +2243,7 @@ function updateStationPinPosition() {
 }
 
 function updateStationHotspots() {
+  const nextKey = getNextTourKey();
   Object.entries(stationHotspotButtons).forEach(([key, btn]) => {
     const screen = worldToViewport(getStationHotspotPosition(key));
     const width = btn.offsetWidth || 74;
@@ -2206,6 +2253,7 @@ function updateStationHotspots() {
     const visible = !screen.behind && !hiddenByRail;
     btn.classList.toggle('show', visible);
     btn.classList.toggle('active', key === activeTourType);
+    btn.classList.toggle('next', key === nextKey);
     btn.classList.toggle('visited', visitedTourStops.has(key));
     btn.setAttribute('aria-current', key === activeTourType ? 'step' : 'false');
     if (!visible) return;
@@ -2268,6 +2316,14 @@ function renderTourGains() {
   });
 }
 
+function getNextTourKey() {
+  const currentIndex = Math.max(0, TOUR_ORDER.indexOf(activeTourType));
+  return TOUR_ORDER
+    .slice(currentIndex + 1)
+    .concat(TOUR_ORDER.slice(0, currentIndex))
+    .find(key => !visitedTourStops.has(key)) || null;
+}
+
 function getActiveArtifact() {
   const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
   const artifacts = station.artifacts || [];
@@ -2325,15 +2381,18 @@ function setActiveTourStop(type, options = {}) {
     activeArtifactIndex = 0;
   }
   visitedTourStops.add(activeTourType);
+  const nextKey = getNextTourKey();
   tourStops.forEach(stop => {
     const active = stop.dataset.tour === activeTourType;
     const visited = visitedTourStops.has(stop.dataset.tour);
+    const next = stop.dataset.tour === nextKey;
     stop.classList.toggle('active', active);
+    stop.classList.toggle('next', next);
     stop.classList.toggle('visited', visited);
     stop.setAttribute('aria-current', active ? 'step' : 'false');
     const stopConfig = TOUR_STOPS[stop.dataset.tour];
     stop.querySelector('.tour-track').textContent = stopConfig.track;
-    stop.setAttribute('aria-label', `${stopConfig.step} ${stopConfig.title}，${stopConfig.track}${visited ? '，已看' : ''}`);
+    stop.setAttribute('aria-label', `${stopConfig.step} ${stopConfig.title}，${stopConfig.track}${visited ? '，已看' : ''}${next ? '，下一锤' : ''}`);
   });
   const station = TOUR_STOPS[activeTourType];
   stationStep.textContent = station.step;
@@ -2351,11 +2410,6 @@ function setActiveTourStop(type, options = {}) {
   pinLine.textContent = station.pinLine;
   const visitedCount = visitedTourStops.size;
   const totalCount = TOUR_ORDER.length;
-  const currentIndex = TOUR_ORDER.indexOf(activeTourType);
-  const nextKey = TOUR_ORDER
-    .slice(currentIndex + 1)
-    .concat(TOUR_ORDER.slice(0, currentIndex))
-    .find(key => !visitedTourStops.has(key));
   const nextText = visitedCount >= totalCount
     ? '巡铺完成：可以回火炉再锻一句'
     : `下一站：${TOUR_STOPS[nextKey].title}`;
