@@ -1,0 +1,32 @@
+本轮已完成并推送到 `main`，线上地址已验证通过：  
+https://job-yang.github.io/npc_voice_panel_3d/
+
+今天的主题是“稳火阅读模式”：在右上角新增 `稳火` 开关，并尊重系统 `prefers-reduced-motion`。开启后会收敛火焰闪烁、火苗形变、NPC 动作速度、相机飞行和界面弹跳；四站巡铺、读牌、物证、火炉点击等核心交互保持可用，没有新增 3D 物件。
+
+已写入本轮实验记录：
+
+- 输入卡：[.autoloop/inputs/2026-09-18.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-18/.autoloop/inputs/2026-09-18.md)
+- 手记：[.autoloop/journal/2026-09-18.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-18/.autoloop/journal/2026-09-18.md)
+- CHANGELOG：[.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-18/.autoloop/CHANGELOG.md)
+- 本地截图：`.autoloop/journal/assets/2026-09-18-local.png`
+- 稳火截图：`.autoloop/journal/assets/2026-09-18-local-steady.png`
+- 移动端截图：`.autoloop/journal/assets/2026-09-18-mobile.png`
+- 线上截图：`.autoloop/journal/assets/2026-09-18-online.png`
+
+验证结果：
+
+- `node --check` 通过
+- `git diff --check` 通过
+- 创意门禁 `validate_creative_round.py` 通过
+- 本地固定渲染验证通过，无 console error、无请求失败
+- 稳火状态验证通过：点击后 `reducedMotion=true`、`body.motion-reduced=true`、`aria-pressed=true`
+- 移动端布局验证通过：`overflowX=0`
+- 线上无痕验证第二次通过，线上 `index.html` SHA 与本地一致：`13609f7657c6bb2c54d815209ab7627e92389fe7cf0a93c8a5f2aee00e11c1d4`
+
+提交情况：
+
+- 作品提交：`536d77f5ce7dca808f81d211de1e5256d7851ff7`
+- 记录补提交：`c6e9492fb9a84371a37b00820f70b12c2e755fab`
+- 线上验证记录提交：`d775fa1fe2a2764b924a2a6bf68c8904b8fde2c7`
+
+当前工作区的 `.git` 仍是只读挂载，所以本地 `git status` 会显示本轮文件为未提交状态；实际内容已通过 `/tmp` 临时克隆提交并推送到远端 `main`。本轮启动的本地预览服务也已关闭。
