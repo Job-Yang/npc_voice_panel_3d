@@ -82,6 +82,23 @@
   }
   .mode-toggle:hover { background: rgba(35, 22, 16, .86); }
   .mode-toggle.forge { color: #ffb86b; border-color: rgba(255,120,40,.55); background: rgba(50, 22, 10, .8); }
+  .motion-toggle {
+    position: fixed; top: 16px; right: 190px; z-index: 20;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 12px;
+    background: rgba(20, 14, 10, .76); color: #d6f0bd;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(142,190,123,.22); border-radius: 12px;
+    cursor: pointer; font-size: 13px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .motion-toggle:hover { background: rgba(26, 38, 20, .86); }
+  .motion-toggle.active {
+    color: #fff1d8;
+    border-color: rgba(214,240,189,.58);
+    background: rgba(35, 58, 28, .82);
+  }
   .panel {
     position: fixed; top: 64px; left: 16px; z-index: 19;
     background: rgba(20, 14, 10, .72); backdrop-filter: blur(10px);
@@ -827,6 +844,34 @@
   .loader .text { font-size: 13px; color: #ffaa66; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  @media (prefers-reduced-motion: reduce) {
+    .loader .spinner {
+      animation: none;
+    }
+  }
+  .motion-reduced .loader .spinner {
+    animation: none;
+  }
+  .motion-reduced .station-pin,
+  .motion-reduced .station-hotspot,
+  .motion-reduced .npc-bubble,
+  .motion-reduced .dialog,
+  .motion-reduced .panel,
+  .motion-reduced .tour-progress-fill {
+    transition-duration: .01ms;
+  }
+  .motion-reduced .station-hotspot:hover,
+  .motion-reduced .station-hotspot:focus-visible,
+  .motion-reduced .station-hotspot.show,
+  .motion-reduced .station-hotspot.active,
+  .motion-reduced .station-hotspot.next:not(.active) {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .motion-reduced .station-pin.show,
+  .motion-reduced .npc-bubble.show {
+    transform: translate(-50%, -130%);
+  }
+
   @media (max-width: 640px) {
     .topbar {
       top: 10px;
@@ -847,6 +892,12 @@
     .panel-toggle { top: 58px; left: 12px; }
     .mode-toggle { top: 58px; right: 86px; }
     .bgm-toggle { top: 58px; right: 12px; }
+    .motion-toggle {
+      top: 58px;
+      right: 165px;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
     .panel { top: 106px; left: 12px; max-width: calc(100vw - 24px); }
     .tour-rail {
       left: 12px;
@@ -1055,6 +1106,7 @@
 </div>
 
 <button class="panel-toggle" id="panelToggle">⚙️ 控制面板</button>
+<button class="motion-toggle" id="motionToggle" type="button" aria-pressed="false" title="降低持续动效">稳火</button>
 <button class="mode-toggle" id="modeToggle" title="场景模式">🕯️ 舒缓</button>
 <button class="bgm-toggle" id="bgmToggle" title="背景音乐">🔇 音乐</button>
 
@@ -1538,6 +1590,8 @@ let activeTourType = 'profile';
 let activeArtifactIndex = 0;
 let yqClickCount = 0;
 let typedSecret = '';
+const reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+let reducedMotion = reducedMotionQuery?.matches || false;
 
 const NPC_CONFIG = {
   master:     { name: '老杨是谁', url: './assets/rigged/npc_master.glb?v=behavior-3',     position: [-3.15, 0, 2.95], scale: 1.0, color: 0x884422,
@@ -1808,6 +1862,7 @@ window.__SCENE_DEBUG__ = {
   stationBrief: () => ({
     activeTourType,
     nextTourType: getNextTourKey(),
+    reducedMotion,
     question: stationQuestion?.textContent || '',
     takeaway: stationTakeaway?.textContent || '',
     cue: stationLine?.textContent || '',
@@ -1829,6 +1884,17 @@ window.__SCENE_DEBUG__ = {
     label: item.querySelector('strong')?.textContent || '',
     text: item.querySelector('span')?.textContent || '',
   })),
+  motion: () => ({
+    reducedMotion,
+    bodyClass: document.body.classList.contains('motion-reduced'),
+    buttonPressed: motionBtn?.getAttribute('aria-pressed') === 'true',
+    fireBaseIntensity,
+    sceneMode: SCENE_MODE,
+    activeMotionStates: Object.fromEntries(Object.entries(npcs).map(([key, npc]) => [
+      key,
+      npc.motion?.snapshot() || null,
+    ])),
+  }),
 };
 
 function tickLoad() {
@@ -1866,7 +1932,7 @@ function setCameraDistance(distance) {
 }
 
 function resetOverview() {
-  animateCamera(getCameraPosition(DEFAULT_CAMERA_DISTANCE, DEFAULT_CAMERA_TARGET), DEFAULT_CAMERA_TARGET.clone(), 600);
+  animateCamera(getCameraPosition(DEFAULT_CAMERA_DISTANCE, DEFAULT_CAMERA_TARGET), DEFAULT_CAMERA_TARGET.clone(), reducedMotion ? 0 : 600);
 }
 
 function hideCoalPiles() {
@@ -2147,6 +2213,7 @@ canvas.addEventListener('click', e => {
 });
 
 function respondNPC(key, selected = false) {
+  if (reducedMotion && !selected) return false;
   npcs[key]?.motion?.respond(selected);
 }
 
@@ -2770,13 +2837,19 @@ function focusOn(target) {
   const center = box.getCenter(new THREE.Vector3());
   const targetPos = center.clone();
   targetPos.y = Math.max(1.15, center.y * 0.9);
-  animateCamera(getCameraPosition(7.2, targetPos), targetPos, 800);
+  animateCamera(getCameraPosition(7.2, targetPos), targetPos, reducedMotion ? 0 : 800);
 }
 
 let cameraTween = 0;
 controls.addEventListener('start', () => { cameraTween++; });
 function animateCamera(toPos, toTarget, duration) {
   const tween = ++cameraTween;
+  if (duration <= 0) {
+    camera.position.copy(toPos);
+    controls.target.copy(toTarget);
+    controls.update();
+    return;
+  }
   const fromPos = camera.position.clone();
   const fromTarget = controls.target.clone();
   const start = performance.now();
@@ -2871,6 +2944,31 @@ document.getElementById('resetView').addEventListener('click', () => {
   resetOverview();
 });
 
+const motionBtn = document.getElementById('motionToggle');
+function refreshMotionBtn() {
+  document.body.classList.toggle('motion-reduced', reducedMotion);
+  motionBtn.classList.toggle('active', reducedMotion);
+  motionBtn.setAttribute('aria-pressed', reducedMotion ? 'true' : 'false');
+  motionBtn.textContent = reducedMotion ? '稳火开' : '稳火';
+  motionBtn.title = reducedMotion ? '稳火阅读已开启，持续动效已降低' : '降低持续动效';
+}
+function setReducedMotion(value, announce = false) {
+  reducedMotion = !!value;
+  if (reducedMotion) {
+    forgePulseUntil = 0;
+  }
+  refreshMotionBtn();
+  if (announce) {
+    showContextBubble(reducedMotion ? '稳火已开：火候和人物动效收住，适合慢读。' : '稳火已关：火候和人物动效恢复。', 3200);
+  }
+}
+motionBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setReducedMotion(!reducedMotion, true);
+});
+reducedMotionQuery?.addEventListener?.('change', event => setReducedMotion(event.matches));
+refreshMotionBtn();
+
 // ============== 渲染循环 ==============
 const clock = new THREE.Clock();
 function animate() {
@@ -2878,14 +2976,15 @@ function animate() {
   const delta = clock.getDelta();
   const t = clock.elapsedTime;
   // 炉火轻微闪烁(基准强度随场景模式变化)
-  fireLight.intensity += (Math.random() - 0.5) * 0.06;
+  const motionFactor = reducedMotion ? 0 : 1;
+  fireLight.intensity += (Math.random() - 0.5) * 0.06 * motionFactor;
   const fireMin = fireBaseIntensity * 0.55, fireMax = fireBaseIntensity * 1.25;
   fireLight.intensity = Math.max(fireMin, Math.min(fireMax, fireLight.intensity));
   // 火炉模式火苗跳得更欢
-  const flickerAmp = SCENE_MODE === 'forge' ? 0.22 : 0.12;
-  furnaceCoreLight.intensity = fireBaseIntensity * 0.6 + Math.sin(t * 8.5) * flickerAmp + Math.random() * 0.08;
+  const flickerAmp = (SCENE_MODE === 'forge' ? 0.22 : 0.12) * motionFactor;
+  furnaceCoreLight.intensity = fireBaseIntensity * 0.6 + Math.sin(t * 8.5) * flickerAmp + Math.random() * 0.08 * motionFactor;
   const pulseLeft = Math.max(0, forgePulseUntil - performance.now());
-  const forgePulse = pulseLeft ? Math.sin((1 - pulseLeft / 1800) * Math.PI) : 0;
+  const forgePulse = reducedMotion ? 0 : pulseLeft ? Math.sin((1 - pulseLeft / 1800) * Math.PI) : 0;
   if (forgePulse) {
     fireLight.intensity += forgePulse * 1.15;
     furnaceCoreLight.intensity += forgePulse * 0.9;
@@ -2893,14 +2992,14 @@ function animate() {
 
   // 炉膛火焰网格轻微形变 + 呼吸缩放，营造燃烧感
   if (furnaceFireMesh) {
-    furnaceFireMesh.scale.x = 1 + Math.sin(t * 7.5) * 0.035;
-    furnaceFireMesh.scale.y = 1 + Math.sin(t * 11.0) * 0.06 + forgePulse * 0.08;
-    furnaceFireMesh.scale.z = 1 + Math.cos(t * 6.3) * 0.03;
+    furnaceFireMesh.scale.x = 1 + Math.sin(t * 7.5) * 0.035 * motionFactor;
+    furnaceFireMesh.scale.y = 1 + Math.sin(t * 11.0) * 0.06 * motionFactor + forgePulse * 0.08;
+    furnaceFireMesh.scale.z = 1 + Math.cos(t * 6.3) * 0.03 * motionFactor;
     furnaceFireMesh.position.y = 0;
     // 性能：逐顶点形变只在火炉模式跑，且每 2 帧更新一次（减半 GPU 顶点上传）
     fireVtxFrame = (fireVtxFrame + 1) & 1;
     const posAttr = furnaceFireMesh.geometry?.attributes?.position;
-    if (SCENE_MODE === 'forge' && posAttr && furnaceFireBasePositions && fireVtxFrame === 0) {
+    if (!reducedMotion && SCENE_MODE === 'forge' && posAttr && furnaceFireBasePositions && fireVtxFrame === 0) {
       const arr = posAttr.array;
       for (let i = 0; i < arr.length; i += 3) {
         const baseX = furnaceFireBasePositions[i];
@@ -2915,26 +3014,28 @@ function animate() {
       posAttr.needsUpdate = true;
     }
     if (furnaceFireMesh.material && 'emissiveIntensity' in furnaceFireMesh.material) {
-      furnaceFireMesh.material.emissiveIntensity = 1.35 + Math.sin(t * 10.0) * 0.18 + Math.random() * 0.08;
+      furnaceFireMesh.material.emissiveIntensity = reducedMotion
+        ? 1.24
+        : 1.35 + Math.sin(t * 10.0) * 0.18 + Math.random() * 0.08;
     }
   }
 
   // 骨骼待机保持脚底贴地；无动画模型才使用整体起伏。
   Object.entries(npcs).forEach(([key, n], i) => {
     if (n.motion) {
-      n.motion.update(delta, {
+      n.motion.update(delta * (reducedMotion ? 0.12 : 1), {
         selected: activeKey === key && dialog.classList.contains('show'),
-        hovered: hoverKey === `npc:${key}`,
+        hovered: !reducedMotion && hoverKey === `npc:${key}`,
         camera,
       });
       n.root.position.y = n.baseY;
     } else if (n.root) {
-      n.root.position.y = n.baseY + Math.sin(t * 1.4 + i * 1.7) * 0.012;
+      n.root.position.y = n.baseY + Math.sin(t * 1.4 + i * 1.7) * 0.012 * motionFactor;
     }
     // 头顶氛围光跟随轻微脉动(火炉模式更明显)
     const halo = npcHaloLights[key];
     if (halo) {
-      const pulseAmp = SCENE_MODE === 'forge' ? 0.18 : 0.06;
+      const pulseAmp = (SCENE_MODE === 'forge' ? 0.18 : 0.06) * motionFactor;
       const base = SCENE_PRESETS[SCENE_MODE].haloIntensity;
       halo.light.intensity = base + Math.sin(t * 2.2 + i * 2.1) * pulseAmp;
     }
@@ -3099,7 +3200,7 @@ function applySceneMode(mode, { animateLight = true } = {}) {
   refreshBgmBtn();
 
   // 火炉模式立刻让大家热闹起来:强制触发一次说话
-  if (mode === 'forge') {
+  if (mode === 'forge' && !reducedMotion) {
     setTimeout(() => triggerRandomAmbientTalk(true), 300);
   } else {
     // 切回舒缓:停掉正在播的语音,回归安静冒泡
