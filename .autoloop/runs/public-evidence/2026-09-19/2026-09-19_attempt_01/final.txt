@@ -1,0 +1,22 @@
+本轮已完成并推送。
+
+今天主题是“锤后炉印便签”：在四站巡铺底部新增一层短摘要，当前站显示“刚锻出”的收获，已访问站保留对应炉印，未访问站显示待落锤。改动集中在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-19/index.html)，没有新增 3D 模型，也没有碰渲染循环和引擎文件。
+
+已写入：
+- 输入卡：[.autoloop/inputs/2026-09-19.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-19/.autoloop/inputs/2026-09-19.md)
+- 手记：[.autoloop/journal/2026-09-19.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-19/.autoloop/journal/2026-09-19.md)
+- CHANGELOG：[.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-19/.autoloop/CHANGELOG.md)
+
+验证结果：
+- 本地固定视觉验证：passed
+- 移动端炉印切站检查：passed，`overflowX=0`
+- 创意门禁：passed
+- 线上无痕验证：第三次通过，线上 `index.html` SHA 与本地一致，canvas 正常，无 console error、无请求失败
+- 线上截图：[.autoloop/journal/assets/2026-09-19-online.png](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-19/.autoloop/journal/assets/2026-09-19-online.png)
+
+提交情况：
+- 功能提交：`f09c7beac53a9501380782c3ad023ded1bc93ba1`
+- 线上验证回填提交：`d263cd380299d7147edee50821230d67f67d58d0`
+- 已推送到 `main`
+
+说明一下：当前工作区 `.git` 仍是只读挂载，所以本地 `git status` 会显示本轮文件未提交；实际提交和推送已通过临时克隆完成，远端 `main` 已到 `d263cd3`。
