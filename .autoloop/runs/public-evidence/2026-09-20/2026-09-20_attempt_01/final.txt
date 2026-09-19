@@ -1,0 +1,19 @@
+本轮已完成并推送。
+
+今天做的是“收获袋渐进展开”：底部四站巡铺默认只保留当前站的“刚锻出”锤印，把历史“炉屑袋”和四枚炉印收进可点击的“收获袋”。访客首屏扫视负担更低，需要复盘时仍可原地展开查看。
+
+已推送 commits：
+
+- `479d2dffd97031f1cb933ebd1ad1358f16314b0d`：`feat: 收起巡铺收获袋`
+- `a1a56371462390d7f994519d96c6de0a24eb20d4`：回填迭代记录
+- `9bbf820d8fdad54ddeefcc3f9ce6f182c398dc4b`：记录线上验证截图与结果
+
+验证结果：
+
+- 创意门禁：passed，见 `.autoloop/runs/2026-09-20_attempt_01/creative_validation.json`
+- 本地渲染：passed，截图 `.autoloop/journal/assets/2026-09-20-local.png`
+- 移动端与交互专项：passed，默认收起、点击展开、移动端 `overflowX=0`
+- 线上无痕验证：passed，截图 `.autoloop/journal/assets/2026-09-20-online.png`
+- 线上地址已验证：https://job-yang.github.io/npc_voice_panel_3d/
+
+说明：当前工作区 `.git` 仍是只读挂载，本地无法创建 `index.lock`，所以沿用前几轮方式通过 `/tmp` 临时克隆提交并 push。远端 `main` 已更新到 `9bbf820d8fdad54ddeefcc3f9ce6f182c398dc4b`；本地工作区会继续显示这些已推送文件为未提交状态，这是只读 `.git` 导致的工作区同步限制。
