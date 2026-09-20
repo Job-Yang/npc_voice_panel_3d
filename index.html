@@ -859,6 +859,61 @@
     white-space: nowrap;
   }
 
+  .tour-path {
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .tour-path-line {
+    stroke: rgba(255,207,138,.2);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 3 8;
+    fill: none;
+  }
+  .tour-path-line.visited {
+    stroke: rgba(142,190,123,.36);
+    stroke-dasharray: 1 0;
+  }
+  .tour-path-line.next {
+    stroke: rgba(255,207,138,.74);
+    stroke-width: 3;
+    stroke-dasharray: 7 7;
+    filter: drop-shadow(0 0 6px rgba(255,150,70,.34));
+  }
+  .tour-path-node {
+    fill: rgba(20,14,10,.78);
+    stroke: rgba(255,170,100,.34);
+    stroke-width: 2;
+  }
+  .tour-path-node.visited {
+    fill: rgba(57,84,42,.88);
+    stroke: rgba(142,190,123,.72);
+  }
+  .tour-path-node.active {
+    fill: #ff7733;
+    stroke: #fff1d8;
+    filter: drop-shadow(0 0 8px rgba(255,119,51,.55));
+  }
+  .tour-path-node.next {
+    fill: #ffcf8a;
+    stroke: rgba(255,255,255,.9);
+    filter: drop-shadow(0 0 8px rgba(255,207,138,.5));
+  }
+  .tour-path-label {
+    fill: rgba(255,241,216,.92);
+    font-size: 10px;
+    font-weight: 650;
+    paint-order: stroke;
+    stroke: rgba(20,14,10,.9);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+
   .npc-bubble {
     position: fixed;
     min-width: 170px;
@@ -932,6 +987,8 @@
   }
   .motion-reduced .station-pin,
   .motion-reduced .station-hotspot,
+  .motion-reduced .tour-path-line,
+  .motion-reduced .tour-path-node,
   .motion-reduced .npc-bubble,
   .motion-reduced .dialog,
   .motion-reduced .panel,
@@ -1214,6 +1271,8 @@
 <button class="motion-toggle" id="motionToggle" type="button" aria-pressed="false" title="降低持续动效">稳火</button>
 <button class="mode-toggle" id="modeToggle" title="场景模式">🕯️ 舒缓</button>
 <button class="bgm-toggle" id="bgmToggle" title="背景音乐">🔇 音乐</button>
+
+<svg class="tour-path" id="tourPath" aria-hidden="true"></svg>
 
 <nav class="tour-rail" aria-label="巡铺路线">
   <div class="station-cue" id="stationCue" aria-live="polite">
@@ -1976,6 +2035,32 @@ window.__SCENE_DEBUG__ = {
       }];
     }),
   ),
+  tourPath: () => ({
+    activeTourType,
+    nextTourType: getNextTourKey(),
+    lineCount: tourPathLines.length,
+    visibleLines: tourPathLines.filter(line => line.style.display !== 'none').map(line => ({
+      from: line.dataset.from,
+      to: line.dataset.to,
+      next: line.classList.contains('next'),
+      visited: line.classList.contains('visited'),
+      x1: Number(line.getAttribute('x1') || 0),
+      y1: Number(line.getAttribute('y1') || 0),
+      x2: Number(line.getAttribute('x2') || 0),
+      y2: Number(line.getAttribute('y2') || 0),
+    })),
+    nodes: Object.fromEntries(Object.entries(tourPathNodes).map(([key, parts]) => [
+      key,
+      {
+        visible: parts.group.style.display !== 'none',
+        active: parts.node.classList.contains('active'),
+        next: parts.node.classList.contains('next'),
+        visited: parts.node.classList.contains('visited'),
+        label: parts.label.textContent || '',
+        transform: parts.group.getAttribute('transform') || '',
+      },
+    ])),
+  }),
   stationBrief: () => ({
     activeTourType,
     nextTourType: getNextTourKey(),
@@ -2202,6 +2287,7 @@ const npcBubble = document.getElementById('npcBubble');
 const sidePanel = document.getElementById('sidePanel');
 const panelToggle = document.getElementById('panelToggle');
 const tourRail = document.querySelector('.tour-rail');
+const tourPath = document.getElementById('tourPath');
 const tourStops = document.querySelectorAll('.tour-stop');
 const tourPrev = document.getElementById('tourPrev');
 const tourNext = document.getElementById('tourNext');
@@ -2240,6 +2326,8 @@ const artifactInspect = document.getElementById('artifactInspect');
 const artifactNext = document.getElementById('artifactNext');
 const visitedTourStops = new Set(['profile']);
 const stationHotspotButtons = {};
+const tourPathNodes = {};
+const tourPathLines = [];
 let stationDetailsOpen = false;
 let tourHarvestOpen = false;
 
@@ -2258,6 +2346,37 @@ function createStationHotspots() {
     });
     stationHotspots.appendChild(btn);
     stationHotspotButtons[key] = btn;
+  });
+}
+
+function svgEl(tag) {
+  return document.createElementNS('http://www.w3.org/2000/svg', tag);
+}
+
+function createTourPath() {
+  if (!tourPath) return;
+  TOUR_ORDER.slice(0, -1).forEach((key, index) => {
+    const line = svgEl('line');
+    line.classList.add('tour-path-line');
+    line.dataset.from = key;
+    line.dataset.to = TOUR_ORDER[index + 1];
+    tourPath.appendChild(line);
+    tourPathLines.push(line);
+  });
+  TOUR_ORDER.forEach((key, index) => {
+    const group = svgEl('g');
+    group.dataset.tour = key;
+    const node = svgEl('circle');
+    node.setAttribute('r', '5');
+    node.classList.add('tour-path-node');
+    const label = svgEl('text');
+    label.classList.add('tour-path-label');
+    label.textContent = `${index + 1}`;
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('dominant-baseline', 'central');
+    group.append(node, label);
+    tourPath.appendChild(group);
+    tourPathNodes[key] = { group, node, label };
   });
 }
 
@@ -2460,6 +2579,56 @@ function updateStationHotspots() {
   });
 }
 
+function getTourPathPoint(type) {
+  const screen = worldToViewport(getStationHotspotPosition(type));
+  const railTop = tourRail?.getBoundingClientRect().top ?? innerHeight;
+  const hiddenByRail = innerWidth <= 640 && screen.y > railTop - 24;
+  return {
+    ...screen,
+    visible: !screen.behind && !hiddenByRail,
+    x: Math.max(16, Math.min(innerWidth - 16, screen.x)),
+    y: Math.max(18, Math.min(innerHeight - 18, screen.y)),
+  };
+}
+
+function updateTourPath() {
+  if (!tourPath) return;
+  const nextKey = getNextTourKey();
+  const points = {};
+  TOUR_ORDER.forEach(key => {
+    points[key] = getTourPathPoint(key);
+  });
+  tourPathLines.forEach(line => {
+    const fromKey = line.dataset.from;
+    const toKey = line.dataset.to;
+    const from = points[fromKey];
+    const to = points[toKey];
+    const visible = from?.visible && to?.visible;
+    line.style.display = visible ? '' : 'none';
+    if (!visible) return;
+    line.setAttribute('x1', from.x);
+    line.setAttribute('y1', from.y);
+    line.setAttribute('x2', to.x);
+    line.setAttribute('y2', to.y);
+    const visited = visitedTourStops.has(fromKey) && visitedTourStops.has(toKey);
+    line.classList.toggle('visited', visited);
+    line.classList.toggle('next', fromKey === activeTourType && toKey === nextKey);
+  });
+  Object.entries(tourPathNodes).forEach(([key, parts]) => {
+    const point = points[key];
+    parts.group.style.display = point?.visible ? '' : 'none';
+    if (!point?.visible) return;
+    parts.group.setAttribute('transform', `translate(${point.x} ${point.y})`);
+    const active = key === activeTourType;
+    const next = key === nextKey;
+    const visited = visitedTourStops.has(key);
+    parts.node.classList.toggle('active', active);
+    parts.node.classList.toggle('next', next);
+    parts.node.classList.toggle('visited', visited && !active && !next);
+    parts.label.textContent = active ? '锤' : (next ? '下' : String(TOUR_ORDER.indexOf(key) + 1));
+  });
+}
+
 function togglePanel(force) {
   const show = typeof force === 'boolean' ? force : !sidePanel.classList.contains('show');
   sidePanel.classList.toggle('show', show);
@@ -2657,6 +2826,7 @@ function setActiveTourStop(type, options = {}) {
   setStationDetailsOpen(stationDetailsOpen);
   updateStationPinPosition();
   updateStationHotspots();
+  updateTourPath();
 }
 
 function tourTypeForNpc(key) {
@@ -3207,6 +3377,7 @@ function animate() {
   updateNPCBubblePosition();
   updateStationPinPosition();
   updateStationHotspots();
+  updateTourPath();
   controls.update();
   renderer.render(scene, camera);
 }
@@ -3439,6 +3610,7 @@ applySceneMode(initialMode, { animateLight: false });
 startBgmDefault();
 
 createStationHotspots();
+createTourPath();
 setActiveTourStop('profile');
 togglePanel(false);
 
@@ -3455,6 +3627,7 @@ addEventListener('resize', () => {
     renderer.shadowMap.needsUpdate = true; // 尺寸变了，重渲一次冻结阴影
     updateStationPinPosition();
     updateStationHotspots();
+    updateTourPath();
   });
 });
 </script>
