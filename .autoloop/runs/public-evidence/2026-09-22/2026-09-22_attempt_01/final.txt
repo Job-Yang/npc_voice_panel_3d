@@ -1,0 +1,20 @@
+本轮完成并已推送到 `main`，线上地址已验证：
+
+https://job-yang.github.io/npc_voice_panel_3d/
+
+今天做的是“轻读炉牌”：把巡铺接力、进度、锤后炉印、收获袋和回执从默认首屏收进可展开的“炉牌”，默认只保留当前站、主动作、读牌、炉牌和四站入口，让 3D 铁匠铺主体露出更多。展开炉牌后，原来的进度和炉印信息仍完整可见。
+
+验证结果：
+- 创意门禁：`passed`
+- 本地桌面检查：`passed`，默认底栏高度 `154px`，展开炉牌后 `253px`，无 console error、无请求失败、无横向溢出
+- 线上无痕验证：`passed`，线上 `index.html` SHA 与本地一致，canvas 正常、loader 隐藏、无 console error
+- 截图已写入：
+  - `.autoloop/journal/assets/2026-09-22-local.png`
+  - `.autoloop/journal/assets/2026-09-22-online.png`
+
+提交情况：
+- 功能提交：`4727c788950dda000111b215c7698b4e05509f1b`
+- 记录回填：`d97e3789e8a154907b1a5d23ad1bb272c119b0e6`
+- 最终线上验证记录提交：`7e12165cc2e11cbe2de0df6b82871116a130e372`
+
+有一点环境说明：当前源工作区的 `.git` 仍是只读挂载，所以本地 `git status` 会显示本轮文件未提交；我按前几轮惯例用 `/tmp` 临时克隆完成提交和 push，远端 `main` 已到 `7e12165`。
