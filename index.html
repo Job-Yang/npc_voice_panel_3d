@@ -144,7 +144,7 @@
     grid-column: 1 / -1;
     min-height: 48px;
     display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
@@ -185,6 +185,29 @@
     border-color: rgba(255,207,138,.44);
     color: #fff1d8;
   }
+  .tour-slate-toggle {
+    min-height: 26px;
+    padding: 4px 9px;
+    background: rgba(142,190,123,.08);
+    color: rgba(214,240,189,.84);
+    border: 1px solid rgba(142,190,123,.18);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .tour-slate-toggle:hover,
+  .tour-slate-toggle[aria-expanded="true"] {
+    background: rgba(142,190,123,.16);
+    border-color: rgba(142,190,123,.44);
+    color: #f1ffe7;
+  }
+  .tour-slate {
+    grid-column: 1 / -1;
+    display: none;
+    gap: 7px;
+  }
+  .tour-slate.show { display: grid; }
   .station-details {
     grid-column: 1 / -1;
     display: none;
@@ -1048,7 +1071,7 @@
     .tour-title { display: none; }
     .station-cue {
       min-height: 36px;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: auto 1fr auto auto;
       gap: 4px 8px;
       padding: 5px 6px 7px;
       font-size: 11px;
@@ -1059,6 +1082,11 @@
       line-height: 1.35;
     }
     .station-details-toggle {
+      min-height: 24px;
+      padding: 3px 7px;
+      font-size: 10px;
+    }
+    .tour-slate-toggle {
       min-height: 24px;
       padding: 3px 7px;
       font-size: 10px;
@@ -1280,36 +1308,39 @@
     <strong class="station-name" id="stationName">老杨</strong>
     <span class="station-line" id="stationLine">先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。</span>
     <button class="station-details-toggle" id="stationDetailsToggle" type="button" aria-expanded="false" aria-controls="stationDetails">读牌</button>
+    <button class="tour-slate-toggle" id="tourSlateToggle" type="button" aria-expanded="false" aria-controls="tourSlate">炉牌</button>
     <div class="station-action" aria-label="本站下一步">
       <span class="station-action-hint" id="stationActionHint">读完这一站，先听主人开场。</span>
       <button class="station-action-button" id="stationAction" type="button">敲这一锤</button>
     </div>
-    <div class="station-relay" id="stationRelay" aria-label="巡铺接力">
-      <span class="station-relay-kicker" id="stationRelayKicker">锻出</span>
-      <span class="station-relay-text" id="stationRelayText">身份落点，下一锤去看方法。</span>
-    </div>
-    <div class="station-progress">
-      <span id="tourProgressText">已看 1/4</span>
-      <span class="tour-progress-track" id="tourProgressBar" role="progressbar" aria-label="巡铺进度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" aria-valuetext="已看 1 站，共 4 站">
-        <span class="tour-progress-fill" id="tourProgressFill"></span>
-      </span>
-      <span class="tour-next-cue" id="tourNextCue">下一站：iLoop</span>
-    </div>
-    <div class="tour-stamps" aria-label="锤后炉印便签" aria-live="polite">
-      <span class="tour-stamps-label">锤后炉印</span>
-      <span class="tour-stamps-current" id="tourStampCurrent">刚锻出：老杨把 iOS 手艺和 AI 协作放进同一间铺子。</span>
-      <button class="tour-harvest-toggle" id="tourHarvestToggle" type="button" aria-expanded="false" aria-controls="tourHarvestDetails">收获袋</button>
-      <span class="tour-harvest-details" id="tourHarvestDetails">
-        <span class="tour-gains" aria-label="已收下的巡铺结论">
-          <span class="tour-gains-label">炉屑袋</span>
-          <span class="tour-gains-list" id="tourGainsList"></span>
+    <div class="tour-slate" id="tourSlate">
+      <div class="station-relay" id="stationRelay" aria-label="巡铺接力">
+        <span class="station-relay-kicker" id="stationRelayKicker">锻出</span>
+        <span class="station-relay-text" id="stationRelayText">身份落点，下一锤去看方法。</span>
+      </div>
+      <div class="station-progress">
+        <span id="tourProgressText">已看 1/4</span>
+        <span class="tour-progress-track" id="tourProgressBar" role="progressbar" aria-label="巡铺进度" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" aria-valuetext="已看 1 站，共 4 站">
+          <span class="tour-progress-fill" id="tourProgressFill"></span>
         </span>
-        <span class="tour-stamps-list" id="tourStampsList"></span>
-      </span>
-    </div>
-    <div class="tour-receipt" id="tourReceipt" aria-live="polite">
-      <span class="receipt-summary" id="receiptSummary">四站已齐：老杨、iLoop、近况和火炉合成一枚炉印。</span>
-      <button class="receipt-open" id="receiptOpen" type="button">看炉印</button>
+        <span class="tour-next-cue" id="tourNextCue">下一站：iLoop</span>
+      </div>
+      <div class="tour-stamps" aria-label="锤后炉印便签" aria-live="polite">
+        <span class="tour-stamps-label">锤后炉印</span>
+        <span class="tour-stamps-current" id="tourStampCurrent">刚锻出：老杨把 iOS 手艺和 AI 协作放进同一间铺子。</span>
+        <button class="tour-harvest-toggle" id="tourHarvestToggle" type="button" aria-expanded="false" aria-controls="tourHarvestDetails">收获袋</button>
+        <span class="tour-harvest-details" id="tourHarvestDetails">
+          <span class="tour-gains" aria-label="已收下的巡铺结论">
+            <span class="tour-gains-label">炉屑袋</span>
+            <span class="tour-gains-list" id="tourGainsList"></span>
+          </span>
+          <span class="tour-stamps-list" id="tourStampsList"></span>
+        </span>
+      </div>
+      <div class="tour-receipt" id="tourReceipt" aria-live="polite">
+        <span class="receipt-summary" id="receiptSummary">四站已齐：老杨、iLoop、近况和火炉合成一枚炉印。</span>
+        <button class="receipt-open" id="receiptOpen" type="button">看炉印</button>
+      </div>
     </div>
     <div class="station-details" id="stationDetails">
       <div class="station-brief" aria-label="本站问题和带走结论">
@@ -2083,6 +2114,9 @@ window.__SCENE_DEBUG__ = {
       active: item.classList.contains('active'),
     })),
     stampCurrent: tourStampCurrent?.textContent || '',
+    slateOpen: tourSlateOpen,
+    slateVisible: tourSlate?.classList.contains('show') || false,
+    slateToggle: tourSlateToggle?.textContent || '',
     harvestOpen: tourHarvestOpen,
     harvestVisible: tourHarvestDetails?.classList.contains('show') || false,
     harvestToggle: tourHarvestToggle?.textContent || '',
@@ -2312,6 +2346,8 @@ const tourNextCue = document.getElementById('tourNextCue');
 const tourGainsList = document.getElementById('tourGainsList');
 const tourStampCurrent = document.getElementById('tourStampCurrent');
 const tourStampsList = document.getElementById('tourStampsList');
+const tourSlateToggle = document.getElementById('tourSlateToggle');
+const tourSlate = document.getElementById('tourSlate');
 const tourHarvestToggle = document.getElementById('tourHarvestToggle');
 const tourHarvestDetails = document.getElementById('tourHarvestDetails');
 const tourReceipt = document.getElementById('tourReceipt');
@@ -2329,6 +2365,7 @@ const stationHotspotButtons = {};
 const tourPathNodes = {};
 const tourPathLines = [];
 let stationDetailsOpen = false;
+let tourSlateOpen = false;
 let tourHarvestOpen = false;
 
 function createStationHotspots() {
@@ -2659,6 +2696,20 @@ function setStationDetailsOpen(open, announce = false) {
   }
 }
 
+function setTourSlateOpen(open, announce = false) {
+  tourSlateOpen = !!open;
+  tourSlate.classList.toggle('show', tourSlateOpen);
+  tourSlateToggle.setAttribute('aria-expanded', tourSlateOpen ? 'true' : 'false');
+  tourSlateToggle.textContent = tourSlateOpen ? '收起炉牌' : '炉牌';
+  tourSlateToggle.setAttribute(
+    'aria-label',
+    `${tourSlateOpen ? '收起' : '展开'}巡铺进度、接力、锤后炉印和收获袋`
+  );
+  if (announce) {
+    showContextBubble(tourSlateOpen ? '炉牌展开：进度、接力和炉印都在这里。' : '炉牌收起：先看当前站和铺子主体。', 2800);
+  }
+}
+
 function renderStationArtifact() {
   const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
   const artifacts = station.artifacts || [];
@@ -2816,11 +2867,15 @@ function setActiveTourStop(type, options = {}) {
   tourProgressFill.style.width = `${(visitedCount / totalCount) * 100}%`;
   tourNextCue.textContent = nextText;
   const complete = visitedCount >= totalCount;
+  if (complete && !tourSlateOpen) {
+    setTourSlateOpen(true);
+  }
   tourReceipt.classList.toggle('show', complete);
   receiptSummary.textContent = TOUR_RECEIPT_SUMMARY;
   receiptOpen.setAttribute('aria-label', complete ? '查看四站巡铺炉印回执' : '四站完成后查看炉印回执');
   renderTourGains();
   renderTourStamps();
+  setTourSlateOpen(tourSlateOpen);
   setTourHarvestOpen(tourHarvestOpen);
   renderStationArtifact();
   setStationDetailsOpen(stationDetailsOpen);
@@ -3220,6 +3275,7 @@ tourPrev.addEventListener('click', () => goAdjacentTourStop(-1));
 tourNext.addEventListener('click', () => goAdjacentTourStop(1));
 stationAction.addEventListener('click', runStationAction);
 stationDetailsToggle.addEventListener('click', () => setStationDetailsOpen(!stationDetailsOpen, true));
+tourSlateToggle.addEventListener('click', () => setTourSlateOpen(!tourSlateOpen, true));
 tourHarvestToggle.addEventListener('click', () => setTourHarvestOpen(!tourHarvestOpen, true));
 receiptOpen.addEventListener('click', renderTourReceipt);
 artifactInspect.addEventListener('click', inspectActiveArtifact);
