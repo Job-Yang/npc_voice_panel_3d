@@ -144,7 +144,7 @@
     grid-column: 1 / -1;
     min-height: 48px;
     display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
@@ -201,6 +201,23 @@
     background: rgba(142,190,123,.16);
     border-color: rgba(142,190,123,.44);
     color: #f1ffe7;
+  }
+  .view-home-button {
+    min-height: 26px;
+    padding: 4px 9px;
+    background: rgba(255,207,138,.08);
+    color: rgba(255,232,194,.86);
+    border: 1px solid rgba(255,207,138,.18);
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .view-home-button:hover {
+    background: rgba(255,207,138,.16);
+    border-color: rgba(255,207,138,.46);
+    color: #fff1d8;
   }
   .tour-slate {
     grid-column: 1 / -1;
@@ -1071,7 +1088,7 @@
     .tour-title { display: none; }
     .station-cue {
       min-height: 36px;
-      grid-template-columns: auto 1fr auto auto;
+      grid-template-columns: auto 1fr auto auto auto;
       gap: 4px 8px;
       padding: 5px 6px 7px;
       font-size: 11px;
@@ -1087,6 +1104,11 @@
       font-size: 10px;
     }
     .tour-slate-toggle {
+      min-height: 24px;
+      padding: 3px 7px;
+      font-size: 10px;
+    }
+    .view-home-button {
       min-height: 24px;
       padding: 3px 7px;
       font-size: 10px;
@@ -1309,6 +1331,7 @@
     <span class="station-line" id="stationLine">先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。</span>
     <button class="station-details-toggle" id="stationDetailsToggle" type="button" aria-expanded="false" aria-controls="stationDetails">读牌</button>
     <button class="tour-slate-toggle" id="tourSlateToggle" type="button" aria-expanded="false" aria-controls="tourSlate">炉牌</button>
+    <button class="view-home-button" id="viewHome" type="button">回铺心</button>
     <div class="station-action" aria-label="本站下一步">
       <span class="station-action-hint" id="stationActionHint">读完这一站，先听主人开场。</span>
       <button class="station-action-button" id="stationAction" type="button">敲这一锤</button>
@@ -2125,6 +2148,14 @@ window.__SCENE_DEBUG__ = {
     railHeight: Math.round(tourRail?.getBoundingClientRect().height || 0),
     detailsHeight: Math.round(stationDetails?.getBoundingClientRect().height || 0),
   }),
+  cameraState: () => ({
+    position: camera.position.toArray(),
+    target: controls.target.toArray(),
+    defaultPosition: getCameraPosition(DEFAULT_CAMERA_DISTANCE, DEFAULT_CAMERA_TARGET).toArray(),
+    defaultTarget: DEFAULT_CAMERA_TARGET.toArray(),
+    distanceToDefaultPosition: camera.position.distanceTo(getCameraPosition(DEFAULT_CAMERA_DISTANCE, DEFAULT_CAMERA_TARGET)),
+    distanceToDefaultTarget: controls.target.distanceTo(DEFAULT_CAMERA_TARGET),
+  }),
   receiptDetails: () => Array.from(receiptDetails?.querySelectorAll('.receipt-detail') || []).map(item => ({
     label: item.querySelector('strong')?.textContent || '',
     text: item.querySelector('span')?.textContent || '',
@@ -2178,6 +2209,7 @@ function setCameraDistance(distance) {
 
 function resetOverview() {
   animateCamera(getCameraPosition(DEFAULT_CAMERA_DISTANCE, DEFAULT_CAMERA_TARGET), DEFAULT_CAMERA_TARGET.clone(), reducedMotion ? 0 : 600);
+  showContextBubble('回到铺心：从这里重新看老杨、iLoop、近况和火炉。', 3200);
 }
 
 function hideCoalPiles() {
@@ -2348,6 +2380,7 @@ const tourStampCurrent = document.getElementById('tourStampCurrent');
 const tourStampsList = document.getElementById('tourStampsList');
 const tourSlateToggle = document.getElementById('tourSlateToggle');
 const tourSlate = document.getElementById('tourSlate');
+const viewHome = document.getElementById('viewHome');
 const tourHarvestToggle = document.getElementById('tourHarvestToggle');
 const tourHarvestDetails = document.getElementById('tourHarvestDetails');
 const tourReceipt = document.getElementById('tourReceipt');
@@ -2497,6 +2530,10 @@ canvas.addEventListener('click', e => {
   } else {
     selectObject(target.key);
   }
+});
+canvas.addEventListener('dblclick', e => {
+  if (pickTarget(e)) return;
+  resetOverview();
 });
 
 function respondNPC(key, selected = false) {
@@ -3276,6 +3313,7 @@ tourNext.addEventListener('click', () => goAdjacentTourStop(1));
 stationAction.addEventListener('click', runStationAction);
 stationDetailsToggle.addEventListener('click', () => setStationDetailsOpen(!stationDetailsOpen, true));
 tourSlateToggle.addEventListener('click', () => setTourSlateOpen(!tourSlateOpen, true));
+viewHome.addEventListener('click', resetOverview);
 tourHarvestToggle.addEventListener('click', () => setTourHarvestOpen(!tourHarvestOpen, true));
 receiptOpen.addEventListener('click', renderTourReceipt);
 artifactInspect.addEventListener('click', inspectActiveArtifact);
