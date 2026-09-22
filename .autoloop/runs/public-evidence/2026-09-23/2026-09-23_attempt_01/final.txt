@@ -1,0 +1,26 @@
+本轮已按自迭代流程完成并发布。
+
+今天做的主题是“铺心归位”：在巡铺栏新增了 `回铺心` 入口，并支持双击空白画布回到默认铁匠铺构图。这样访客在拖拽、缩放或点击 NPC 聚焦局部后，不用打开左侧控制面板，也能回到整间铺子的默认视角。改动集中在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-23/index.html)。
+
+已写入本轮记录：
+
+- 输入卡：[2026-09-23.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-23/.autoloop/inputs/2026-09-23.md)
+- 手记：[2026-09-23.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-23/.autoloop/journal/2026-09-23.md)
+- CHANGELOG：[CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-23/.autoloop/CHANGELOG.md)
+- 本地截图：`.autoloop/journal/assets/2026-09-23-local.png`
+- 线上截图：`.autoloop/journal/assets/2026-09-23-online.png`
+
+验证结果：
+
+- 创意门禁通过：`.autoloop/runs/2026-09-23_attempt_01/creative_validation.json`
+- 本地专项验证通过：无 console error、无请求失败、横向溢出为 0；点击 `回铺心` 和双击空白画布都能回到初始默认构图。
+- 线上无痕验证通过：线上 `index.html` SHA 与本地一致，loader 正常隐藏，canvas 存在，无 console error、无请求失败。
+
+发布情况：
+
+- 功能提交：`fef16ef27ba0bdaa9648dbfcf4aa49a8c83525dd`
+- 记录回填提交：`368b99586449e61c3928a3ae95bcbf42be0a53cf`
+- 线上验证记录提交：`5256128dcd1953a6686d68191a64c6805010f472`
+- `origin/main` 当前指向：`5256128dcd1953a6686d68191a64c6805010f472`
+
+说明：当前主工作区的 `.git` 仍是只读挂载，所以本轮继续沿用临时克隆完成 commit 和 push；临时克隆已与 `origin/main` 同步且干净。本地 8123 服务已停止。
