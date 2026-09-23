@@ -1,0 +1,25 @@
+今天这一轮已完成并推送到 `main`。
+
+本轮主题是“首锤引导”：在巡铺栏顶部新增一条可跳过的首次参观提示，说明可以按“老杨 / iLoop / 近况 / 火炉”四站开始，也可以直接拖拽自由探索。新增了“开始巡铺”和“跳过”两个动作，不接管相机、不新增 3D 物件，也不改动模型、灯光、BGM 或渲染循环。
+
+主要改动：
+- [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-24/index.html)：新增首锤引导 UI、移动端样式、按钮行为和 `window.__SCENE_DEBUG__.firstGuide()` 验证快照。
+- [.autoloop/inputs/2026-09-24.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-24/.autoloop/inputs/2026-09-24.md)：记录 3 个公开来源、三案竞争和最终选择。
+- [.autoloop/journal/2026-09-24.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-24/.autoloop/journal/2026-09-24.md)：完整手记和验证记录。
+- [.autoloop/CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-24/.autoloop/CHANGELOG.md)：追加本日记录。
+
+验证结果：
+- 创意门禁：`passed`
+- 本地固定渲染验证：`passed`
+- 首锤引导专项检查：`passed`
+- 移动端 390px 检查：`passed`，横向溢出为 0
+- 线上无痕验证：`passed`，线上 `index.html` SHA 与本地一致，canvas 正常，loader 隐藏，无 console error、无请求失败
+- 线上截图：`.autoloop/journal/assets/2026-09-24-online.png`
+
+推送记录：
+- 功能 commit：`40e2d7e0bf41b9605a69291b8883f146122dc7d1`
+- 回填记录 commit：`d449ad45ef716fd2576d312585c348eb73f1e175`
+- 线上验证记录 commit：`99e86107f1e5280bb2de4c72792f36339a3b4d22`
+- 远端 `main` 当前 HEAD：`99e86107f1e5280bb2de4c72792f36339a3b4d22`
+
+说明：当前工作区的 `.git` 是只读挂载，无法在本地索引里完成 commit，所以沿用上一轮方式通过 `/tmp` 临时克隆提交并推送。远端已发布完成，本地文件内容与已推送内容一致。
