@@ -152,6 +152,58 @@
     color: rgba(240,224,200,.82);
     font-size: 12px;
   }
+  .first-guide {
+    grid-column: 1 / -1;
+    min-height: 38px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(142,190,123,.08);
+    border: 1px solid rgba(142,190,123,.18);
+    border-radius: 8px;
+    color: rgba(231,244,214,.84);
+    font-size: 11px;
+  }
+  .first-guide.hide { display: none; }
+  .first-guide-kicker {
+    color: #d6f0bd;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .first-guide-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .first-guide-start,
+  .first-guide-skip {
+    min-height: 26px;
+    padding: 4px 9px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .first-guide-start {
+    background: rgba(142,190,123,.16);
+    color: #f1ffe7;
+    border: 1px solid rgba(142,190,123,.46);
+    font-weight: 650;
+  }
+  .first-guide-skip {
+    background: rgba(255,170,100,.06);
+    color: rgba(232,213,176,.74);
+    border: 1px solid rgba(255,170,100,.14);
+  }
+  .first-guide-start:hover,
+  .first-guide-skip:hover {
+    background: rgba(255,170,100,.16);
+    border-color: rgba(255,207,138,.42);
+    color: #fff1d8;
+  }
   .station-cue .station-step {
     color: rgba(255,207,138,.82);
     font-variant-numeric: tabular-nums;
@@ -1086,6 +1138,24 @@
       padding: 8px;
     }
     .tour-title { display: none; }
+    .first-guide {
+      min-height: 34px;
+      grid-template-columns: auto 1fr auto;
+      gap: 5px 7px;
+      padding: 5px 6px;
+      font-size: 10px;
+    }
+    .first-guide-text {
+      grid-column: 1 / -1;
+      white-space: normal;
+      line-height: 1.3;
+    }
+    .first-guide-start,
+    .first-guide-skip {
+      min-height: 24px;
+      padding: 3px 7px;
+      font-size: 10px;
+    }
     .station-cue {
       min-height: 36px;
       grid-template-columns: auto 1fr auto auto auto;
@@ -1325,6 +1395,12 @@
 <svg class="tour-path" id="tourPath" aria-hidden="true"></svg>
 
 <nav class="tour-rail" aria-label="巡铺路线">
+  <div class="first-guide" id="firstGuide" aria-live="polite">
+    <span class="first-guide-kicker">首锤</span>
+    <span class="first-guide-text" id="firstGuideText">第一次进铺，先走老杨、iLoop、近况、火炉四站；也可以直接拖拽自由看。</span>
+    <button class="first-guide-start" id="firstGuideStart" type="button">开始巡铺</button>
+    <button class="first-guide-skip" id="firstGuideSkip" type="button">跳过</button>
+  </div>
   <div class="station-cue" id="stationCue" aria-live="polite">
     <span class="station-step" id="stationStep">第 1 站</span>
     <strong class="station-name" id="stationName">老杨</strong>
@@ -2089,6 +2165,22 @@ window.__SCENE_DEBUG__ = {
       }];
     }),
   ),
+  firstGuide: () => {
+    const rect = firstGuide?.getBoundingClientRect();
+    return {
+      visible: firstGuideVisible,
+      hiddenClass: firstGuide?.classList.contains('hide') || false,
+      text: firstGuide?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      rect: rect ? {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+      } : null,
+    };
+  },
   tourPath: () => ({
     activeTourType,
     nextTourType: getNextTourKey(),
@@ -2353,6 +2445,9 @@ const npcBubble = document.getElementById('npcBubble');
 const sidePanel = document.getElementById('sidePanel');
 const panelToggle = document.getElementById('panelToggle');
 const tourRail = document.querySelector('.tour-rail');
+const firstGuide = document.getElementById('firstGuide');
+const firstGuideStart = document.getElementById('firstGuideStart');
+const firstGuideSkip = document.getElementById('firstGuideSkip');
 const tourPath = document.getElementById('tourPath');
 const tourStops = document.querySelectorAll('.tour-stop');
 const tourPrev = document.getElementById('tourPrev');
@@ -2397,6 +2492,7 @@ const visitedTourStops = new Set(['profile']);
 const stationHotspotButtons = {};
 const tourPathNodes = {};
 const tourPathLines = [];
+let firstGuideVisible = true;
 let stationDetailsOpen = false;
 let tourSlateOpen = false;
 let tourHarvestOpen = false;
@@ -2707,6 +2803,23 @@ function togglePanel(force) {
   const show = typeof force === 'boolean' ? force : !sidePanel.classList.contains('show');
   sidePanel.classList.toggle('show', show);
   panelToggle.textContent = show ? '✕ 收起面板' : '⚙️ 控制面板';
+}
+
+function setFirstGuideVisible(visible, announce = false) {
+  firstGuideVisible = !!visible;
+  firstGuide?.classList.toggle('hide', !firstGuideVisible);
+  firstGuide?.setAttribute('aria-hidden', firstGuideVisible ? 'false' : 'true');
+  if (announce) {
+    showContextBubble(firstGuideVisible
+      ? '首锤引导已展开：四站逛完就知道这间铺子的火候。'
+      : '首锤引导已收起：直接按四站路线或拖拽看铺子。', 3000);
+  }
+}
+
+function startFirstGuide() {
+  setFirstGuideVisible(false);
+  goTourStop('profile');
+  showContextBubble('第一锤从老杨开始：先看主人，再看主炉 iLoop。', 3800);
 }
 
 function getRandomTalkDelay() {
@@ -3310,6 +3423,8 @@ tourStops.forEach(stop => {
 });
 tourPrev.addEventListener('click', () => goAdjacentTourStop(-1));
 tourNext.addEventListener('click', () => goAdjacentTourStop(1));
+firstGuideStart.addEventListener('click', startFirstGuide);
+firstGuideSkip.addEventListener('click', () => setFirstGuideVisible(false, true));
 stationAction.addEventListener('click', runStationAction);
 stationDetailsToggle.addEventListener('click', () => setStationDetailsOpen(!stationDetailsOpen, true));
 tourSlateToggle.addEventListener('click', () => setTourSlateOpen(!tourSlateOpen, true));
