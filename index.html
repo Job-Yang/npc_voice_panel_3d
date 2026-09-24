@@ -352,6 +352,67 @@
     background: rgba(255,119,51,.28);
     border-color: rgba(255,207,138,.62);
   }
+  .station-thread {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 8px;
+    background: rgba(255,207,138,.045);
+    border: 1px solid rgba(255,207,138,.11);
+    border-radius: 8px;
+    color: rgba(240,224,200,.66);
+    font-size: 10px;
+  }
+  .station-thread-kicker {
+    color: rgba(255,207,138,.78);
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .station-thread-trail {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+  }
+  .thread-mark {
+    min-width: 0;
+    padding: 2px 5px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,170,100,.1);
+    color: rgba(232,213,176,.48);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .thread-mark.visited {
+    color: rgba(214,240,189,.84);
+    border-color: rgba(142,190,123,.22);
+    background: rgba(142,190,123,.08);
+  }
+  .thread-mark.active {
+    color: #fff1d8;
+    border-color: rgba(255,207,138,.4);
+    background: rgba(255,119,51,.14);
+  }
+  .thread-mark.next {
+    color: #ffcf8a;
+    border-color: rgba(255,207,138,.3);
+    background: rgba(255,207,138,.08);
+  }
+  .thread-separator {
+    flex: 0 0 auto;
+    color: rgba(255,207,138,.28);
+  }
+  .station-thread-focus {
+    min-width: 0;
+    color: rgba(255,232,194,.72);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .station-relay {
     grid-column: 1 / -1;
     display: grid;
@@ -1211,6 +1272,24 @@
       padding: 4px 8px;
       font-size: 10px;
     }
+    .station-thread {
+      grid-template-columns: auto 1fr;
+      gap: 4px 6px;
+      padding: 5px 6px;
+    }
+    .station-thread-trail {
+      gap: 3px;
+    }
+    .thread-mark {
+      padding: 2px 4px;
+      font-size: 9px;
+    }
+    .station-thread-focus {
+      grid-column: 1 / -1;
+      white-space: normal;
+      line-height: 1.25;
+      font-size: 10px;
+    }
     .station-relay {
       gap: 5px;
       padding: 5px 6px;
@@ -1411,6 +1490,11 @@
     <div class="station-action" aria-label="本站下一步">
       <span class="station-action-hint" id="stationActionHint">读完这一站，先听主人开场。</span>
       <button class="station-action-button" id="stationAction" type="button">敲这一锤</button>
+    </div>
+    <div class="station-thread" id="stationThread" aria-label="巡铺炉脉：当前在身份，下一锤到方法">
+      <span class="station-thread-kicker">炉脉</span>
+      <span class="station-thread-trail" id="stationThreadTrail"></span>
+      <span class="station-thread-focus" id="stationThreadFocus">当前：身份 · 下一锤：方法</span>
     </div>
     <div class="tour-slate" id="tourSlate">
       <div class="station-relay" id="stationRelay" aria-label="巡铺接力">
@@ -2235,6 +2319,14 @@ window.__SCENE_DEBUG__ = {
     harvestOpen: tourHarvestOpen,
     harvestVisible: tourHarvestDetails?.classList.contains('show') || false,
     harvestToggle: tourHarvestToggle?.textContent || '',
+    threadText: stationThread?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    threadAria: stationThread?.getAttribute('aria-label') || '',
+    threadMarks: Array.from(document.querySelectorAll('#stationThreadTrail .thread-mark')).map(item => ({
+      text: item.textContent || '',
+      active: item.classList.contains('active'),
+      visited: item.classList.contains('visited'),
+      next: item.classList.contains('next'),
+    })),
     detailsOpen: stationDetailsOpen,
     detailsVisible: stationDetails?.classList.contains('show') || false,
     railHeight: Math.round(tourRail?.getBoundingClientRect().height || 0),
@@ -2459,6 +2551,9 @@ const stationQuestion = document.getElementById('stationQuestion');
 const stationTakeaway = document.getElementById('stationTakeaway');
 const stationActionHint = document.getElementById('stationActionHint');
 const stationAction = document.getElementById('stationAction');
+const stationThread = document.getElementById('stationThread');
+const stationThreadTrail = document.getElementById('stationThreadTrail');
+const stationThreadFocus = document.getElementById('stationThreadFocus');
 const stationRelayKicker = document.getElementById('stationRelayKicker');
 const stationRelayText = document.getElementById('stationRelayText');
 const stationPin = document.getElementById('stationPin');
@@ -2899,6 +2994,37 @@ function renderTourStamps() {
   });
 }
 
+function renderStationThread() {
+  if (!stationThreadTrail || !stationThreadFocus) return;
+  const nextKey = getNextTourKey();
+  stationThreadTrail.innerHTML = '';
+  TOUR_ORDER.forEach((key, index) => {
+    const station = TOUR_STOPS[key];
+    const mark = document.createElement('span');
+    const active = key === activeTourType;
+    const next = key === nextKey;
+    const visited = visitedTourStops.has(key);
+    mark.className = `thread-mark${visited ? ' visited' : ''}${active ? ' active' : ''}${next ? ' next' : ''}`;
+    mark.textContent = station.track;
+    mark.setAttribute(
+      'aria-label',
+      `${station.title}：${station.track}${active ? '，当前站' : ''}${visited ? '，已看' : ''}${next ? '，下一锤' : ''}`
+    );
+    stationThreadTrail.appendChild(mark);
+    if (index < TOUR_ORDER.length - 1) {
+      const separator = document.createElement('span');
+      separator.className = 'thread-separator';
+      separator.setAttribute('aria-hidden', 'true');
+      separator.textContent = '>';
+      stationThreadTrail.appendChild(separator);
+    }
+  });
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  const nextText = nextKey ? `下一锤：${TOUR_STOPS[nextKey].track}` : '四站已合炉';
+  stationThreadFocus.textContent = `当前：${station.track} · ${nextText}`;
+  stationThread?.setAttribute('aria-label', `巡铺炉脉：当前在${station.track}，${nextText}`);
+}
+
 function setTourHarvestOpen(open, announce = false) {
   tourHarvestOpen = !!open;
   tourHarvestDetails.classList.toggle('show', tourHarvestOpen);
@@ -3025,6 +3151,7 @@ function setActiveTourStop(type, options = {}) {
   receiptOpen.setAttribute('aria-label', complete ? '查看四站巡铺炉印回执' : '四站完成后查看炉印回执');
   renderTourGains();
   renderTourStamps();
+  renderStationThread();
   setTourSlateOpen(tourSlateOpen);
   setTourHarvestOpen(tourHarvestOpen);
   renderStationArtifact();
