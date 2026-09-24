@@ -1,0 +1,16 @@
+本地预览服务已停止，没有遗留运行会话。准备给最终结果。本轮已完成并发布。
+
+做了“炉脉面包屑”：在底部巡铺栏新增 `身份 > 方法 > 试火 > 反馈` 的轻量语义链，随当前站、已看站和下一锤自动更新。访客不用展开炉牌，也能看懂四站为什么按“老杨 -> iLoop -> 近况 -> 火炉”这个顺序走。
+
+关键提交：
+- 作品改动：`b0e263242f7055adbb4e4adcdb8a402c808ad22b`
+- 记录回填：`b326f9c09a660704defad9c75bead512a5478fdc`
+- 线上验证记录：`19854e090504dd7ecc6907e4cae4e3d27985f9aa`
+
+验证结果：
+- 本地交互验证通过：`.autoloop/runs/2026-09-25_attempt_01/thread_check.json`
+- 移动端验证通过：`.autoloop/runs/2026-09-25_attempt_01/mobile_thread_check.json`
+- 创意门禁通过：`.autoloop/runs/2026-09-25_attempt_01/creative_validation.json`
+- 线上无痕验证第二次通过：线上 `index.html` SHA 与本地一致，canvas 正常、loader 隐藏、无 console error、无请求失败。截图在 `.autoloop/journal/assets/2026-09-25-online.png`
+
+有一个环境细节：当前原工作区的 `.git` 是只读挂载，所以 `git status` 在原目录里仍会显示本轮文件像“未提交”。实际已经通过 `/tmp` 临时克隆提交并推送到 GitHub `main`，线上也验证通过。
