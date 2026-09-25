@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "proposal_count": 3,
+  "score_dimensions": [
+    "新颖度",
+    "访客价值",
+    "场景贴合度",
+    "视觉影响",
+    "实现风险"
+  ],
+  "visual_comparison_declared": true
+}

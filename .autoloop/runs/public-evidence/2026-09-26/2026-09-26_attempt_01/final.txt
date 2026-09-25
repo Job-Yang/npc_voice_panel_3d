@@ -1,0 +1,14 @@
+本轮已完成并发布。
+
+今天做的是“炉边回声”：在底部巡铺栏的炉脉下方新增一条轻量回声条，记录最近一次切站、敲锤、鉴定物证、查看五锤或锻欢迎语后的动作结论和下一步，让交互反馈不再只是一闪而过。作品改动提交是 `37a2dda125461dd987d747fa63bb164f6d1c7f8d`，最终记录补充后远端 `main` 最新 HEAD 是 `a999ecf1af287f0571c983c84061a25cb907663d`。
+
+验证已完成：
+
+- 本地交互验证通过：`.autoloop/runs/2026-09-26_attempt_01/echo_check.json`
+- 本地截图：`.autoloop/journal/assets/2026-09-26-local.png`
+- 移动端截图：`.autoloop/journal/assets/2026-09-26-mobile.png`
+- 创意门禁通过：`.autoloop/runs/2026-09-26_attempt_01/creative_validation.json`
+- 线上无痕验证通过：`.autoloop/runs/2026-09-26_attempt_01/visual_verification.json`
+- 线上截图：`.autoloop/journal/assets/2026-09-26-online.png`
+
+固定线上验证结果为 `passed`：线上 `index.html` SHA 与本地一致，loader 正常隐藏，canvas 存在，无 console error、无请求失败。当前工作区的 `.git` 是只读挂载，所以本地 `git status` 仍显示这些改动未提交；实际已经通过 `/tmp` 临时克隆提交并推送到 `origin/main`。
