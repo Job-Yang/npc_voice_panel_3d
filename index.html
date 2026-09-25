@@ -413,6 +413,42 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .forge-echo {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+    background: rgba(142,190,123,.06);
+    border: 1px solid rgba(142,190,123,.14);
+    border-radius: 8px;
+    color: rgba(231,244,214,.74);
+    font-size: 10px;
+  }
+  .forge-echo.active {
+    background: rgba(142,190,123,.11);
+    border-color: rgba(142,190,123,.28);
+    color: rgba(241,255,231,.9);
+  }
+  .forge-echo-kicker {
+    color: #d6f0bd;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .forge-echo-line {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .forge-echo-next {
+    min-width: 0;
+    color: rgba(255,207,138,.78);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .station-relay {
     grid-column: 1 / -1;
     display: grid;
@@ -1290,6 +1326,20 @@
       line-height: 1.25;
       font-size: 10px;
     }
+    .forge-echo {
+      grid-template-columns: auto 1fr;
+      gap: 4px 6px;
+      padding: 5px 6px;
+    }
+    .forge-echo-line,
+    .forge-echo-next {
+      white-space: normal;
+      line-height: 1.25;
+      font-size: 10px;
+    }
+    .forge-echo-next {
+      grid-column: 1 / -1;
+    }
     .station-relay {
       gap: 5px;
       padding: 5px 6px;
@@ -1495,6 +1545,11 @@
       <span class="station-thread-kicker">炉脉</span>
       <span class="station-thread-trail" id="stationThreadTrail"></span>
       <span class="station-thread-focus" id="stationThreadFocus">当前：身份 · 下一锤：方法</span>
+    </div>
+    <div class="forge-echo" id="forgeEcho" aria-live="polite" aria-label="炉边回声：等你落第一锤">
+      <span class="forge-echo-kicker">回声</span>
+      <span class="forge-echo-line" id="forgeEchoLine">等你落第一锤。</span>
+      <span class="forge-echo-next" id="forgeEchoNext">点人物、火炉或下方站点后，这里会留下刚刚锻出的结论。</span>
     </div>
     <div class="tour-slate" id="tourSlate">
       <div class="station-relay" id="stationRelay" aria-label="巡铺接力">
@@ -2327,6 +2382,9 @@ window.__SCENE_DEBUG__ = {
       visited: item.classList.contains('visited'),
       next: item.classList.contains('next'),
     })),
+    echoText: forgeEcho?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    echoAria: forgeEcho?.getAttribute('aria-label') || '',
+    echoActive: forgeEcho?.classList.contains('active') || false,
     detailsOpen: stationDetailsOpen,
     detailsVisible: stationDetails?.classList.contains('show') || false,
     railHeight: Math.round(tourRail?.getBoundingClientRect().height || 0),
@@ -2554,6 +2612,9 @@ const stationAction = document.getElementById('stationAction');
 const stationThread = document.getElementById('stationThread');
 const stationThreadTrail = document.getElementById('stationThreadTrail');
 const stationThreadFocus = document.getElementById('stationThreadFocus');
+const forgeEcho = document.getElementById('forgeEcho');
+const forgeEchoLine = document.getElementById('forgeEchoLine');
+const forgeEchoNext = document.getElementById('forgeEchoNext');
 const stationRelayKicker = document.getElementById('stationRelayKicker');
 const stationRelayText = document.getElementById('stationRelayText');
 const stationPin = document.getElementById('stationPin');
@@ -2591,6 +2652,11 @@ let firstGuideVisible = true;
 let stationDetailsOpen = false;
 let tourSlateOpen = false;
 let tourHarvestOpen = false;
+let forgeEchoState = {
+  active: false,
+  line: '等你落第一锤。',
+  next: '点人物、火炉或下方站点后，这里会留下刚刚锻出的结论。',
+};
 
 function createStationHotspots() {
   TOUR_ORDER.forEach((key, index) => {
@@ -2914,6 +2980,7 @@ function setFirstGuideVisible(visible, announce = false) {
 function startFirstGuide() {
   setFirstGuideVisible(false);
   goTourStop('profile');
+  setForgeEcho('刚刚：从老杨站开始巡铺。', '下一锤：去 iLoop 看五锤闭环。');
   showContextBubble('第一锤从老杨开始：先看主人，再看主炉 iLoop。', 3800);
 }
 
@@ -3025,6 +3092,37 @@ function renderStationThread() {
   stationThread?.setAttribute('aria-label', `巡铺炉脉：当前在${station.track}，${nextText}`);
 }
 
+function renderForgeEcho() {
+  if (!forgeEcho || !forgeEchoLine || !forgeEchoNext) return;
+  forgeEchoLine.textContent = forgeEchoState.line;
+  forgeEchoNext.textContent = forgeEchoState.next;
+  forgeEcho.classList.toggle('active', forgeEchoState.active);
+  forgeEcho.setAttribute('aria-label', `炉边回声：${forgeEchoState.line} ${forgeEchoState.next}`);
+}
+
+function setForgeEcho(line, next = '', active = true) {
+  forgeEchoState = {
+    active,
+    line,
+    next,
+  };
+  renderForgeEcho();
+}
+
+function getStationEcho(station, reason = 'station') {
+  const nextKey = getNextTourKey();
+  if (reason === 'action') {
+    return {
+      line: `刚敲：${station.actionLabel}。${station.takeaway}`,
+      next: nextKey ? `下一步：去${TOUR_STOPS[nextKey].title}看${TOUR_STOPS[nextKey].track}。` : '下一步：四站已齐，可以看炉印或再锻一句。',
+    };
+  }
+  return {
+    line: `刚到：${station.title}。${station.takeaway}`,
+    next: nextKey ? `下一锤：${TOUR_STOPS[nextKey].title} · ${TOUR_STOPS[nextKey].track}。` : '四站已合炉：可以看回执或回火炉再试一次。',
+  };
+}
+
 function setTourHarvestOpen(open, announce = false) {
   tourHarvestOpen = !!open;
   tourHarvestDetails.classList.toggle('show', tourHarvestOpen);
@@ -3074,6 +3172,7 @@ function renderTourReceipt() {
   selectedObjectKey = 'forge';
   activeKey = null;
   setActiveNpcButton(null);
+  setForgeEcho('刚刚：看完四站炉印回执。', '收获：身份、方法、试火和反馈已经合成一枚可带走的炉印。');
   showContextBubble('四站炉印已合成，回炉再看一眼火候。', 4600);
 }
 
@@ -3095,6 +3194,7 @@ function inspectActiveArtifact() {
     ],
     allowVoice: false,
   });
+  setForgeEcho(`刚鉴定：${artifact.name}。`, artifact.next || station.takeaway);
   showContextBubble(`${artifact.name}：${artifact.line}`, 4600);
 }
 
@@ -3194,6 +3294,7 @@ function showProcessStep(stepKey) {
   if (!step) return;
   document.getElementById('dlgLine').textContent = step.line;
   renderProcessSteps(step.key);
+  setForgeEcho(`刚看五锤：${step.label}。`, step.line);
   showContextBubble(step.line, 4600);
 }
 
@@ -3268,6 +3369,12 @@ function openGuideCard(type) {
   const tourType = tourTypeForGuide(type);
   if (tourType) setActiveTourStop(tourType);
   renderDialog({ ...card, allowVoice: false });
+  const station = TOUR_STOPS[tourType || activeTourType] || TOUR_STOPS.profile;
+  const nextKey = getNextTourKey();
+  setForgeEcho(
+    `刚打开：${card.name}。${station.takeaway}`,
+    nextKey ? `下一锤：去${TOUR_STOPS[nextKey].title}看${TOUR_STOPS[nextKey].track}。` : '下一步：四站已齐，可以看炉印或再锻一句。'
+  );
   showContextBubble(card.line);
 }
 
@@ -3313,6 +3420,7 @@ function forgeWelcome() {
     ],
     allowVoice: false,
   });
+  setForgeEcho('刚锻出：一条新的欢迎语。', line);
   showObjectBubble('forge', line, 4600);
 }
 
@@ -3335,6 +3443,7 @@ function triggerYQEasterEgg() {
     ],
     allowVoice: false,
   });
+  setForgeEcho('刚触发：YQ 连点彩蛋。', line);
   showNPCBubble('yq', line, 5200);
   respondNPC('yq', true);
 }
@@ -3356,6 +3465,7 @@ function triggerILoopEasterEgg() {
     ],
     allowVoice: false,
   });
+  setForgeEcho('刚触发：iLoop 闭环指令。', line);
   showNPCBubble('yq', line, 5200);
   respondNPC('yq', true);
 }
@@ -3410,6 +3520,8 @@ function selectNPC(key) {
     activeStep: key === 'yq' ? GUIDE_CARDS.iloop.activeStep : '',
     allowVoice: !!voiceFiles[key],
   });
+  const stationEcho = getStationEcho(TOUR_STOPS[activeTourType] || TOUR_STOPS.profile);
+  setForgeEcho(stationEcho.line, stationEcho.next);
   showNPCBubble(key, cfg.line, 4200);
   respondNPC(key, true);
   focusOn(npcs[key].root);
@@ -3463,7 +3575,12 @@ function goAdjacentTourStop(direction) {
 
 function runStationAction() {
   const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  const actionType = station.actionType || activeTourType;
   openGuideCard(station.actionType || activeTourType);
+  if (actionType !== 'forge') {
+    const stationEcho = getStationEcho(station, 'action');
+    setForgeEcho(stationEcho.line, stationEcho.next);
+  }
 }
 
 // 暴露给外部接你现成的语音逻辑
