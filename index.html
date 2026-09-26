@@ -413,6 +413,53 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .forge-beat {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.35fr) minmax(0, 1.05fr);
+    gap: 7px;
+  }
+  .forge-beat-card {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: rgba(255,207,138,.055);
+    border: 1px solid rgba(255,207,138,.12);
+    border-radius: 8px;
+    color: rgba(240,224,200,.72);
+    font-size: 10px;
+  }
+  .forge-beat-card.is-now {
+    background: rgba(255,119,51,.105);
+    border-color: rgba(255,170,100,.26);
+    color: rgba(255,241,216,.9);
+  }
+  .forge-beat-card.is-echo {
+    background: rgba(142,190,123,.08);
+    border-color: rgba(142,190,123,.2);
+    color: rgba(231,244,214,.84);
+  }
+  .forge-beat-card.is-next {
+    background: rgba(255,170,100,.07);
+    border-color: rgba(255,207,138,.18);
+  }
+  .forge-beat-kicker {
+    color: rgba(255,207,138,.8);
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .forge-beat-card.is-echo .forge-beat-kicker {
+    color: #d6f0bd;
+  }
+  .forge-beat-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .forge-echo {
     grid-column: 1 / -1;
     display: grid;
@@ -1326,6 +1373,19 @@
       line-height: 1.25;
       font-size: 10px;
     }
+    .forge-beat {
+      grid-template-columns: 1fr;
+      gap: 5px;
+    }
+    .forge-beat-card {
+      grid-template-columns: auto 1fr;
+      padding: 5px 6px;
+    }
+    .forge-beat-text {
+      white-space: normal;
+      line-height: 1.25;
+      font-size: 10px;
+    }
     .forge-echo {
       grid-template-columns: auto 1fr;
       gap: 4px 6px;
@@ -1541,17 +1601,31 @@
       <span class="station-action-hint" id="stationActionHint">读完这一站，先听主人开场。</span>
       <button class="station-action-button" id="stationAction" type="button">敲这一锤</button>
     </div>
-    <div class="station-thread" id="stationThread" aria-label="巡铺炉脉：当前在身份，下一锤到方法">
-      <span class="station-thread-kicker">炉脉</span>
-      <span class="station-thread-trail" id="stationThreadTrail"></span>
-      <span class="station-thread-focus" id="stationThreadFocus">当前：身份 · 下一锤：方法</span>
+    <div class="forge-beat" id="forgeBeat" role="status" aria-live="polite" aria-label="炉前三拍：当前身份，刚刚等你落第一锤，下一锤 iLoop">
+      <span class="forge-beat-card is-now">
+        <span class="forge-beat-kicker">当前</span>
+        <span class="forge-beat-text" id="forgeBeatNow">身份 · 老杨</span>
+      </span>
+      <span class="forge-beat-card is-echo">
+        <span class="forge-beat-kicker">刚刚</span>
+        <span class="forge-beat-text" id="forgeBeatEcho">等你落第一锤。</span>
+      </span>
+      <span class="forge-beat-card is-next">
+        <span class="forge-beat-kicker">下一步</span>
+        <span class="forge-beat-text" id="forgeBeatNext">去 iLoop 看方法。</span>
+      </span>
     </div>
-    <div class="forge-echo" id="forgeEcho" aria-live="polite" aria-label="炉边回声：等你落第一锤">
+    <div class="forge-echo" id="forgeEcho" aria-live="polite" aria-label="炉边回声：等你落第一锤" hidden>
       <span class="forge-echo-kicker">回声</span>
       <span class="forge-echo-line" id="forgeEchoLine">等你落第一锤。</span>
       <span class="forge-echo-next" id="forgeEchoNext">点人物、火炉或下方站点后，这里会留下刚刚锻出的结论。</span>
     </div>
     <div class="tour-slate" id="tourSlate">
+      <div class="station-thread" id="stationThread" aria-label="巡铺炉脉：当前在身份，下一锤到方法">
+        <span class="station-thread-kicker">炉脉</span>
+        <span class="station-thread-trail" id="stationThreadTrail"></span>
+        <span class="station-thread-focus" id="stationThreadFocus">当前：身份 · 下一锤：方法</span>
+      </div>
       <div class="station-relay" id="stationRelay" aria-label="巡铺接力">
         <span class="station-relay-kicker" id="stationRelayKicker">锻出</span>
         <span class="station-relay-text" id="stationRelayText">身份落点，下一锤去看方法。</span>
@@ -2385,6 +2459,11 @@ window.__SCENE_DEBUG__ = {
     echoText: forgeEcho?.textContent?.replace(/\s+/g, ' ').trim() || '',
     echoAria: forgeEcho?.getAttribute('aria-label') || '',
     echoActive: forgeEcho?.classList.contains('active') || false,
+    beatText: forgeBeat?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    beatAria: forgeBeat?.getAttribute('aria-label') || '',
+    beatNow: forgeBeatNow?.textContent || '',
+    beatEcho: forgeBeatEcho?.textContent || '',
+    beatNext: forgeBeatNext?.textContent || '',
     detailsOpen: stationDetailsOpen,
     detailsVisible: stationDetails?.classList.contains('show') || false,
     railHeight: Math.round(tourRail?.getBoundingClientRect().height || 0),
@@ -2612,6 +2691,10 @@ const stationAction = document.getElementById('stationAction');
 const stationThread = document.getElementById('stationThread');
 const stationThreadTrail = document.getElementById('stationThreadTrail');
 const stationThreadFocus = document.getElementById('stationThreadFocus');
+const forgeBeat = document.getElementById('forgeBeat');
+const forgeBeatNow = document.getElementById('forgeBeatNow');
+const forgeBeatEcho = document.getElementById('forgeBeatEcho');
+const forgeBeatNext = document.getElementById('forgeBeatNext');
 const forgeEcho = document.getElementById('forgeEcho');
 const forgeEchoLine = document.getElementById('forgeEchoLine');
 const forgeEchoNext = document.getElementById('forgeEchoNext');
@@ -3098,6 +3181,7 @@ function renderForgeEcho() {
   forgeEchoNext.textContent = forgeEchoState.next;
   forgeEcho.classList.toggle('active', forgeEchoState.active);
   forgeEcho.setAttribute('aria-label', `炉边回声：${forgeEchoState.line} ${forgeEchoState.next}`);
+  renderForgeBeat();
 }
 
 function setForgeEcho(line, next = '', active = true) {
@@ -3107,6 +3191,30 @@ function setForgeEcho(line, next = '', active = true) {
     next,
   };
   renderForgeEcho();
+}
+
+function getForgeBeatNextLabel() {
+  const nextKey = getNextTourKey();
+  if (nextKey) {
+    const station = TOUR_STOPS[nextKey];
+    return `去 ${station.title} 看${station.track}。`;
+  }
+  return '四站已齐，看炉印或回火炉。';
+}
+
+function renderForgeBeat() {
+  if (!forgeBeat || !forgeBeatNow || !forgeBeatEcho || !forgeBeatNext) return;
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  const echoLine = forgeEchoState.active ? forgeEchoState.line : '等你落第一锤。';
+  const nextLine = (forgeEchoState.active && forgeEchoState.next ? forgeEchoState.next : getForgeBeatNextLabel())
+    .replace(/^(下一步|下一锤)：/, '');
+  forgeBeatNow.textContent = `${station.track} · ${station.title}`;
+  forgeBeatEcho.textContent = echoLine;
+  forgeBeatNext.textContent = nextLine;
+  forgeBeat.setAttribute(
+    'aria-label',
+    `炉前三拍：当前${station.track}，刚刚${echoLine} 下一步${nextLine}`
+  );
 }
 
 function getStationEcho(station, reason = 'station') {
@@ -3252,6 +3360,7 @@ function setActiveTourStop(type, options = {}) {
   renderTourGains();
   renderTourStamps();
   renderStationThread();
+  renderForgeBeat();
   setTourSlateOpen(tourSlateOpen);
   setTourHarvestOpen(tourHarvestOpen);
   renderStationArtifact();
