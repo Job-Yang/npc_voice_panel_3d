@@ -1,0 +1,23 @@
+远端 `main` 已到最终记录提交 `543128f`。当前工作区文件内容是最终版，但本地 `.git` 只读导致它无法标记为已提交；这和今天提交结果不冲突，远端已经包含本轮作品、手记、CHANGELOG 和线上截图。本轮已完成并推送到 `main`，线上验证通过。
+
+本轮主题是“炉前三拍”：把默认巡铺栏里的状态收束成“当前 / 刚刚 / 下一步”三格，完整炉脉移进“炉牌”展开层。这样首屏底栏更轻，访客仍能继续展开查看炉脉、进度、炉印和收获袋。改动集中在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-27/index.html)。
+
+已写入：
+- 输入卡：[2026-09-27.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-27/.autoloop/inputs/2026-09-27.md)
+- 手记：[2026-09-27.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-27/.autoloop/journal/2026-09-27.md)
+- CHANGELOG：[CHANGELOG.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-27/.autoloop/CHANGELOG.md)
+- 截图：`2026-09-27-local.png`、`2026-09-27-mobile.png`、`2026-09-27-online.png`
+
+验证结果：
+- 创意门禁：passed
+- 本地桌面交互检查：passed
+- 本地移动端 390px 布局检查：passed，横向溢出为 0
+- 线上无痕验证：passed，线上 `index.html` SHA 与本地一致，canvas 正常，loader 隐藏，无 console error、无请求失败
+- 仅有历史一致的 SwiftShader `ReadPixels` performance warning，不影响画面
+
+提交记录：
+- 功能提交：`1d731eb548481f9c33b747d6e66f57de4c1ee74f`
+- 回填提交：`e10a2e84dd5a26d5a7ad5349f5b8ac4fa3643885`
+- 线上验证记录提交：`543128fa778b75a7132e6fced040d1b95773ced2`
+
+注意：当前工作区的 `.git` 是只读，本地 `git commit` 无法创建 `index.lock`，所以我按前几轮方式用 `/tmp` 临时克隆完成提交和推送。远端 `main` 已到最终提交 `543128f`，当前工作区文件内容也已是本轮最终版。
