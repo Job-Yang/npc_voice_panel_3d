@@ -704,6 +704,61 @@
     white-space: nowrap;
   }
   .receipt-open:hover { background: rgba(142,190,123,.2); }
+  .leave-ticket {
+    grid-column: 1 / -1;
+    display: none;
+    gap: 7px;
+    padding: 7px 8px;
+    background: rgba(255,207,138,.07);
+    border: 1px solid rgba(255,207,138,.16);
+    border-radius: 8px;
+    color: rgba(255,232,194,.84);
+  }
+  .leave-ticket.show { display: grid; }
+  .leave-ticket-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+  }
+  .leave-ticket-kicker {
+    color: #ffcf8a;
+    font-size: 10px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .leave-ticket-summary {
+    min-width: 0;
+    color: rgba(255,241,216,.9);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .leave-ticket-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .leave-ticket-item {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+    padding: 6px 7px;
+    background: rgba(20, 14, 10, .24);
+    border: 1px solid rgba(255,170,100,.12);
+    border-radius: 7px;
+  }
+  .leave-ticket-item strong {
+    color: #d6f0bd;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .leave-ticket-item span {
+    color: rgba(240,224,200,.74);
+    font-size: 10px;
+    line-height: 1.3;
+  }
   .station-artifact {
     grid-column: 1 / -1;
     display: grid;
@@ -1465,6 +1520,26 @@
       gap: 5px 8px;
       padding: 6px;
     }
+    .leave-ticket {
+      gap: 5px;
+      padding: 6px;
+    }
+    .leave-ticket-head {
+      grid-template-columns: 1fr;
+      gap: 3px;
+    }
+    .leave-ticket-summary {
+      white-space: normal;
+      line-height: 1.25;
+      font-size: 10px;
+    }
+    .leave-ticket-list {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+    .leave-ticket-item {
+      padding: 5px 6px;
+    }
     .receipt-summary {
       white-space: normal;
       line-height: 1.25;
@@ -1652,6 +1727,13 @@
       <div class="tour-receipt" id="tourReceipt" aria-live="polite">
         <span class="receipt-summary" id="receiptSummary">四站已齐：老杨、iLoop、近况和火炉合成一枚炉印。</span>
         <button class="receipt-open" id="receiptOpen" type="button">看炉印</button>
+      </div>
+      <div class="leave-ticket" id="leaveTicket" aria-live="polite" aria-label="离铺炉票" hidden>
+        <div class="leave-ticket-head">
+          <span class="leave-ticket-kicker">离铺炉票</span>
+          <span class="leave-ticket-summary" id="leaveTicketSummary">四站走完后，这里会留下可带走的三条炉印。</span>
+        </div>
+        <div class="leave-ticket-list" id="leaveTicketList"></div>
       </div>
     </div>
     <div class="station-details" id="stationDetails">
@@ -2441,6 +2523,13 @@ window.__SCENE_DEBUG__ = {
       collected: item.classList.contains('collected'),
       active: item.classList.contains('active'),
     })),
+    leaveTicketVisible: leaveTicket?.classList.contains('show') || false,
+    leaveTicketHidden: leaveTicket?.hidden || false,
+    leaveTicketSummary: leaveTicketSummary?.textContent || '',
+    leaveTicketItems: Array.from(document.querySelectorAll('#leaveTicketList .leave-ticket-item')).map(item => ({
+      label: item.querySelector('strong')?.textContent || '',
+      text: item.querySelector('span')?.textContent || '',
+    })),
     stampCurrent: tourStampCurrent?.textContent || '',
     slateOpen: tourSlateOpen,
     slateVisible: tourSlate?.classList.contains('show') || false,
@@ -2721,6 +2810,9 @@ const tourReceipt = document.getElementById('tourReceipt');
 const receiptSummary = document.getElementById('receiptSummary');
 const receiptOpen = document.getElementById('receiptOpen');
 const receiptDetails = document.getElementById('receiptDetails');
+const leaveTicket = document.getElementById('leaveTicket');
+const leaveTicketSummary = document.getElementById('leaveTicketSummary');
+const leaveTicketList = document.getElementById('leaveTicketList');
 const stationDetails = document.getElementById('stationDetails');
 const stationDetailsToggle = document.getElementById('stationDetailsToggle');
 const artifactName = document.getElementById('artifactName');
@@ -3144,6 +3236,30 @@ function renderTourStamps() {
   });
 }
 
+function renderLeaveTicket(complete) {
+  if (!leaveTicket || !leaveTicketSummary || !leaveTicketList) return;
+  leaveTicket.hidden = !complete;
+  leaveTicket.classList.toggle('show', complete);
+  leaveTicketSummary.textContent = complete
+    ? '带走三件事：认识主人、记住闭环、带着证据来开炉。'
+    : '四站走完后，这里会留下可带走的三条炉印。';
+  leaveTicketList.innerHTML = '';
+  TOUR_RECEIPT_DETAILS.forEach(detail => {
+    const item = document.createElement('span');
+    item.className = 'leave-ticket-item';
+    const label = document.createElement('strong');
+    label.textContent = detail.label;
+    const text = document.createElement('span');
+    text.textContent = detail.text;
+    item.append(label, text);
+    leaveTicketList.appendChild(item);
+  });
+  leaveTicket.setAttribute(
+    'aria-label',
+    complete ? `离铺炉票：${leaveTicketSummary.textContent}` : '离铺炉票：四站完成后显示'
+  );
+}
+
 function renderStationThread() {
   if (!stationThreadTrail || !stationThreadFocus) return;
   const nextKey = getNextTourKey();
@@ -3359,6 +3475,7 @@ function setActiveTourStop(type, options = {}) {
   receiptOpen.setAttribute('aria-label', complete ? '查看四站巡铺炉印回执' : '四站完成后查看炉印回执');
   renderTourGains();
   renderTourStamps();
+  renderLeaveTicket(complete);
   renderStationThread();
   renderForgeBeat();
   setTourSlateOpen(tourSlateOpen);
