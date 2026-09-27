@@ -1,0 +1,12 @@
+本轮已完成并推送。
+
+做了“离铺炉票”：四站未完成时不增加默认信息密度；访客走完老杨、iLoop、近况、火炉后，炉牌自动展开，并出现“记住老杨 / 记住 iLoop / 下一锤”三条带走结论。作品提交是 `010ca477c0aaaaa143f219359edd350f53430476`，线上验证记录补充提交是 `d9fd684cefb101702aee2e7ab9c09cec2bd79ed6`，远端 `main` 已更新。
+
+验证结果：
+- 创意门禁通过：`.autoloop/runs/2026-09-28_attempt_01/creative_validation_after_online.json`
+- 本地固定渲染通过：`.autoloop/runs/2026-09-28_attempt_01/local_visual_verification.json`
+- 完成态 DOM 专项检查通过：`.autoloop/runs/2026-09-28_attempt_01/leave_ticket_dom_check.json`
+- 线上无痕验证通过：`.autoloop/runs/2026-09-28_attempt_01/visual_verification.json`
+- 线上截图：`.autoloop/journal/assets/2026-09-28-online.png`
+
+说明一下环境细节：当前原工作区的 `.git` 是只读的，`git add` 无法创建 index lock，所以我沿用临时克隆完成了 commit/push。原工作区会显示这些已发布文件为未提交改动，但远端已经包含本轮成果和记录；没有把 `.autoloop/runs/` 或引擎副产物提交进去。
