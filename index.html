@@ -814,12 +814,13 @@
   .tour-stop {
     position: relative;
     width: 100%;
-    min-height: 40px;
+    min-height: 52px;
     margin: 0;
     display: grid;
     grid-template-columns: 20px minmax(0, 1fr);
     align-items: center;
     gap: 1px 5px;
+    padding: 6px 7px;
     background: rgba(255,170,100,.08);
     color: #e8d5b0;
     border: 1px solid rgba(255,170,100,.16);
@@ -840,6 +841,20 @@
     color: rgba(214,240,189,.62);
     font-size: 10px;
     line-height: 1;
+  }
+  .tour-scent {
+    grid-column: 1 / -1;
+    min-width: 0;
+    padding-top: 2px;
+    color: rgba(240,224,200,.58);
+    font-size: 10px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tour-stop.active .tour-scent {
+    color: rgba(255,241,216,.82);
   }
   .tour-stop:hover { background: rgba(255,170,100,.16); border-color: rgba(255,170,100,.38); }
   .tour-stop.active {
@@ -1573,7 +1588,7 @@
       font-size: 10px;
     }
     .tour-stop {
-      min-height: 34px;
+      min-height: 44px;
       margin: 0;
       grid-template-columns: 18px 1fr;
       gap: 4px;
@@ -1587,6 +1602,9 @@
       width: 18px;
       height: 18px;
       font-size: 10px;
+    }
+    .tour-scent {
+      display: none;
     }
     .tour-actions { display: none; }
     .dialog {
@@ -1758,17 +1776,17 @@
     </div>
   </div>
   <p class="tour-title">巡铺路线</p>
-  <button class="tour-stop active visited" data-tour="profile" aria-label="第 1 站 老杨，已看">
-    <span class="tour-index">1</span><span class="tour-label">老杨</span><span class="tour-track">身份</span>
+  <button class="tour-stop active visited" data-tour="profile" aria-label="第 1 站 老杨，身份，主人是谁，已看">
+    <span class="tour-index">1</span><span class="tour-label">老杨</span><span class="tour-track">身份</span><span class="tour-scent">主人是谁</span>
   </button>
-  <button class="tour-stop" data-tour="iloop" aria-label="第二站 iLoop">
-    <span class="tour-index">2</span><span class="tour-label">iLoop</span><span class="tour-track">方法</span>
+  <button class="tour-stop" data-tour="iloop" aria-label="第 2 站 iLoop，方法，五锤怎么跑">
+    <span class="tour-index">2</span><span class="tour-label">iLoop</span><span class="tour-track">方法</span><span class="tour-scent">五锤怎么跑</span>
   </button>
-  <button class="tour-stop" data-tour="latest" aria-label="第三站 近况">
-    <span class="tour-index">3</span><span class="tour-label">近况</span><span class="tour-track">试火</span>
+  <button class="tour-stop" data-tour="latest" aria-label="第 3 站 近况，试火，今天试什么">
+    <span class="tour-index">3</span><span class="tour-label">近况</span><span class="tour-track">试火</span><span class="tour-scent">今天试什么</span>
   </button>
-  <button class="tour-stop" data-tour="forge" aria-label="第四站 火炉">
-    <span class="tour-index">4</span><span class="tour-label">火炉</span><span class="tour-track">反馈</span>
+  <button class="tour-stop" data-tour="forge" aria-label="第 4 站 火炉，反馈，点了会怎样">
+    <span class="tour-index">4</span><span class="tour-label">火炉</span><span class="tour-track">反馈</span><span class="tour-scent">点了会怎样</span>
   </button>
   <div class="tour-actions" aria-label="巡铺切换">
     <button id="tourPrev" type="button">上一站</button>
@@ -2007,6 +2025,7 @@ const TOUR_STOPS = {
     step: '第 1 站',
     title: '老杨',
     track: '身份',
+    scent: '主人是谁',
     cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
     question: '这间铺子的主人是谁？',
     takeaway: '老杨把 iOS 手艺和 AI 协作放进同一间铺子。',
@@ -2042,6 +2061,7 @@ const TOUR_STOPS = {
     step: '第 2 站',
     title: 'iLoop',
     track: '方法',
+    scent: '五锤怎么跑',
     cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
     question: 'AI 协作怎样从试试看变成交付流程？',
     takeaway: '五锤闭环把计划、证据、改动、验证和收口扣在一起。',
@@ -2077,6 +2097,7 @@ const TOUR_STOPS = {
     step: '第 3 站',
     title: '近况',
     track: '试火',
+    scent: '今天试什么',
     cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
     question: '这间铺子最近在试什么火？',
     takeaway: '每日只打一题，截图、日志和失败原因都留下来。',
@@ -2112,6 +2133,7 @@ const TOUR_STOPS = {
     step: '第 4 站',
     title: '火炉',
     track: '反馈',
+    scent: '点了会怎样',
     cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
     question: '访客动手后，铺子会怎样回应？',
     takeaway: '点击火炉会触发短句、灯光和声音，把介绍变成现场反馈。',
@@ -2506,6 +2528,13 @@ window.__SCENE_DEBUG__ = {
     activeTourType,
     nextTourType: getNextTourKey(),
     reducedMotion,
+    routeScent: Array.from(document.querySelectorAll('.tour-stop')).map(stop => ({
+      key: stop.dataset.tour,
+      label: stop.querySelector('.tour-label')?.textContent || '',
+      track: stop.querySelector('.tour-track')?.textContent || '',
+      scent: stop.querySelector('.tour-scent')?.textContent || '',
+      aria: stop.getAttribute('aria-label') || '',
+    })),
     question: stationQuestion?.textContent || '',
     takeaway: stationTakeaway?.textContent || '',
     cue: stationLine?.textContent || '',
@@ -3440,7 +3469,9 @@ function setActiveTourStop(type, options = {}) {
     stop.setAttribute('aria-current', active ? 'step' : 'false');
     const stopConfig = TOUR_STOPS[stop.dataset.tour];
     stop.querySelector('.tour-track').textContent = stopConfig.track;
-    stop.setAttribute('aria-label', `${stopConfig.step} ${stopConfig.title}，${stopConfig.track}${visited ? '，已看' : ''}${next ? '，下一锤' : ''}`);
+    const scent = stop.querySelector('.tour-scent');
+    if (scent) scent.textContent = stopConfig.scent;
+    stop.setAttribute('aria-label', `${stopConfig.step} ${stopConfig.title}，${stopConfig.track}，${stopConfig.scent}${visited ? '，已看' : ''}${next ? '，下一锤' : ''}`);
   });
   const station = TOUR_STOPS[activeTourType];
   stationStep.textContent = station.step;
