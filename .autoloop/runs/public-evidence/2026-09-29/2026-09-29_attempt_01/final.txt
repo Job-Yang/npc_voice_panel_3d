@@ -1,0 +1,14 @@
+本轮已完成并推送。
+
+做了“炉前路签”：桌面端底部四站路线按钮现在多了一行点击前提示，分别是“主人是谁 / 五锤怎么跑 / 今天试什么 / 点了会怎样”。改动集中在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-09-29/index.html)，没有动模型、相机、音乐或渲染循环。
+
+验证与发布结果：
+
+- 创意门禁通过：`.autoloop/runs/2026-09-29_attempt_01/creative_validation.json`
+- 本地渲染通过，截图：`.autoloop/journal/assets/2026-09-29-local.png`
+- DOM 专项验证通过，四条路签和 aria 文案都同步：`.autoloop/runs/2026-09-29_attempt_01/route_scent_dom_check.json`
+- 线上无痕验证通过，截图：`.autoloop/journal/assets/2026-09-29-online.png`
+- 作品发布 commit：`9efb3a59bd43712c4313a28697fe169ffaa4e227`
+- 记录回填 commit：`5686f6de5a5f9db1a7597f776a5f4616357b0156`
+
+当前线上地址已验证通过：`https://job-yang.github.io/npc_voice_panel_3d/`。本轮 `.git` 在原工作区仍然只读，所以沿用临时克隆完成提交和推送；临时克隆收尾时是干净状态。
