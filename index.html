@@ -941,6 +941,29 @@
   }
   .dialog .meta.show { display: block; }
   .dialog .line { font-size: 14px; line-height: 1.6; color: #f0e0c8; }
+  .dialog .takeaway-mark {
+    display: none;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: rgba(255,207,138,.075);
+    border: 1px solid rgba(255,207,138,.2);
+    border-radius: 8px;
+    color: rgba(255,241,216,.86);
+  }
+  .dialog .takeaway-mark.show { display: grid; }
+  .dialog .takeaway-mark strong {
+    color: #ffcf8a;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .dialog .takeaway-mark span {
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.45;
+  }
   .dialog .receipt-details {
     display: none;
     grid-template-columns: 1fr;
@@ -1816,6 +1839,10 @@
   <div class="name" id="dlgName">老杨的铁匠铺</div>
   <div class="meta" id="dlgMeta">点击人物认识 Job Yang.</div>
   <div class="line" id="dlgLine">欢迎来到老杨的铁匠铺，也可以叫我老羊。要打把什么家伙？</div>
+  <div class="takeaway-mark" id="dlgTakeaway" aria-label="匠印短句">
+    <strong>匠印</strong>
+    <span id="dlgTakeawayText"></span>
+  </div>
   <div class="receipt-details" id="receiptDetails" aria-label="巡铺炉印带走结论"></div>
   <div class="process-steps" id="processSteps" aria-label="iLoop 五锤工序"></div>
   <div class="actions">
@@ -2029,6 +2056,7 @@ const TOUR_STOPS = {
     cue: '先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。',
     question: '这间铺子的主人是谁？',
     takeaway: '老杨把 iOS 手艺和 AI 协作放进同一间铺子。',
+    mark: '记住老杨：亲自下场的 iOS 工程师，把 AI 当成要验收的工具同伴。',
     gain: '收下身份：iOS 手艺 + AI 工具匠',
     stamp: '身份落印：老杨把 iOS 手艺和 AI 协作锻在一起。',
     relay: '锻出身份落点：先知道是谁，再去看他怎样把 AI 协作锻成方法。',
@@ -2065,6 +2093,7 @@ const TOUR_STOPS = {
     cue: '主炉在这里：把 AI 协作拆成计划、取证、改动、验证、收口五锤。',
     question: 'AI 协作怎样从试试看变成交付流程？',
     takeaway: '五锤闭环把计划、证据、改动、验证和收口扣在一起。',
+    mark: '记住 iLoop：每一锤都要有计划、有证据、有验收，AI 才算真正交付。',
     gain: '收下方法：五锤闭环',
     stamp: '方法落印：五锤闭环让 AI 交付有证据可复查。',
     relay: '锻出方法骨架：五锤闭环成形后，下一站看它每天怎样试火。',
@@ -2101,6 +2130,7 @@ const TOUR_STOPS = {
     cue: '看这间铺子最近试什么火候，以及每日自迭代怎样继续磨手感。',
     question: '这间铺子最近在试什么火？',
     takeaway: '每日只打一题，截图、日志和失败原因都留下来。',
+    mark: '记住近况：这间铺子每天只打一题，改动、截图和失败都留成下一轮证据。',
     gain: '收下试火：一轮一题留证据',
     stamp: '试火落印：每日一题，小步改完并留下截图日志。',
     relay: '锻出当日火候：每日一题留下证据，最后回到火炉看现场反馈。',
@@ -2137,6 +2167,7 @@ const TOUR_STOPS = {
     cue: '到炉边锻一句欢迎语，感受老杨式的短句和火候反馈。',
     question: '访客动手后，铺子会怎样回应？',
     takeaway: '点击火炉会触发短句、灯光和声音，把介绍变成现场反馈。',
+    mark: '记住火炉：访客一落锤，短句、火光和声音会立刻给出现场反馈。',
     gain: '收下反馈：点击、火光和短句',
     stamp: '反馈落印：点击火炉，短句、火光和声音一起回锤。',
     relay: '锻出现场反馈：身份、方法和试火都回到一次可听可看的落锤。',
@@ -2535,6 +2566,7 @@ window.__SCENE_DEBUG__ = {
       scent: stop.querySelector('.tour-scent')?.textContent || '',
       aria: stop.getAttribute('aria-label') || '',
     })),
+    stationMarks: Object.fromEntries(Object.entries(TOUR_STOPS).map(([key, station]) => [key, station.mark || ''])),
     question: stationQuestion?.textContent || '',
     takeaway: stationTakeaway?.textContent || '',
     cue: stationLine?.textContent || '',
@@ -2599,6 +2631,11 @@ window.__SCENE_DEBUG__ = {
     label: item.querySelector('strong')?.textContent || '',
     text: item.querySelector('span')?.textContent || '',
   })),
+  dialogTakeaway: () => ({
+    visible: dlgTakeaway?.classList.contains('show') || false,
+    text: dlgTakeawayText?.textContent || '',
+    aria: dlgTakeaway?.getAttribute('aria-label') || '',
+  }),
   motion: () => ({
     reducedMotion,
     bodyClass: document.body.classList.contains('motion-reduced'),
@@ -2848,6 +2885,8 @@ const artifactName = document.getElementById('artifactName');
 const artifactLine = document.getElementById('artifactLine');
 const artifactInspect = document.getElementById('artifactInspect');
 const artifactNext = document.getElementById('artifactNext');
+const dlgTakeaway = document.getElementById('dlgTakeaway');
+const dlgTakeawayText = document.getElementById('dlgTakeawayText');
 const visitedTourStops = new Set(['profile']);
 const stationHotspotButtons = {};
 const tourPathNodes = {};
@@ -3416,6 +3455,7 @@ function renderTourReceipt() {
     meta: `已看 ${visitedTourStops.size}/${TOUR_ORDER.length} · ${stationNames}`,
     line: `${TOUR_RECEIPT_SUMMARY} 下面三条，是这趟巡铺最该带走的炉印。`,
     details: TOUR_RECEIPT_DETAILS,
+    takeaway: '四站合炉：认识主人、记住闭环、带着证据来开炉。',
     actions: [
       { label: '回炉再锻', type: 'forge' },
       { label: '重走一遍', type: 'tour_restart' },
@@ -3441,6 +3481,7 @@ function inspectActiveArtifact() {
     name: `物证鉴定 · ${artifact.name}`,
     meta: `${station.step} · ${station.title} · ${artifact.label || '铺内物证'}`,
     line: `是什么：${artifact.line} 说明老杨：${artifact.reading || station.cue} 下一步：${artifact.next || station.cue}`,
+    takeaway: station.mark,
     actions: [
       { label: stationActionType === 'forge' ? '再锻一句' : '看本站说明', type: stationActionType },
       { label: '换一枚物证', type: 'artifact_next' },
@@ -3570,12 +3611,15 @@ function renderReceiptDetails(details = []) {
   });
 }
 
-function renderDialog({ name, meta = '', line, actions = [], steps = [], activeStep = '', details = [], allowVoice = false }) {
+function renderDialog({ name, meta = '', line, actions = [], steps = [], activeStep = '', details = [], takeaway = '', allowVoice = false }) {
   document.getElementById('dlgName').textContent = name;
   const metaEl = document.getElementById('dlgMeta');
   metaEl.textContent = meta;
   metaEl.classList.toggle('show', !!meta);
   document.getElementById('dlgLine').textContent = line;
+  dlgTakeawayText.textContent = takeaway;
+  dlgTakeaway.classList.toggle('show', !!takeaway);
+  dlgTakeaway.setAttribute('aria-label', takeaway ? `匠印短句：${takeaway}` : '匠印短句');
 
   dialogActions = actions;
   currentProcessSteps = steps;
@@ -3625,8 +3669,8 @@ function openGuideCard(type) {
   }
   const tourType = tourTypeForGuide(type);
   if (tourType) setActiveTourStop(tourType);
-  renderDialog({ ...card, allowVoice: false });
   const station = TOUR_STOPS[tourType || activeTourType] || TOUR_STOPS.profile;
+  renderDialog({ ...card, takeaway: station.mark, allowVoice: false });
   const nextKey = getNextTourKey();
   setForgeEcho(
     `刚打开：${card.name}。${station.takeaway}`,
@@ -3671,6 +3715,7 @@ function forgeWelcome() {
     name: '火炉 · 新欢迎语',
     meta: '锻造完成',
     line,
+    takeaway: TOUR_STOPS.forge.mark,
     actions: [
       { label: '再锻一句', type: 'forge' },
       { label: '看 iLoop', type: 'iloop' },
@@ -3694,6 +3739,7 @@ function triggerYQEasterEgg() {
     name: 'YQ 发疯模式',
     meta: '连点彩蛋',
     line,
+    takeaway: TOUR_STOPS.iloop.mark,
     actions: [
       { label: '看 iLoop', type: 'iloop' },
       { label: '再发疯', type: 'yq_easter' },
@@ -3716,6 +3762,7 @@ function triggerILoopEasterEgg() {
     name: 'iLoop 闭环启动',
     meta: '隐藏指令 iLoop',
     line,
+    takeaway: TOUR_STOPS.iloop.mark,
     actions: [
       { label: '看 iLoop', type: 'iloop' },
       { label: '锻造欢迎语', type: 'forge' },
@@ -3775,6 +3822,7 @@ function selectNPC(key) {
     actions: cfg.actions,
     steps: key === 'yq' ? GUIDE_CARDS.iloop.steps : [],
     activeStep: key === 'yq' ? GUIDE_CARDS.iloop.activeStep : '',
+    takeaway: TOUR_STOPS[activeTourType]?.mark || '',
     allowVoice: !!voiceFiles[key],
   });
   const stationEcho = getStationEcho(TOUR_STOPS[activeTourType] || TOUR_STOPS.profile);
