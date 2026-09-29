@@ -1,0 +1,41 @@
+{
+  "core_outcome": "success",
+  "schema": "AutoLoopSupervisor:v1",
+  "status": "succeeded",
+  "archive_rc": 0,
+  "finalize_attempts": 1,
+  "attempts": [
+    {
+      "number": 1,
+      "run_dir": ".autoloop/runs/2026-09-30_attempt_01",
+      "returncode": 0,
+      "classification": "success",
+      "reason": "all_gates_passed",
+      "duration_seconds": 923.775,
+      "finished_at": "2026-09-29T19:15:37.366606+00:00"
+    }
+  ],
+  "date": "2026-09-30",
+  "report_rc": 0,
+  "terminal_status": "succeeded",
+  "prewarm": {
+    "status": "passed",
+    "preflight_rc": 0,
+    "version_gate_rc": 0,
+    "duration_seconds": 5.221,
+    "checked_at": "2026-09-29T18:45:50.691019+00:00",
+    "details": {
+      "status": "passed",
+      "stage": "model_smoke",
+      "static_rc": 0,
+      "smoke": "AUTOLOOP_MODEL_OK",
+      "smoke_rc": 0,
+      "fingerprint": "ccc51d4712b7c026e37428026c35bc43c75e6d1aac2590e5c969d2d95491002c",
+      "versions": {
+        "trae_cli": "traecli 0.201.6(internal edition)",
+        "lark_cli": "lark-cli version 1.0.79"
+      }
+    }
+  },
+  "user_outcome": "success"
+}
