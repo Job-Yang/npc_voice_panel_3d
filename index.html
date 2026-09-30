@@ -1161,6 +1161,75 @@
     color: rgba(231,244,214,.9);
     border-color: rgba(142,190,123,.38);
   }
+
+  .station-focus-halo {
+    position: fixed;
+    z-index: 15;
+    width: 112px;
+    height: 112px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.82);
+    transition: opacity .2s, transform .2s;
+  }
+  .station-focus-halo.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .station-focus-halo .focus-ring,
+  .station-focus-halo .focus-core,
+  .station-focus-halo .focus-beam {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .station-focus-halo .focus-ring {
+    width: 86px;
+    height: 86px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,207,138,.6);
+    box-shadow:
+      0 0 20px rgba(255,119,51,.24),
+      inset 0 0 18px rgba(255,207,138,.12);
+    animation: focusPulse 2.6s ease-in-out infinite;
+  }
+  .station-focus-halo .focus-core {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255,207,138,.22);
+    border: 1px solid rgba(255,239,207,.7);
+    box-shadow: 0 0 16px rgba(255,207,138,.34);
+  }
+  .station-focus-halo .focus-beam {
+    width: 2px;
+    height: 58px;
+    top: 8px;
+    background: linear-gradient(to bottom, rgba(255,207,138,0), rgba(255,207,138,.46), rgba(255,119,51,0));
+    border-radius: 999px;
+  }
+  .station-focus-halo .focus-label {
+    position: absolute;
+    left: 50%;
+    top: 96px;
+    transform: translateX(-50%);
+    min-width: 66px;
+    padding: 2px 7px 3px;
+    background: rgba(20, 14, 10, .82);
+    color: #ffcf8a;
+    border: 1px solid rgba(255,207,138,.34);
+    border-radius: 999px;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    box-shadow: 0 6px 14px rgba(0,0,0,.28);
+  }
+  @keyframes focusPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(.94); opacity: .66; }
+    50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+  }
   .station-hotspot .hotspot-index {
     display: inline-flex;
     width: 18px;
@@ -1315,6 +1384,7 @@
     animation: none;
   }
   .motion-reduced .station-pin,
+  .motion-reduced .station-focus-halo,
   .motion-reduced .station-hotspot,
   .motion-reduced .tour-path-line,
   .motion-reduced .tour-path-node,
@@ -1329,6 +1399,11 @@
   .motion-reduced .station-hotspot.show,
   .motion-reduced .station-hotspot.active,
   .motion-reduced .station-hotspot.next:not(.active) {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .motion-reduced .station-focus-halo .focus-ring {
+    animation: none;
+    opacity: .82;
     transform: translate(-50%, -50%) scale(1);
   }
   .motion-reduced .station-pin.show,
@@ -1660,6 +1735,20 @@
       justify-content: center;
       padding: 5px 6px;
     }
+    .station-focus-halo {
+      width: 86px;
+      height: 86px;
+    }
+    .station-focus-halo .focus-ring {
+      width: 64px;
+      height: 64px;
+    }
+    .station-focus-halo .focus-beam {
+      height: 44px;
+    }
+    .station-focus-halo .focus-label {
+      top: 74px;
+    }
     .station-hotspot .hotspot-title {
       display: none;
     }
@@ -1678,6 +1767,12 @@
   <span class="pin-step" id="pinStep">第 1 站</span>
   <strong class="pin-title" id="pinTitle">老杨</strong>
   <span class="pin-line" id="pinLine">主人在这里</span>
+</div>
+<div class="station-focus-halo" id="stationFocusHalo" aria-hidden="true">
+  <span class="focus-beam"></span>
+  <span class="focus-ring"></span>
+  <span class="focus-core"></span>
+  <span class="focus-label" id="stationFocusLabel">身份落锤</span>
 </div>
 <div class="station-hotspots" id="stationHotspots" aria-label="铺内可点击站点"></div>
 
@@ -2555,6 +2650,24 @@ window.__SCENE_DEBUG__ = {
       },
     ])),
   }),
+  stationFocus: () => {
+    const rect = stationFocusHalo?.getBoundingClientRect();
+    return {
+      activeTourType,
+      label: stationFocusLabel?.textContent || '',
+      visible: stationFocusHalo?.classList.contains('show') || false,
+      rect: rect ? {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+      } : null,
+      focusedNpc: TOUR_STOPS[activeTourType]?.npc || '',
+      focusedObject: TOUR_STOPS[activeTourType]?.object || '',
+    };
+  },
   stationBrief: () => ({
     activeTourType,
     nextTourType: getNextTourKey(),
@@ -2856,6 +2969,8 @@ const forgeEchoNext = document.getElementById('forgeEchoNext');
 const stationRelayKicker = document.getElementById('stationRelayKicker');
 const stationRelayText = document.getElementById('stationRelayText');
 const stationPin = document.getElementById('stationPin');
+const stationFocusHalo = document.getElementById('stationFocusHalo');
+const stationFocusLabel = document.getElementById('stationFocusLabel');
 const stationHotspots = document.getElementById('stationHotspots');
 const pinStep = document.getElementById('pinStep');
 const pinTitle = document.getElementById('pinTitle');
@@ -3119,6 +3234,22 @@ function getStationHotspotPosition(type) {
   return pos;
 }
 
+function getStationFocusPosition(type = activeTourType) {
+  const station = TOUR_STOPS[type] || TOUR_STOPS.profile;
+  const root = station.npc ? npcs[station.npc]?.root : interactiveObjects[station.object]?.root;
+  if (root) {
+    const box = new THREE.Box3().setFromObject(root);
+    const pos = box.getCenter(new THREE.Vector3());
+    pos.y = station.object
+      ? box.min.y + Math.max(0.42, (box.max.y - box.min.y) * 0.45)
+      : box.min.y + Math.max(0.95, (box.max.y - box.min.y) * 0.5);
+    return pos;
+  }
+  const fallback = new THREE.Vector3(...(station.pin || TOUR_STOPS.profile.pin));
+  fallback.y -= station.object ? 0.48 : 0.68;
+  return fallback;
+}
+
 function updateStationPinPosition() {
   const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
   const screen = worldToViewport(getStationPinPosition(activeTourType));
@@ -3151,6 +3282,36 @@ function updateStationHotspots() {
     btn.style.left = Math.max(width / 2 + margin, Math.min(innerWidth - width / 2 - margin, screen.x)) + 'px';
     btn.style.top = Math.max(height / 2 + margin, Math.min(innerHeight - height / 2 - margin, screen.y)) + 'px';
   });
+}
+
+function updateStationFocusHalo() {
+  if (!stationFocusHalo || !stationFocusLabel) return;
+  const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  let screen = worldToViewport(getStationFocusPosition(activeTourType));
+  let forceVisible = false;
+  if (innerWidth <= 640) {
+    const hotspotRect = stationHotspotButtons[activeTourType]?.getBoundingClientRect();
+    if (hotspotRect?.width && hotspotRect?.height) {
+      screen = {
+        x: hotspotRect.left + hotspotRect.width / 2,
+        y: hotspotRect.top + hotspotRect.height / 2,
+        behind: false,
+      };
+      forceVisible = true;
+    } else {
+      screen = worldToViewport(getStationPinPosition(activeTourType));
+    }
+  }
+  const railTop = tourRail?.getBoundingClientRect().top ?? innerHeight;
+  const hiddenByRail = innerWidth <= 640 && screen.y > railTop - 40;
+  const visible = (forceVisible || !screen.behind) && !hiddenByRail;
+  stationFocusHalo.classList.toggle('show', visible);
+  stationFocusLabel.textContent = `${station.track}落锤`;
+  stationFocusHalo.setAttribute('data-tour', activeTourType);
+  if (!visible) return;
+  const margin = innerWidth <= 640 ? 44 : 56;
+  stationFocusHalo.style.left = Math.max(margin, Math.min(innerWidth - margin, screen.x)) + 'px';
+  stationFocusHalo.style.top = Math.max(margin, Math.min(innerHeight - margin, screen.y)) + 'px';
 }
 
 function getTourPathPoint(type) {
@@ -3556,6 +3717,7 @@ function setActiveTourStop(type, options = {}) {
   setStationDetailsOpen(stationDetailsOpen);
   updateStationPinPosition();
   updateStationHotspots();
+  updateStationFocusHalo();
   updateTourPath();
 }
 
@@ -4081,6 +4243,9 @@ function animate() {
     fireLight.intensity += forgePulse * 1.15;
     furnaceCoreLight.intensity += forgePulse * 0.9;
   }
+  if (activeTourType === 'forge') {
+    furnaceCoreLight.intensity += reducedMotion ? 0.18 : 0.34;
+  }
 
   // 炉膛火焰网格轻微形变 + 呼吸缩放，营造燃烧感
   if (furnaceFireMesh) {
@@ -4129,12 +4294,15 @@ function animate() {
     if (halo) {
       const pulseAmp = (SCENE_MODE === 'forge' ? 0.18 : 0.06) * motionFactor;
       const base = SCENE_PRESETS[SCENE_MODE].haloIntensity;
-      halo.light.intensity = base + Math.sin(t * 2.2 + i * 2.1) * pulseAmp;
+      const focused = TOUR_STOPS[activeTourType]?.npc === key;
+      const focusBoost = focused ? (SCENE_MODE === 'forge' ? 1.2 : 0.72) : 0;
+      halo.light.intensity = base + focusBoost + Math.sin(t * 2.2 + i * 2.1) * pulseAmp;
     }
   });
   updateNPCBubblePosition();
   updateStationPinPosition();
   updateStationHotspots();
+  updateStationFocusHalo();
   updateTourPath();
   controls.update();
   renderer.render(scene, camera);
@@ -4385,6 +4553,7 @@ addEventListener('resize', () => {
     renderer.shadowMap.needsUpdate = true; // 尺寸变了，重渲一次冻结阴影
     updateStationPinPosition();
     updateStationHotspots();
+    updateStationFocusHalo();
     updateTourPath();
   });
 });
