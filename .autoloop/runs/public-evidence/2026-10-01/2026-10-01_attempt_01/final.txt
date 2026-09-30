@@ -1,0 +1,18 @@
+已完成 2026-10-01 这一轮自迭代并推送到 `main`。
+
+本轮主题是“落锤聚焦光”：在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-10-01/index.html) 里给四站当前对象加了暖色空间光环、短标签和轻量光源增强。桌面端跟随 NPC/火炉主体，移动端绑定同站热点，避免遮挡底部路线和对话框。
+
+验证和记录都已完成：
+
+- 功能提交：`eeeedd94b1177ea9340cf4a7ea1f4e0e7146d32f`
+- 记录回填提交：`2bf0b26d018bd3faa2c2f0ac9b495a947c21e55c`
+- 最终线上验证记录提交：`08ecbda`
+- 创意门禁：passed
+- 本地桌面聚焦检查：passed
+- 移动端不遮挡检查：passed
+- 线上无痕验证：passed，线上 `index.html` SHA 与本地一致，canvas 正常，无 console error、无请求失败
+- 本轮记录写入 [2026-10-01.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-10-01/.autoloop/journal/2026-10-01.md)
+- 输入卡写入 [2026-10-01.md](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-10-01/.autoloop/inputs/2026-10-01.md)
+- 线上截图：`.autoloop/journal/assets/2026-10-01-online.png`
+
+注意：当前原工作区的 `.git` 仍然无法写入 `index.lock`，所以本地 `git status` 会显示本轮文件未暂存；我已按前几轮同类情况用 `/tmp` 临时克隆完成提交和 push，远端 `main` 已更新到 `08ecbda`。本地预览服务也已停止。
