@@ -248,6 +248,13 @@
     font-size: 11px;
     white-space: nowrap;
   }
+  .tour-slate-toggle .slate-count {
+    display: none;
+    margin-left: 4px;
+    color: #ffcf8a;
+    font-variant-numeric: tabular-nums;
+  }
+  .tour-slate-toggle.has-progress .slate-count { display: inline; }
   .tour-slate-toggle:hover,
   .tour-slate-toggle[aria-expanded="true"] {
     background: rgba(142,190,123,.16);
@@ -1806,25 +1813,11 @@
     <strong class="station-name" id="stationName">老杨</strong>
     <span class="station-line" id="stationLine">先认识这间铺子的主人：iOS 工程师、AI 工具匠和 iLoop 手艺人。</span>
     <button class="station-details-toggle" id="stationDetailsToggle" type="button" aria-expanded="false" aria-controls="stationDetails">读牌</button>
-    <button class="tour-slate-toggle" id="tourSlateToggle" type="button" aria-expanded="false" aria-controls="tourSlate">炉牌</button>
+    <button class="tour-slate-toggle" id="tourSlateToggle" type="button" aria-expanded="false" aria-controls="tourSlate">炉牌<span class="slate-count" id="tourSlateCount">1/4</span></button>
     <button class="view-home-button" id="viewHome" type="button">回铺心</button>
     <div class="station-action" aria-label="本站下一步">
       <span class="station-action-hint" id="stationActionHint">读完这一站，先听主人开场。</span>
       <button class="station-action-button" id="stationAction" type="button">敲这一锤</button>
-    </div>
-    <div class="forge-beat" id="forgeBeat" role="status" aria-live="polite" aria-label="炉前三拍：当前身份，刚刚等你落第一锤，下一锤 iLoop">
-      <span class="forge-beat-card is-now">
-        <span class="forge-beat-kicker">当前</span>
-        <span class="forge-beat-text" id="forgeBeatNow">身份 · 老杨</span>
-      </span>
-      <span class="forge-beat-card is-echo">
-        <span class="forge-beat-kicker">刚刚</span>
-        <span class="forge-beat-text" id="forgeBeatEcho">等你落第一锤。</span>
-      </span>
-      <span class="forge-beat-card is-next">
-        <span class="forge-beat-kicker">下一步</span>
-        <span class="forge-beat-text" id="forgeBeatNext">去 iLoop 看方法。</span>
-      </span>
     </div>
     <div class="forge-echo" id="forgeEcho" aria-live="polite" aria-label="炉边回声：等你落第一锤" hidden>
       <span class="forge-echo-kicker">回声</span>
@@ -1832,6 +1825,20 @@
       <span class="forge-echo-next" id="forgeEchoNext">点人物、火炉或下方站点后，这里会留下刚刚锻出的结论。</span>
     </div>
     <div class="tour-slate" id="tourSlate">
+      <div class="forge-beat" id="forgeBeat" role="status" aria-live="polite" aria-label="炉前三拍：当前身份，刚刚等你落第一锤，下一锤 iLoop">
+        <span class="forge-beat-card is-now">
+          <span class="forge-beat-kicker">当前</span>
+          <span class="forge-beat-text" id="forgeBeatNow">身份 · 老杨</span>
+        </span>
+        <span class="forge-beat-card is-echo">
+          <span class="forge-beat-kicker">刚刚</span>
+          <span class="forge-beat-text" id="forgeBeatEcho">等你落第一锤。</span>
+        </span>
+        <span class="forge-beat-card is-next">
+          <span class="forge-beat-kicker">下一步</span>
+          <span class="forge-beat-text" id="forgeBeatNext">去 iLoop 看方法。</span>
+        </span>
+      </div>
       <div class="station-thread" id="stationThread" aria-label="巡铺炉脉：当前在身份，下一锤到方法">
         <span class="station-thread-kicker">炉脉</span>
         <span class="station-thread-trail" id="stationThreadTrail"></span>
@@ -2708,6 +2715,8 @@ window.__SCENE_DEBUG__ = {
     slateOpen: tourSlateOpen,
     slateVisible: tourSlate?.classList.contains('show') || false,
     slateToggle: tourSlateToggle?.textContent || '',
+    slateToggleAria: tourSlateToggle?.getAttribute('aria-label') || '',
+    slateProgressVisible: tourSlateToggle?.classList.contains('has-progress') || false,
     harvestOpen: tourHarvestOpen,
     harvestVisible: tourHarvestDetails?.classList.contains('show') || false,
     harvestToggle: tourHarvestToggle?.textContent || '',
@@ -2722,6 +2731,7 @@ window.__SCENE_DEBUG__ = {
     echoText: forgeEcho?.textContent?.replace(/\s+/g, ' ').trim() || '',
     echoAria: forgeEcho?.getAttribute('aria-label') || '',
     echoActive: forgeEcho?.classList.contains('active') || false,
+    beatVisible: !!(forgeBeat?.offsetParent),
     beatText: forgeBeat?.textContent?.replace(/\s+/g, ' ').trim() || '',
     beatAria: forgeBeat?.getAttribute('aria-label') || '',
     beatNow: forgeBeatNow?.textContent || '',
@@ -3412,17 +3422,26 @@ function setStationDetailsOpen(open, announce = false) {
   }
 }
 
+function renderTourSlateToggle() {
+  const visitedCount = visitedTourStops.size;
+  const totalCount = TOUR_ORDER.length;
+  const label = tourSlateOpen ? '收起炉牌' : '炉牌';
+  const countText = `${visitedCount}/${totalCount}`;
+  tourSlateToggle.classList.toggle('has-progress', visitedCount > 1 || tourSlateOpen);
+  tourSlateToggle.innerHTML = `${label}<span class="slate-count" id="tourSlateCount">${countText}</span>`;
+}
+
 function setTourSlateOpen(open, announce = false) {
   tourSlateOpen = !!open;
   tourSlate.classList.toggle('show', tourSlateOpen);
   tourSlateToggle.setAttribute('aria-expanded', tourSlateOpen ? 'true' : 'false');
-  tourSlateToggle.textContent = tourSlateOpen ? '收起炉牌' : '炉牌';
+  renderTourSlateToggle();
   tourSlateToggle.setAttribute(
     'aria-label',
-    `${tourSlateOpen ? '收起' : '展开'}巡铺进度、接力、锤后炉印和收获袋`
+    `${tourSlateOpen ? '收起' : '展开'}炉前三拍、巡铺进度、接力、锤后炉印和收获袋`
   );
   if (announce) {
-    showContextBubble(tourSlateOpen ? '炉牌展开：进度、接力和炉印都在这里。' : '炉牌收起：先看当前站和铺子主体。', 2800);
+    showContextBubble(tourSlateOpen ? '炉牌展开：三拍、进度和炉印都在这里。' : '炉牌收起：先看当前站和铺子主体。', 2800);
   }
 }
 
