@@ -1,0 +1,22 @@
+本轮已完成并推送。
+
+主题是“收炉看铺”：把默认常驻的“炉前三拍”收进可展开的“炉牌”，默认底栏少一整行信息，让 3D 铁匠铺、人物、火炉和昨天新增的落锤聚焦光更突出；需要深读时仍可打开炉牌回看三拍、炉脉、进度和炉印。
+
+关键提交：
+
+- 作品与本轮 input/journal 初稿：`fab1f92f09b8f5c3b4dddeccdf5b0df56c24e02b`
+- 回填主 commit 到记录：`16cec6b91dd765aa84e1cefd5fc374f7ad749790`
+- 补充线上验证截图与最终手记：`8ee04c64c99c6952a911067fd7594d5593404430`
+
+验证结果：
+
+- 创意门禁通过：`.autoloop/runs/2026-10-02_attempt_01/creative_validation.json`
+- 本地截图已保存：
+  - `.autoloop/journal/assets/2026-10-02-local.png`
+  - `.autoloop/journal/assets/2026-10-02-slate.png`
+- 线上固定验证通过：`.autoloop/runs/2026-10-02_attempt_01/visual_verification.json`
+  - 线上 HTML SHA 与本地一致：`e6215d279e9fdeb248d28560b837a340a4cdc9f7de621d9f38d44ea07f710120`
+  - canvas 正常，loader 隐藏，无 console error，无请求失败
+  - 线上截图：`.autoloop/journal/assets/2026-10-02-online.png`
+
+补充说明：原工作区的 `.git` 是只读挂载，无法直接 `git add/commit`，所以沿用之前记录过的方式，通过 `/tmp/npc_voice_panel_3d_autoloop_20261002` 临时克隆完成提交和 push。原工作区因此仍显示本轮文件为未提交改动，但远端 `main` 已包含最终结果。原工作区还有一个未跟踪的 `.autoloop/engine/__pycache__/`，是运行创意门禁产生的缓存，未被提交。
