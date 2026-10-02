@@ -1,0 +1,16 @@
+本地服务已停止。剩下只是最终状态说明：主工作区 `.git` 只读导致它不能快进到远端，但远端主线已经完成三个提交并通过线上验证。本轮已完成并推送到 `main`。
+
+做了“炉声火候”：在右上角声音/模式控制下新增炉声状态，让访客能看到当前是“炉声待点亮”“舒缓听铺”“静音看铺”还是“开炉有声”。同时把 BGM 状态拆成 `playing` 和 `audible`，避免浏览器拦截自动播放时误显示已经出声；火炉模式会明确提示人物语音会加入。
+
+已推送提交：
+- `30687226d7825db8a53918e56e0d66323dcc5eab`：功能与本轮 input/journal/本地截图
+- `74df7ea74e97af06c9bf4a3ffefaa368a2a1c196`：回填 commit hash
+- `086619aec3791ec6bcc9599af706f3de3799c65c`：补充线上验证截图与手记
+
+验证结果：
+- 创意门禁通过：`.autoloop/runs/2026-10-03_attempt_01/creative_validation.json`
+- 本地专项声音状态验证通过：`.autoloop/runs/2026-10-03_attempt_01/local_sound_check_final.json`
+- 线上固定验证第二次通过：`.autoloop/runs/2026-10-03_attempt_01/visual_verification.json`
+- 线上截图：`.autoloop/journal/assets/2026-10-03-online.png`
+
+注意一点：当前主工作区的 `.git` 是只读文件系统，无法 `git add` 或快进，所以 `git status` 仍会显示本地文件未提交且落后远端；我按前几轮同样方式用临时克隆完成了提交和 push。线上 Pages 已验证发布的是当前版本，SHA 一致，无 console error、无请求失败。
