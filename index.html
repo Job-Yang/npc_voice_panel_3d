@@ -99,6 +99,56 @@
     border-color: rgba(214,240,189,.58);
     background: rgba(35, 58, 28, .82);
   }
+  .sound-status {
+    position: fixed;
+    top: 58px;
+    right: 16px;
+    z-index: 19;
+    max-width: min(310px, calc(100vw - 32px));
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    background: rgba(20, 14, 10, .68);
+    color: rgba(232,213,176,.74);
+    border: 1px solid rgba(255,170,100,.15);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.24);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+    font-size: 11px;
+  }
+  .sound-status .sound-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(232,213,176,.38);
+    box-shadow: 0 0 0 rgba(255,207,138,0);
+  }
+  .sound-status .sound-line {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sound-status.audible {
+    color: rgba(255,241,216,.88);
+    border-color: rgba(255,207,138,.22);
+  }
+  .sound-status.audible .sound-dot {
+    background: #ffcf8a;
+    box-shadow: 0 0 10px rgba(255,207,138,.45);
+  }
+  .sound-status.forge {
+    color: rgba(255,221,188,.92);
+    border-color: rgba(255,119,51,.34);
+    background: rgba(38, 17, 9, .72);
+  }
+  .sound-status.forge .sound-dot {
+    background: #ff7733;
+    box-shadow: 0 0 12px rgba(255,119,51,.55);
+  }
   .panel {
     position: fixed; top: 64px; left: 16px; z-index: 19;
     background: rgba(20, 14, 10, .72); backdrop-filter: blur(10px);
@@ -1444,7 +1494,15 @@
       padding: 8px 10px;
       font-size: 12px;
     }
-    .panel { top: 106px; left: 12px; max-width: calc(100vw - 24px); }
+    .sound-status {
+      top: 100px;
+      right: 12px;
+      left: 12px;
+      max-width: none;
+      padding: 6px 8px;
+      font-size: 10px;
+    }
+    .panel { top: 132px; left: 12px; max-width: calc(100vw - 24px); }
     .tour-rail {
       left: 12px;
       right: 12px;
@@ -1714,7 +1772,7 @@
     .tour-actions { display: none; }
     .dialog {
       right: 12px;
-      top: 112px;
+      top: 138px;
       bottom: auto;
       left: 12px;
       max-width: none;
@@ -1797,7 +1855,11 @@
 <button class="panel-toggle" id="panelToggle">⚙️ 控制面板</button>
 <button class="motion-toggle" id="motionToggle" type="button" aria-pressed="false" title="降低持续动效">稳火</button>
 <button class="mode-toggle" id="modeToggle" title="场景模式">🕯️ 舒缓</button>
-<button class="bgm-toggle" id="bgmToggle" title="背景音乐">🔇 音乐</button>
+<button class="bgm-toggle" id="bgmToggle" type="button" aria-pressed="false" title="背景音乐">🔇 音乐</button>
+<div class="sound-status" id="soundStatus" role="status" aria-live="polite">
+  <span class="sound-dot" aria-hidden="true"></span>
+  <span class="sound-line" id="soundStatusLine">炉声待点亮：首次点击后可听舒缓曲。</span>
+</div>
 
 <svg class="tour-path" id="tourPath" aria-hidden="true"></svg>
 
@@ -2518,6 +2580,7 @@ const SCENE_PRESETS = {
 };
 let SCENE_MODE = 'calm';
 let fireBaseIntensity = SCENE_PRESETS.calm.fireBase;   // 给火光闪烁动画当基准
+let audioUnlocked = false;
 
 // ============== 地面（在背景 GLB 没加载前的兜底）==============
 const ground = new THREE.Mesh(
@@ -2769,6 +2832,19 @@ window.__SCENE_DEBUG__ = {
       key,
       npc.motion?.snapshot() || null,
     ])),
+  }),
+  sound: () => ({
+    mode: SCENE_MODE,
+    unlocked: audioUnlocked,
+    bgmPlaying: window.__BGM_DEBUG__?.state()?.playing || false,
+    bgmStyle: window.__BGM_DEBUG__?.state()?.style || '',
+    title: window.__BGM_DEBUG__?.state()?.title || '',
+    npcVoice: !!SCENE_PRESETS[SCENE_MODE]?.npcVoice,
+    statusText: soundStatusLine?.textContent || '',
+    statusClass: soundStatus?.className || '',
+    bgmButtonText: bgmBtn?.textContent || '',
+    bgmButtonTitle: bgmBtn?.title || '',
+    modeButtonText: modeBtn?.textContent || '',
   }),
 };
 
@@ -4359,12 +4435,21 @@ const BGM = (() => {
   );
   let style = 'calm';
   let playing = false;
+  let audible = false;
 
   function startCurrent() {
     const audio = players[style];
     audio.volume = TRACKS[style].volume;
     const playPromise = audio.play();
-    playPromise?.catch(() => {});
+    playPromise
+      ?.then(() => {
+        audible = true;
+        refreshBgmBtn?.();
+      })
+      .catch(() => {
+        audible = false;
+        refreshBgmBtn?.();
+      });
   }
 
   function play() {
@@ -4374,6 +4459,7 @@ const BGM = (() => {
 
   function pause() {
     playing = false;
+    audible = false;
     Object.values(players).forEach(audio => {
       audio.pause();
       audio.volume = 0;
@@ -4387,6 +4473,7 @@ const BGM = (() => {
     const next = players[style];
     if (!playing) return;
 
+    audible = false;
     previous.pause();
     previous.volume = 0;
     next.currentTime = 0;
@@ -4402,6 +4489,7 @@ const BGM = (() => {
     pause,
     setStyle,
     get playing() { return playing; },
+    get audible() { return audible && playing && !players[style].paused; },
     get style() { return style; },
     get title() { return TRACKS[style].title; },
   };
@@ -4413,6 +4501,7 @@ const BGM = (() => {
     state: () => ({
       style,
       playing,
+      audible: api.audible,
       title: TRACKS[style].title,
       paused: players[style].paused,
       volume: players[style].volume,
@@ -4495,21 +4584,50 @@ function applySceneMode(mode, { animateLight = true } = {}) {
 }
 
 const bgmBtn = document.getElementById('bgmToggle');
+const soundStatus = document.getElementById('soundStatus');
+const soundStatusLine = document.getElementById('soundStatusLine');
+function getSoundStatusText() {
+  if (!BGM.playing) return '静音看铺：音乐和人物语音都已收住。';
+  if (!audioUnlocked) return `炉声待点亮：首次点击后播放 ${BGM.title}。`;
+  if (!BGM.audible) return `炉声连接中：正在唤起 ${BGM.title}。`;
+  if (SCENE_MODE === 'forge') return `开炉有声：${BGM.title}，人物语音会应锤加入。`;
+  return `舒缓听铺：${BGM.title}，人物先只冒泡不打扰。`;
+}
+function refreshSoundStatus() {
+  if (!soundStatus || !soundStatusLine) return;
+  const audible = BGM.audible;
+  soundStatusLine.textContent = getSoundStatusText();
+  soundStatus.classList.toggle('audible', audible);
+  soundStatus.classList.toggle('forge', audible && SCENE_MODE === 'forge');
+  soundStatus.setAttribute('aria-label', `炉声火候：${soundStatusLine.textContent}`);
+}
 function refreshBgmBtn() {
-  bgmBtn.title = `背景音乐 · ${BGM.title}`;
+  const waitingForUnlock = BGM.playing && !BGM.audible;
+  bgmBtn.title = BGM.playing
+    ? `${waitingForUnlock ? '背景音乐待点亮' : '背景音乐'} · ${BGM.title}${waitingForUnlock ? '，点击点亮炉声' : '，点击静音'}`
+    : `背景音乐已静音，点击恢复 ${BGM.title}`;
+  bgmBtn.setAttribute('aria-pressed', BGM.playing ? 'true' : 'false');
   if (BGM.playing) {
-    bgmBtn.textContent = '🔊 音乐';
+    bgmBtn.textContent = waitingForUnlock ? '🔈 待点' : '🔊 音乐';
     bgmBtn.classList.add('playing');
   } else {
     bgmBtn.textContent = '🔇 音乐';
     bgmBtn.classList.remove('playing');
   }
+  refreshSoundStatus();
 }
 bgmBtn.addEventListener('click', (e) => {
   e.stopPropagation();
-  BGM.toggle();
+  const waitingForUnlock = BGM.playing && !BGM.audible;
+  audioUnlocked = true;
+  if (waitingForUnlock) {
+    BGM.play();
+  } else {
+    BGM.toggle();
+  }
   bgmUserMuted = !BGM.playing;   // 用户手动操作后记录意图,不再被自动逻辑覆盖
   refreshBgmBtn();
+  showContextBubble(BGM.playing ? getSoundStatusText() : '炉声已收住：可以安静看铺。', 3000);
 });
 
 // ============== BGM 默认开启(在浏览器自动播放策略允许范围内尽力而为)==============
@@ -4522,6 +4640,7 @@ function startBgmDefault() {
 }
 function unlockBgm() {
   detachUnlock();
+  audioUnlocked = true;
   if (bgmUserMuted) return;
   BGM.play();
   refreshBgmBtn();
@@ -4539,12 +4658,18 @@ function refreshModeBtn() {
   const p = SCENE_PRESETS[SCENE_MODE];
   modeBtn.textContent = p.label;
   modeBtn.classList.toggle('forge', SCENE_MODE === 'forge');
+  modeBtn.title = SCENE_MODE === 'forge'
+    ? '场景模式 · 火炉：灯光、音乐和人物语音更热闹'
+    : '场景模式 · 舒缓：柔光、舒缓曲，人物先只冒泡';
+  refreshSoundStatus();
 }
 modeBtn.addEventListener('click', (e) => {
   e.stopPropagation();
+  audioUnlocked = true;
   applySceneMode(SCENE_MODE === 'calm' ? 'forge' : 'calm');
   // 火炉模式确保音乐已开
   if (SCENE_MODE === 'forge' && !BGM.playing) { BGM.play(); refreshBgmBtn(); }
+  showContextBubble(getSoundStatusText(), 3200);
 });
 
 // 首屏保持安静、稳定；访客主动切到火炉模式时再进入更热烈的灯光与音乐。
