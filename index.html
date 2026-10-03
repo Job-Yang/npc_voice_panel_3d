@@ -1485,24 +1485,47 @@
       padding-left: 8px;
       font-size: 10px;
     }
-    .panel-toggle { top: 58px; left: 12px; }
-    .mode-toggle { top: 58px; right: 86px; }
-    .bgm-toggle { top: 58px; right: 12px; }
-    .motion-toggle {
-      top: 58px;
-      right: 165px;
-      padding: 8px 10px;
+    .panel-toggle,
+    .motion-toggle,
+    .mode-toggle,
+    .bgm-toggle {
+      min-height: 40px;
+      padding: 0 10px;
+      justify-content: center;
+      border-radius: 10px;
       font-size: 12px;
+      white-space: nowrap;
+    }
+    .panel-toggle {
+      top: 54px;
+      left: 12px;
+      max-width: calc(100vw - 120px);
+    }
+    .bgm-toggle {
+      top: 54px;
+      right: 12px;
+      min-width: 78px;
+    }
+    .mode-toggle {
+      top: 98px;
+      right: 12px;
+      min-width: 86px;
+    }
+    .motion-toggle {
+      top: 98px;
+      left: 12px;
+      right: auto;
+      min-width: 82px;
     }
     .sound-status {
-      top: 100px;
+      top: 142px;
       right: 12px;
       left: 12px;
       max-width: none;
       padding: 6px 8px;
       font-size: 10px;
     }
-    .panel { top: 132px; left: 12px; max-width: calc(100vw - 24px); }
+    .panel { top: 174px; left: 12px; max-width: calc(100vw - 24px); }
     .tour-rail {
       left: 12px;
       right: 12px;
@@ -1772,7 +1795,7 @@
     .tour-actions { display: none; }
     .dialog {
       right: 12px;
-      top: 138px;
+      top: 174px;
       bottom: auto;
       left: 12px;
       max-width: none;
@@ -2846,6 +2869,42 @@ window.__SCENE_DEBUG__ = {
     bgmButtonTitle: bgmBtn?.title || '',
     modeButtonText: modeBtn?.textContent || '',
   }),
+  mobileControls: () => {
+    const names = {
+      panel: panelToggle,
+      motion: motionBtn,
+      mode: modeBtn,
+      bgm: bgmBtn,
+      sound: soundStatus,
+      topbar: document.querySelector('.topbar'),
+    };
+    const rects = Object.fromEntries(Object.entries(names).map(([key, el]) => {
+      const rect = el?.getBoundingClientRect();
+      return [key, rect ? {
+        left: Math.round(rect.left),
+        top: Math.round(rect.top),
+        right: Math.round(rect.right),
+        bottom: Math.round(rect.bottom),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      } : null];
+    }));
+    const pairs = [
+      ['panel', 'bgm'],
+      ['panel', 'motion'],
+      ['panel', 'mode'],
+      ['motion', 'mode'],
+      ['bgm', 'sound'],
+      ['mode', 'sound'],
+      ['topbar', 'panel'],
+    ];
+    const overlaps = pairs.filter(([a, b]) => {
+      const ra = rects[a];
+      const rb = rects[b];
+      return ra && rb && !(ra.right <= rb.left || rb.right <= ra.left || ra.bottom <= rb.top || rb.bottom <= ra.top);
+    }).map(pair => pair.join(':'));
+    return { rects, overlaps };
+  },
 };
 
 function tickLoad() {
