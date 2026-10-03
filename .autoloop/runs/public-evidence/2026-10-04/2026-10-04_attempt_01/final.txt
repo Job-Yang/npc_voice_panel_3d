@@ -1,0 +1,17 @@
+已完成今天这轮自迭代，并推送到 `main`。
+
+本轮主题是“掌中炉台分层”：只改移动端入口控制，把手机首屏顶部的控制面板、音乐、稳火、舒缓/火炉从拥挤单行拆成两层，并下移炉声状态、面板和移动端对话框。桌面构图基本不变，3D 模型、相机、音频时序和底部巡铺逻辑都没有动。
+
+关键提交：
+- `dfe70c5d7ce60bf68a340ee2ad05e87ac6b5dd5c`：作品改动、输入卡、手记、本地截图、CHANGELOG
+- `e188b9f25de49baf568bafce5e12268e101453a1`：回填 commit hash 到记录
+- `b9978bf653e25bc6cbc46b60568ef8c572365d62`：补充线上验证结果和线上截图
+
+验证结果：
+- 创意门禁通过：`.autoloop/runs/2026-10-04_attempt_01/creative_validation.json`
+- 本地桌面验证通过：`.autoloop/journal/assets/2026-10-04-local.png`
+- 本地 320px 手机验证通过：`.autoloop/journal/assets/2026-10-04-mobile.png`
+- 手机控件矩形检测通过，`panel / motion / mode / bgm / sound / topbar` 重叠列表为空：`.autoloop/runs/2026-10-04_attempt_01/local_mobile_controls.json`
+- 线上无痕验证第二次通过：线上 `index.html` SHA 与本地一致，canvas 存在、loader 隐藏、无 console error、无请求失败；截图为 `.autoloop/journal/assets/2026-10-04-online.png`
+
+有一个环境细节需要说明：当前主工作区的 `.git` 元数据无法创建 `index.lock`，所以我按历史 attempt 的方式在 `/tmp/npc_voice_panel_3d_20261004_2` 临时克隆里提交并推送。最后已校验主工作区文件内容和临时克隆最新提交内容 SHA 一致；主工作区 `git status` 仍显示这些文件未提交，是本地 `.git` 只读造成的状态显示问题，不是远端缺失。
