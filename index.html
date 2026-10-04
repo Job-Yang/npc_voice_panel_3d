@@ -8,6 +8,13 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0d0905; color: #e8d5b0;
     font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  :root {
+    --station-accent: #ffcf8a;
+    --station-accent-rgb: 255, 207, 138;
+    --station-soft-rgb: 255, 119, 51;
+    --station-deep-rgb: 20, 14, 10;
+    --station-contrast: #fff1d8;
+  }
   #viewer { display: block; width: 100vw; height: 100vh; cursor: grab; }
   #viewer:active { cursor: grabbing; }
   button:focus-visible,
@@ -1101,9 +1108,9 @@
     padding: 7px 10px 8px;
     background: rgba(20, 14, 10, .82);
     color: #fff1d8;
-    border: 1px solid rgba(255,207,138,.34);
+    border: 1px solid rgba(var(--station-accent-rgb), .34);
     border-radius: 8px;
-    box-shadow: 0 8px 22px rgba(0,0,0,.34), 0 0 16px rgba(255,119,51,.15);
+    box-shadow: 0 8px 22px rgba(0,0,0,.34), 0 0 16px rgba(var(--station-soft-rgb), .18);
     backdrop-filter: blur(10px);
     pointer-events: none;
     opacity: 0;
@@ -1122,14 +1129,14 @@
     width: 10px;
     height: 10px;
     background: rgba(20, 14, 10, .82);
-    border-right: 1px solid rgba(255,207,138,.34);
-    border-bottom: 1px solid rgba(255,207,138,.34);
+    border-right: 1px solid rgba(var(--station-accent-rgb), .34);
+    border-bottom: 1px solid rgba(var(--station-accent-rgb), .34);
     transform: translateX(-50%) rotate(45deg);
   }
   .station-pin .pin-step {
     display: block;
     margin-bottom: 2px;
-    color: rgba(255,207,138,.76);
+    color: rgba(var(--station-accent-rgb), .78);
     font-size: 10px;
     font-variant-numeric: tabular-nums;
   }
@@ -1187,16 +1194,16 @@
   .station-hotspot.active {
     opacity: 1;
     color: #fff1d8;
-    background: rgba(255,119,51,.22);
-    border-color: rgba(255,140,70,.72);
-    box-shadow: 0 8px 22px rgba(0,0,0,.34), 0 0 18px rgba(255,119,51,.2);
+    background: rgba(var(--station-soft-rgb), .22);
+    border-color: rgba(var(--station-accent-rgb), .72);
+    box-shadow: 0 8px 22px rgba(0,0,0,.34), 0 0 18px rgba(var(--station-soft-rgb), .24);
   }
   .station-hotspot.next:not(.active) {
     opacity: .96;
-    color: #ffcf8a;
-    border-color: rgba(255,207,138,.58);
-    background: rgba(42, 24, 14, .84);
-    box-shadow: 0 8px 22px rgba(0,0,0,.32), 0 0 16px rgba(255,207,138,.16);
+    color: var(--station-accent);
+    border-color: rgba(var(--station-accent-rgb), .58);
+    background: rgba(var(--station-deep-rgb), .84);
+    box-shadow: 0 8px 22px rgba(0,0,0,.32), 0 0 16px rgba(var(--station-accent-rgb), .18);
   }
   .station-hotspot.next:not(.active)::after {
     content: "下一锤";
@@ -1206,8 +1213,8 @@
     transform: translateX(-50%);
     padding: 1px 5px 2px;
     background: rgba(20, 14, 10, .9);
-    color: #ffcf8a;
-    border: 1px solid rgba(255,207,138,.34);
+    color: var(--station-accent);
+    border: 1px solid rgba(var(--station-accent-rgb), .34);
     border-radius: 999px;
     font-size: 9px;
     line-height: 1.2;
@@ -1245,25 +1252,25 @@
     width: 86px;
     height: 86px;
     border-radius: 50%;
-    border: 1px solid rgba(255,207,138,.6);
+    border: 1px solid rgba(var(--station-accent-rgb), .62);
     box-shadow:
-      0 0 20px rgba(255,119,51,.24),
-      inset 0 0 18px rgba(255,207,138,.12);
+      0 0 20px rgba(var(--station-soft-rgb), .28),
+      inset 0 0 18px rgba(var(--station-accent-rgb), .13);
     animation: focusPulse 2.6s ease-in-out infinite;
   }
   .station-focus-halo .focus-core {
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: rgba(255,207,138,.22);
+    background: rgba(var(--station-accent-rgb), .24);
     border: 1px solid rgba(255,239,207,.7);
-    box-shadow: 0 0 16px rgba(255,207,138,.34);
+    box-shadow: 0 0 16px rgba(var(--station-accent-rgb), .38);
   }
   .station-focus-halo .focus-beam {
     width: 2px;
     height: 58px;
     top: 8px;
-    background: linear-gradient(to bottom, rgba(255,207,138,0), rgba(255,207,138,.46), rgba(255,119,51,0));
+    background: linear-gradient(to bottom, rgba(var(--station-accent-rgb), 0), rgba(var(--station-accent-rgb), .48), rgba(var(--station-soft-rgb), 0));
     border-radius: 999px;
   }
   .station-focus-halo .focus-label {
@@ -1274,8 +1281,8 @@
     min-width: 66px;
     padding: 2px 7px 3px;
     background: rgba(20, 14, 10, .82);
-    color: #ffcf8a;
-    border: 1px solid rgba(255,207,138,.34);
+    color: var(--station-accent);
+    border: 1px solid rgba(var(--station-accent-rgb), .34);
     border-radius: 999px;
     font-size: 10px;
     line-height: 1.2;
@@ -1335,10 +1342,10 @@
     stroke-dasharray: 1 0;
   }
   .tour-path-line.next {
-    stroke: rgba(255,207,138,.74);
+    stroke: rgba(var(--station-accent-rgb), .76);
     stroke-width: 3;
     stroke-dasharray: 7 7;
-    filter: drop-shadow(0 0 6px rgba(255,150,70,.34));
+    filter: drop-shadow(0 0 6px rgba(var(--station-soft-rgb), .36));
   }
   .tour-path-node {
     fill: rgba(20,14,10,.78);
@@ -1350,14 +1357,14 @@
     stroke: rgba(142,190,123,.72);
   }
   .tour-path-node.active {
-    fill: #ff7733;
+    fill: rgb(var(--station-soft-rgb));
     stroke: #fff1d8;
-    filter: drop-shadow(0 0 8px rgba(255,119,51,.55));
+    filter: drop-shadow(0 0 8px rgba(var(--station-soft-rgb), .58));
   }
   .tour-path-node.next {
-    fill: #ffcf8a;
+    fill: var(--station-accent);
     stroke: rgba(255,255,255,.9);
-    filter: drop-shadow(0 0 8px rgba(255,207,138,.5));
+    filter: drop-shadow(0 0 8px rgba(var(--station-accent-rgb), .5));
   }
   .tour-path-label {
     fill: rgba(255,241,216,.92);
@@ -2398,6 +2405,49 @@ const TOUR_RECEIPT_DETAILS = [
   },
 ];
 
+const STATION_TONES = {
+  profile: {
+    name: '身份炉色',
+    accent: '#ffcf8a',
+    accentRgb: '255, 207, 138',
+    softRgb: '255, 119, 51',
+    deepRgb: '31, 18, 10',
+    light: 0xffb35c,
+    label: '身份火候',
+    line: '暖金火候：先看主人和手艺底色。',
+  },
+  iloop: {
+    name: '方法炉色',
+    accent: '#9fd6ff',
+    accentRgb: '159, 214, 255',
+    softRgb: '67, 139, 215',
+    deepRgb: '9, 21, 34',
+    light: 0x74bfff,
+    label: '方法蓝火',
+    line: '蓝白火候：把 AI 协作锻成五锤流程。',
+  },
+  latest: {
+    name: '试火炉色',
+    accent: '#d6f0bd',
+    accentRgb: '214, 240, 189',
+    softRgb: '118, 174, 95',
+    deepRgb: '17, 29, 14',
+    light: 0xb6f08c,
+    label: '试火余绿',
+    line: '青绿火候：看每日小步试火留下的证据。',
+  },
+  forge: {
+    name: '反馈炉色',
+    accent: '#ff9b57',
+    accentRgb: '255, 155, 87',
+    softRgb: '255, 86, 32',
+    deepRgb: '38, 12, 6',
+    light: 0xff5f2a,
+    label: '反馈赤焰',
+    line: '赤橙火候：点击火炉，让短句、声音和灯光回锤。',
+  },
+};
+
 const OBJECT_CONFIG = {
   forge: {
     name: '火炉 · 欢迎语锻造机',
@@ -2536,6 +2586,11 @@ scene.add(fireLight);
 const furnaceCoreLight = new THREE.PointLight(0xffaa55, 1.4, 4.5, 2.0);
 furnaceCoreLight.position.set(0, 1.45, 0.95);
 scene.add(furnaceCoreLight);
+
+// 当前站位的火候补光：只改变既有场景气质，不新增最终模型。
+const stationToneLight = new THREE.PointLight(STATION_TONES.profile.light, 0.0, 5.2, 2.1);
+stationToneLight.position.set(-3.15, FLOOR_Y + 1.6, 2.95);
+scene.add(stationToneLight);
 
 // 右侧工作台补一点暖反射，避免只有中间亮
 const benchFillLight = new THREE.PointLight(0xff8a45, 0.65, 6, 2.0);
@@ -2745,8 +2800,18 @@ window.__SCENE_DEBUG__ = {
   }),
   stationFocus: () => {
     const rect = stationFocusHalo?.getBoundingClientRect();
+    const tone = STATION_TONES[activeTourType] || STATION_TONES.profile;
     return {
       activeTourType,
+      tone: {
+        key: activeTourType,
+        name: tone.name,
+        label: tone.label,
+        accent: tone.accent,
+        accentRgb: tone.accentRgb,
+        light: tone.light,
+        line: tone.line,
+      },
       label: stationFocusLabel?.textContent || '',
       visible: stationFocusHalo?.classList.contains('show') || false,
       rect: rect ? {
@@ -2759,6 +2824,11 @@ window.__SCENE_DEBUG__ = {
       } : null,
       focusedNpc: TOUR_STOPS[activeTourType]?.npc || '',
       focusedObject: TOUR_STOPS[activeTourType]?.object || '',
+      toneLight: {
+        color: `#${stationToneLight.color.getHexString()}`,
+        intensity: Number(stationToneLight.intensity.toFixed(3)),
+        position: stationToneLight.position.toArray().map(v => Number(v.toFixed(3))),
+      },
     };
   },
   stationBrief: () => ({
@@ -3395,6 +3465,20 @@ function getStationFocusPosition(type = activeTourType) {
   return fallback;
 }
 
+function applyStationTone(type = activeTourType) {
+  const toneKey = STATION_TONES[type] ? type : 'profile';
+  const tone = STATION_TONES[toneKey];
+  const rootStyle = document.documentElement.style;
+  rootStyle.setProperty('--station-accent', tone.accent);
+  rootStyle.setProperty('--station-accent-rgb', tone.accentRgb);
+  rootStyle.setProperty('--station-soft-rgb', tone.softRgb);
+  rootStyle.setProperty('--station-deep-rgb', tone.deepRgb);
+  document.body.dataset.stationTone = toneKey;
+  stationToneLight.color.setHex(tone.light);
+  stationToneLight.position.copy(getStationFocusPosition(toneKey));
+  stationToneLight.userData.tone = toneKey;
+}
+
 function updateStationPinPosition() {
   const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
   const screen = worldToViewport(getStationPinPosition(activeTourType));
@@ -3432,6 +3516,8 @@ function updateStationHotspots() {
 function updateStationFocusHalo() {
   if (!stationFocusHalo || !stationFocusLabel) return;
   const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
+  const tone = STATION_TONES[activeTourType] || STATION_TONES.profile;
+  stationToneLight.position.copy(getStationFocusPosition(activeTourType));
   let screen = worldToViewport(getStationFocusPosition(activeTourType));
   let forceVisible = false;
   if (innerWidth <= 640) {
@@ -3451,7 +3537,8 @@ function updateStationFocusHalo() {
   const hiddenByRail = innerWidth <= 640 && screen.y > railTop - 40;
   const visible = (forceVisible || !screen.behind) && !hiddenByRail;
   stationFocusHalo.classList.toggle('show', visible);
-  stationFocusLabel.textContent = `${station.track}落锤`;
+  stationFocusLabel.textContent = tone.label || `${station.track}落锤`;
+  stationFocusHalo.setAttribute('title', tone.line);
   stationFocusHalo.setAttribute('data-tour', activeTourType);
   if (!visible) return;
   const margin = innerWidth <= 640 ? 44 : 56;
@@ -3810,6 +3897,7 @@ function inspectActiveArtifact() {
 function setActiveTourStop(type, options = {}) {
   const previousType = activeTourType;
   activeTourType = TOUR_STOPS[type] ? type : 'profile';
+  applyStationTone(activeTourType);
   if (activeTourType !== previousType || options.resetArtifact) {
     activeArtifactIndex = 0;
   }
@@ -4453,6 +4541,8 @@ function animate() {
       halo.light.intensity = base + focusBoost + Math.sin(t * 2.2 + i * 2.1) * pulseAmp;
     }
   });
+  const tonePulse = Math.sin(t * 2.4) * 0.08 * motionFactor;
+  stationToneLight.intensity = (SCENE_MODE === 'forge' ? 0.78 : 0.48) + tonePulse;
   updateNPCBubblePosition();
   updateStationPinPosition();
   updateStationHotspots();
