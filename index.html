@@ -156,6 +156,10 @@
     background: #ff7733;
     box-shadow: 0 0 12px rgba(255,119,51,.55);
   }
+  .sound-status.has-station-sound {
+    border-color: rgba(var(--station-accent-rgb), .44);
+    box-shadow: 0 6px 18px rgba(0,0,0,.2), 0 0 14px rgba(var(--station-soft-rgb), .14);
+  }
   .panel {
     position: fixed; top: 64px; left: 16px; z-index: 19;
     background: rgba(20, 14, 10, .72); backdrop-filter: blur(10px);
@@ -2448,6 +2452,41 @@ const STATION_TONES = {
   },
 };
 
+const STATION_SOUNDPRINTS = {
+  profile: {
+    name: '身份轻锤',
+    line: '身份轻锤：一声短响，把主人和手艺敲清楚。',
+    hits: [
+      { time: 0.00, frequency: 185, duration: 0.16, gain: 0.11 },
+      { time: 0.11, frequency: 268, duration: 0.12, gain: 0.055 },
+    ],
+  },
+  iloop: {
+    name: '方法双锤',
+    line: '方法双锤：两下相扣，像五锤闭环扣回证据。',
+    hits: [
+      { time: 0.00, frequency: 244, duration: 0.12, gain: 0.09 },
+      { time: 0.16, frequency: 328, duration: 0.12, gain: 0.072 },
+    ],
+  },
+  latest: {
+    name: '试火淬响',
+    line: '试火淬响：轻亮一闪，像当天样本进水看火候。',
+    hits: [
+      { time: 0.00, frequency: 392, duration: 0.09, gain: 0.052, type: 'triangle' },
+      { time: 0.09, frequency: 560, duration: 0.14, gain: 0.035, type: 'sine' },
+    ],
+  },
+  forge: {
+    name: '反馈炉鸣',
+    line: '反馈炉鸣：低响带火，提醒点击已经回到现场反馈。',
+    hits: [
+      { time: 0.00, frequency: 126, duration: 0.20, gain: 0.12, type: 'sawtooth' },
+      { time: 0.08, frequency: 214, duration: 0.16, gain: 0.055 },
+    ],
+  },
+};
+
 const OBJECT_CONFIG = {
   forge: {
     name: '火炉 · 欢迎语锻造机',
@@ -2479,6 +2518,8 @@ let currentProcessSteps = [];
 let selectedObjectKey = null;
 let activeTourType = 'profile';
 let activeArtifactIndex = 0;
+let lastStationSoundType = '';
+let lastStationSoundAt = 0;
 let yqClickCount = 0;
 let typedSecret = '';
 const reducedMotionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
@@ -2933,6 +2974,7 @@ window.__SCENE_DEBUG__ = {
     bgmStyle: window.__BGM_DEBUG__?.state()?.style || '',
     title: window.__BGM_DEBUG__?.state()?.title || '',
     npcVoice: !!SCENE_PRESETS[SCENE_MODE]?.npcVoice,
+    stationSound: window.__STATION_SOUND_DEBUG__?.state?.() || null,
     statusText: soundStatusLine?.textContent || '',
     statusClass: soundStatus?.className || '',
     bgmButtonText: bgmBtn?.textContent || '',
@@ -3961,6 +4003,9 @@ function setActiveTourStop(type, options = {}) {
   updateStationHotspots();
   updateStationFocusHalo();
   updateTourPath();
+  if (options.sound !== false && (activeTourType !== previousType || options.soundReason)) {
+    StationSound?.strike?.(activeTourType, options.soundReason || 'station');
+  }
 }
 
 function tourTypeForNpc(key) {
@@ -4112,8 +4157,9 @@ function forgeWelcome() {
   selectedObjectKey = 'forge';
   activeKey = null;
   setActiveNpcButton(null);
-  setActiveTourStop('forge');
+  setActiveTourStop('forge', { sound: false });
   applySceneMode('forge');
+  StationSound?.strike?.('forge', 'forge');
   forgePulseUntil = performance.now() + 1400;
   renderDialog({
     name: '火炉 · 新欢迎语',
@@ -4246,13 +4292,13 @@ function selectObject(key) {
   selectedObjectKey = key;
   yqClickCount = 0;
   setActiveNpcButton(null);
-  setActiveTourStop(key === 'forge' ? 'forge' : null);
   stopCurrentAudio();
 
   if (key === 'forge') {
     forgeWelcome();
     return;
   }
+  setActiveTourStop(key === 'forge' ? 'forge' : null);
   renderDialog({
     name: cfg.name,
     meta: cfg.meta,
@@ -4285,6 +4331,9 @@ function goAdjacentTourStop(direction) {
 function runStationAction() {
   const station = TOUR_STOPS[activeTourType] || TOUR_STOPS.profile;
   const actionType = station.actionType || activeTourType;
+  if (actionType !== 'forge') {
+    StationSound?.strike?.(activeTourType, 'action');
+  }
   openGuideCard(station.actionType || activeTourType);
   if (actionType !== 'forge') {
     const stationEcho = getStationEcho(station, 'action');
@@ -4409,7 +4458,7 @@ document.getElementById('btnClose').addEventListener('click', () => {
   dialogActions = [];
   stopCurrentAudio();
   setActiveNpcButton(null);
-  setActiveTourStop('profile');
+  setActiveTourStop('profile', { sound: false });
 });
 document.getElementById('btnPlay').addEventListener('click', () => {
   if (activeKey) {
@@ -4662,6 +4711,85 @@ const BGM = (() => {
   return api;
 })();
 
+const StationSound = (() => {
+  let ctx = null;
+  let masterGain = null;
+
+  function getContext() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    if (!ctx) {
+      ctx = new AudioContextClass();
+      masterGain = ctx.createGain();
+      masterGain.gain.value = 0.22;
+      masterGain.connect(ctx.destination);
+    }
+    return ctx;
+  }
+
+  function canPlay() {
+    return audioUnlocked && !bgmUserMuted && !reducedMotion;
+  }
+
+  function strike(type = activeTourType, reason = 'station') {
+    const soundprint = STATION_SOUNDPRINTS[type] || STATION_SOUNDPRINTS.profile;
+    lastStationSoundType = type;
+    if (!canPlay()) {
+      refreshSoundStatus?.();
+      return false;
+    }
+    const context = getContext();
+    if (!context || !masterGain) return false;
+    context.resume?.();
+    const now = context.currentTime + 0.018;
+    const reasonGain = reason === 'action' || reason === 'forge' ? 1.0 : 0.74;
+    soundprint.hits.forEach(hit => {
+      const osc = context.createOscillator();
+      const gain = context.createGain();
+      const filter = context.createBiquadFilter();
+      const start = now + hit.time;
+      const end = start + hit.duration;
+      osc.type = hit.type || 'square';
+      osc.frequency.setValueAtTime(hit.frequency, start);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(40, hit.frequency * 0.72), end);
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(hit.frequency * 2.2, start);
+      filter.Q.value = 5.8;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, hit.gain * reasonGain), start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, end);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(masterGain);
+      osc.start(start);
+      osc.stop(end + 0.035);
+    });
+    lastStationSoundAt = performance.now();
+    refreshSoundStatus?.();
+    return true;
+  }
+
+  return {
+    strike,
+    get canPlay() { return canPlay(); },
+    state: () => {
+      const soundprint = STATION_SOUNDPRINTS[lastStationSoundType || activeTourType] || STATION_SOUNDPRINTS.profile;
+      return {
+        enabled: canPlay(),
+        unlocked: audioUnlocked,
+        muted: bgmUserMuted,
+        reducedMotion,
+        activeType: activeTourType,
+        lastType: lastStationSoundType,
+        lastName: soundprint.name,
+        lastLine: soundprint.line,
+        playedRecently: lastStationSoundAt > 0 && performance.now() - lastStationSoundAt < 2600,
+      };
+    },
+  };
+})();
+window.__STATION_SOUND_DEBUG__ = StationSound;
+
 /* ============================================================
    场景模式管理器 · 像家里灯光场景一样整体切换
    (预设 SCENE_PRESETS / SCENE_MODE / fireBaseIntensity 已在前面定义)
@@ -4736,11 +4864,13 @@ const bgmBtn = document.getElementById('bgmToggle');
 const soundStatus = document.getElementById('soundStatus');
 const soundStatusLine = document.getElementById('soundStatusLine');
 function getSoundStatusText() {
+  const soundprint = STATION_SOUNDPRINTS[lastStationSoundType || activeTourType] || STATION_SOUNDPRINTS.profile;
+  const soundCue = `声纹：${soundprint.name}`;
   if (!BGM.playing) return '静音看铺：音乐和人物语音都已收住。';
-  if (!audioUnlocked) return `炉声待点亮：首次点击后播放 ${BGM.title}。`;
-  if (!BGM.audible) return `炉声连接中：正在唤起 ${BGM.title}。`;
-  if (SCENE_MODE === 'forge') return `开炉有声：${BGM.title}，人物语音会应锤加入。`;
-  return `舒缓听铺：${BGM.title}，人物先只冒泡不打扰。`;
+  if (!audioUnlocked) return `炉声待点亮：首次点击后播放 ${BGM.title}，再听${soundprint.name}。`;
+  if (!BGM.audible) return `炉声连接中：正在唤起 ${BGM.title}。${soundCue}`;
+  if (SCENE_MODE === 'forge') return `开炉有声：${BGM.title}，人物语音会应锤加入。${soundCue}`;
+  return `舒缓听铺：${BGM.title}，人物先只冒泡不打扰。${soundCue}`;
 }
 function refreshSoundStatus() {
   if (!soundStatus || !soundStatusLine) return;
@@ -4748,6 +4878,7 @@ function refreshSoundStatus() {
   soundStatusLine.textContent = getSoundStatusText();
   soundStatus.classList.toggle('audible', audible);
   soundStatus.classList.toggle('forge', audible && SCENE_MODE === 'forge');
+  soundStatus.classList.toggle('has-station-sound', !!lastStationSoundType && audioUnlocked && !bgmUserMuted);
   soundStatus.setAttribute('aria-label', `炉声火候：${soundStatusLine.textContent}`);
 }
 function refreshBgmBtn() {
@@ -4830,7 +4961,7 @@ startBgmDefault();
 
 createStationHotspots();
 createTourPath();
-setActiveTourStop('profile');
+setActiveTourStop('profile', { sound: false });
 togglePanel(false);
 
 // 性能：resize 用 rAF 节流，避免拖拽窗口时高频重建渲染缓冲
