@@ -1,0 +1,22 @@
+本轮已完成并推送到 `main`。
+
+主题是“站点声纹回锤”：在 [index.html](<REMOTE_HOME>/.local/share/autoloop/workspaces/42f7141541900ddc/2026-10-06/index.html) 里为四站加入低音量 Web Audio 短声纹：
+- 老杨：身份轻锤
+- iLoop：方法双锤
+- 近况：试火淬响
+- 火炉：反馈炉鸣
+
+交互后右上炉声状态会同步显示当前声纹；初始加载和关闭弹窗复位保持静默，静音和稳火状态下不会强行出声。没有新增模型或外部音频素材。
+
+验证结果：
+- 本地固定验证通过：`.autoloop/runs/2026-10-06_attempt_01/local_visual_verification.json`
+- 声纹专项检查通过：`.autoloop/runs/2026-10-06_attempt_01/station_soundprint_check.json`
+- 创意门禁通过：`.autoloop/runs/2026-10-06_attempt_01/creative_validation_final.json`
+- 线上无痕验证第二次通过：`.autoloop/runs/2026-10-06_attempt_01/visual_verification.json`
+- 线上截图：`.autoloop/journal/assets/2026-10-06-online.png`
+
+提交记录：
+- `867d25ef4180aa3b876087235b65089dc61587d0`：`feat: 给四站加声纹回锤`
+- `129a572`：`docs: 记录 2026-10-06 线上验证`
+
+说明：原工作区 `.git` 在提交时出现 `Read-only file system`，所以我按之前同类断点的做法，用 `/tmp/npc_voice_panel_3d_2026_10_06_attempt_01_publish` 临时克隆完成 commit 和 push。原工作区文件内容已是本轮最终内容，但 `git status` 在原目录仍会显示未提交改动，这是只读 `.git` 导致的状态不同步，不影响远端 `main` 已发布。
